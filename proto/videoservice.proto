@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package videoservice;
+
+option go_package = "sortedstartup.com/stream/videoservice/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service VideoService {
+  // Core video operations
+  rpc CreateVideo(CreateVideoRequest) returns (Video);
+  rpc GetVideo(GetVideoRequest) returns (Video);
+  rpc ListVideos(ListVideosRequest) returns (ListVideosResponse);
+  rpc UpdateVideo(UpdateVideoRequest) returns (Video);
+  rpc DeleteVideo(DeleteVideoRequest) returns (Empty);
+
+  // Sharing
+  rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
+}
+
+message Video {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string user_id = 4;
+  string url = 5;
+  string thumbnail_url = 6;
+  VideoStatus status = 7;
+  Visibility visibility = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+enum VideoStatus {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_PROCESSING = 1;
+  STATUS_READY = 2;
+  STATUS_FAILED = 3;
+}
+
+enum Visibility {
+  VISIBILITY_PRIVATE = 0;
+  VISIBILITY_SHARED = 1;
+  VISIBILITY_PUBLIC = 2;
+}
+
+message CreateVideoRequest {
+  string title = 1;
+  string description = 2;
+  string url = 3;
+  Visibility visibility = 4;
+}
+
+message GetVideoRequest {
+  string video_id = 1;
+}
+
+message ListVideosRequest {
+  string user_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListVideosResponse {
+  repeated Video videos = 1;
+  string next_page_token = 2;
+}
+
+message UpdateVideoRequest {
+  string video_id = 1;
+  string title = 2;
+  string description = 3;
+  Visibility visibility = 4;
+}
+
+message DeleteVideoRequest {
+  string video_id = 1;
+}
+
+message ShareVideoRequest {
+  string video_id = 1;
+}
+
+message ShareLink {
+  string id = 1;
+  string url = 2;
+}
+
+message Empty {}

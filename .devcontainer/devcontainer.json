@@ -1,0 +1,71 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+
+// The universal codespace image has some interesting code
+// 1. It uses local features, i.e there a folder called local-features, which has all init.sh script to install feature 
+// url: https://github.com/devcontainers/images/tree/main/src/universal
+{
+	"name": "stream",
+	// "build": {
+	// 	"dockerfile": "Dockerfile",
+	// },
+	
+	"dockerComposeFile": "./docker-compose.yml",
+	"service": "dev",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"shutdownAction": "stopCompose",
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {
+	// 	"ghcr.io/devcontainers/features/docker-in-docker:2": {
+    //         "version": "latest"
+    //     }
+	// },
+	
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "uname -a",
+
+	// Configure tool-specific properties.
+	"customizations": {
+			"service": "app",	
+			"vscode":{
+				"extensions": [
+					"golang.Go",
+					"astro-build.astro-vscode",
+					"ms-vscode.vscode-typescript-next",
+					"dsznajder.es7-react-js-snippets",
+					"zxh404.vscode-proto3",
+					"ms-azuretools.vscode-docker",
+					"inferrinizzard.prettier-sql-vscode",
+					"cweijan.vscode-postgresql-client2",
+					"mtxr.sqltools",
+					"premparihar.gotestexplorer",
+					"Ionic.ionic",
+					"yzhang.markdown-all-in-one",
+					"pomdtr.excalidraw-editor",
+					"yy0931.vscode-sqlite3-editor",
+					"Dancheg97.grpc-clicker",
+					"esbenp.prettier-vscode",
+					"bierner.markdown-mermaid",
+					"GitHub.vscode-pull-request-github"
+				],
+			
+				"settings": {
+					"terminal.integrated.defaultProfile.linux": "bash", 
+					"terminal.integrated.profiles.linux": {
+						"zsh": {
+							"path": "/bin/bash"
+						},
+					}
+				}
+			}
+		},
+
+		"remoteEnv": {
+			"GOOGLE_APPLICATION_CREDENTIALS": "/workspaces/stream/.secrets/firebase-admin-credentials.json"
+		},
+	"postCreateCommand": "/bin/bash .devcontainer/postCreate.sh",
+	//"forwardPorts": [50051, 3000, 4000]
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root",
+	
+}
