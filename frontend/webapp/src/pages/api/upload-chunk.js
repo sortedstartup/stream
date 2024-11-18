@@ -23,7 +23,7 @@ export default function handler(req, res) {
     req.on("data", (chunk) => {
       chunks.push(chunk);
     });
-
+    
     req.on("end", () => {
       try {
         // Append the chunk to the file
