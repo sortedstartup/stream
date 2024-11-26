@@ -34,7 +34,7 @@ export default function Home() {
           onClick={handleNavigation}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          Record Video
+          + Record Video
         </button>
       </main>
 
