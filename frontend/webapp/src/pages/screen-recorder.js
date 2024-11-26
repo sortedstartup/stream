@@ -42,7 +42,7 @@ export default function ScreenRecorder() {
       setIsRecording(false);
     }
   };
-
+// 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Screen Recorder</h1>
