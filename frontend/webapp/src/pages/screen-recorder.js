@@ -73,6 +73,49 @@ export default function ScreenRecorder() {
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
+          <button    style={{
+            padding: "10px 20px",
+            background: "#f44336",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+          }}
+          onClick={(e)=>{
+            
+            fetch(process.env.NEXT_PUBLIC_API_URL+"/test")
+            .then((response)=>response.json())
+            .then(j=>{
+              console.log("json "+JSON.stringify(j))
+              alert(JSON.stringify(j));
+            })
+          }}
+          >
+            test GET
+          </button>
+<br/>
+          <button    style={{
+            padding: "10px 20px",
+            background: "#f44336",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+          }} onClick={(e)=>{
+            fetch(process.env.NEXT_PUBLIC_API_URL+'/testpost', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ name: '[hello from server]' }),
+            })
+              .then(response => response.json())
+              .then(data => {
+                console.log('API Response:', data);
+                alert(data.message);
+              })
+              .catch(error => console.error('Error:', error));
+          }}>
+            test POST
+          </button>
       <h1>Screen Recorder</h1>
       {!isRecording ? (
         <button
@@ -87,6 +130,7 @@ export default function ScreenRecorder() {
         >
           Start Recording
         </button>
+        
       ) : (
         <button
           onClick={stopRecording}
@@ -123,6 +167,8 @@ export default function ScreenRecorder() {
           >
             Download Video
           </button>
+
+      
         </div>
       )}
     </div>
