@@ -8,7 +8,7 @@ import (
 )
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	// Log the incoming request for debugging purposes
+	// Log the incoming request for debugging purpose
 	fmt.Println("Upload request received")
 
 	// Parse the form data
