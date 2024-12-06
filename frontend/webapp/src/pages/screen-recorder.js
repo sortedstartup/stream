@@ -8,41 +8,32 @@ export default function ScreenRecorder() {
 
   const startRecording = async () => {
     try {
-      // Request screen recording
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
       });
 
-      // Request microphone audio
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
 
-      // Combine audio and video tracks
       const combinedStream = new MediaStream();
-
       screenStream.getTracks().forEach((track) => combinedStream.addTrack(track));
-      audioStream.getAudioTracks().forEach((track) =>
-        combinedStream.addTrack(track)
-      );
+      audioStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
 
-      // Initialize MediaRecorder
       mediaRecorder.current = new MediaRecorder(combinedStream);
       recordedChunks.current = [];
 
-      // Collect data chunks
       mediaRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) recordedChunks.current.push(event.data);
       };
 
-      // Save the video when recording stops
       mediaRecorder.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: "video/webm" });
         setVideoUrl(URL.createObjectURL(blob));
+        uploadVideo(blob);
       };
 
-      // Start recording
       mediaRecorder.current.start();
       setIsRecording(true);
     } catch (error) {
@@ -54,8 +45,6 @@ export default function ScreenRecorder() {
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
       setIsRecording(false);
-
-      // Stop all MediaStream tracks
       mediaRecorder.current.stream.getTracks().forEach((track) => track.stop());
     }
   };
@@ -71,104 +60,44 @@ export default function ScreenRecorder() {
     document.body.removeChild(a);
   };
 
+  // Upload the video to the server
+  const uploadVideo = async (videoBlob) => {
+    const formData = new FormData();
+    formData.append("video", videoBlob, "recording.webm");
+
+    try {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Upload success:", data);
+      alert("Video uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      alert("Error uploading video!");
+    }
+  };
+
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-          <button    style={{
-            padding: "10px 20px",
-            background: "#f44336",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-          }}
-          onClick={(e)=>{
-            
-            fetch(process.env.NEXT_PUBLIC_API_URL+"/test")
-            .then((response)=>response.json())
-            .then(j=>{
-              console.log("json "+JSON.stringify(j))
-              alert(JSON.stringify(j));
-            })
-          }}
-          >
-            test GET
-          </button>
-<br/>
-          <button    style={{
-            padding: "10px 20px",
-            background: "#f44336",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-          }} onClick={(e)=>{
-            fetch(process.env.NEXT_PUBLIC_API_URL+'/testpost', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ name: '[hello from server]' }),
-            })
-              .then(response => response.json())
-              .then(data => {
-                console.log('API Response:', data);
-                alert(data.message);
-              })
-              .catch(error => console.error('Error:', error));
-          }}>
-            test POST
-          </button>
       <h1>Screen Recorder</h1>
       {!isRecording ? (
-        <button
-          onClick={startRecording}
-          style={{
-            padding: "10px 20px",
-            background: "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-          }}
-        >
-          Start Recording
-        </button>
-        
+        <button onClick={startRecording}>Start Recording</button>
       ) : (
-        <button
-          onClick={stopRecording}
-          style={{
-            padding: "10px 20px",
-            background: "#f44336",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-          }}
-        >
-          Stop Recording
-        </button>
+        <button onClick={stopRecording}>Stop Recording</button>
       )}
 
       {videoUrl && (
-        <div style={{ marginTop: "20px" }}>
+        <div>
           <h3>Recording Preview:</h3>
-          <video
-            controls
-            src={videoUrl}
-            style={{ width: "100%", maxWidth: "600px", marginTop: "10px" }}
-          ></video>
-          <button
-            onClick={downloadRecording}
-            style={{
-              marginTop: "10px",
-              padding: "10px 20px",
-              background: "#0070f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-            }}
-          >
-            Download Video
-          </button>
-
-      
+          <video controls src={videoUrl} style={{ width: "100%", maxWidth: "600px" }}></video>
+          <button onClick={downloadRecording}>Download Video</button>
         </div>
       )}
     </div>

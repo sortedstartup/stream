@@ -1,52 +1,66 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
-type Request struct {
-	Name string `json:"name"`
-}
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	// Log the incoming request for debugging purposes
+	fmt.Println("Upload request received")
 
-type Response struct {
-	Message string `json:"message"`
+	// Parse the form data
+	err := r.ParseMultipartForm(10 << 20) // Limit upload to 10MB
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		fmt.Println("Error parsing form:", err)
+		return
+	}
+
+	// Retrieve the file from the form
+	file, _, err := r.FormFile("video")
+	if err != nil {
+		http.Error(w, "Error retrieving file", http.StatusBadRequest)
+		fmt.Println("Error retrieving file:", err)
+		return
+	}
+	defer file.Close()
+
+	// Create a file to store the uploaded video
+	outFile, err := os.Create(filepath.Join("uploads", "recording.webm"))
+	if err != nil {
+		http.Error(w, "Error saving the file", http.StatusInternalServerError)
+		fmt.Println("Error saving file:", err)
+		return
+	}
+	defer outFile.Close()
+
+	// Copy the file data into the server file
+	_, err = outFile.ReadFrom(file)
+	if err != nil {
+		http.Error(w, "Error saving the file", http.StatusInternalServerError)
+		fmt.Println("Error copying file:", err)
+		return
+	}
+
+	// Respond with a success message
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "File uploaded successfully"}`))
 }
 
 func main() {
-	// Define the /hello endpoint handler
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+	// Ensure the uploads directory exists
+	if _, err := os.Stat("uploads"); os.IsNotExist(err) {
+		err := os.Mkdir("uploads", 0755)
+		if err != nil {
+			fmt.Println("Error creating uploads directory:", err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"message": "Hello, World!"}`)
-	})
-
-	http.HandleFunc("/testpost", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req Request
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-
-		res := Response{Message: "Hello, " + req.Name}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(res)
-	})
-
-	// Start the HTTP server
-	port := "8080"
-	fmt.Printf("Server running at http://localhost:%s\n", port)
-	err := http.ListenAndServe(":"+port, nil)
-	if err != nil {
-		fmt.Println("Error starting server:", err)
 	}
+
+	http.HandleFunc("/upload", uploadHandler)
+	fmt.Println("Server started on :8080")
+	http.ListenAndServe(":8080", nil)
 }
