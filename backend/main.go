@@ -2,25 +2,33 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	// Log the incoming request for debugging purpose
-	fmt.Println("Upload request received")
+// Directory to save uploaded files
+const uploadDir = "uploads"
 
-	// Parse the form data
-	err := r.ParseMultipartForm(10 << 20) // Limit upload to 10MB
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set file size limit to 100MB
+	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		fmt.Println("Error parsing form:", err)
 		return
 	}
 
-	// Retrieve the file from the form
-	file, _, err := r.FormFile("video")
+	file, fileHeader, err := r.FormFile("video")
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		fmt.Println("Error retrieving file:", err)
@@ -28,8 +36,30 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Create a file to store the uploaded video
-	outFile, err := os.Create(filepath.Join("uploads", "recording.webm"))
+	// Get the file extension from the uploaded file
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if ext == "" {
+		http.Error(w, "Invalid file extension", http.StatusBadRequest)
+		fmt.Println("Error: file extension missing")
+		return
+	}
+
+	// Generate a unique filename
+	fileName := uuid.New().String() + ext
+	outputPath := filepath.Join(uploadDir, fileName)
+
+	// Create the uploads directory if it doesn't exist
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		err := os.Mkdir(uploadDir, 0755)
+		if err != nil {
+			http.Error(w, "Error creating uploads directory", http.StatusInternalServerError)
+			fmt.Println("Error creating uploads directory:", err)
+			return
+		}
+	}
+
+	// Save the uploaded file
+	outFile, err := os.Create(outputPath)
 	if err != nil {
 		http.Error(w, "Error saving the file", http.StatusInternalServerError)
 		fmt.Println("Error saving file:", err)
@@ -37,30 +67,22 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer outFile.Close()
 
-	// Copy the file data into the server file
-	_, err = outFile.ReadFrom(file)
+	_, err = io.Copy(outFile, file)
 	if err != nil {
-		http.Error(w, "Error saving the file", http.StatusInternalServerError)
-		fmt.Println("Error copying file:", err)
+		http.Error(w, "Error writing file", http.StatusInternalServerError)
+		fmt.Println("Error writing file:", err)
 		return
 	}
 
-	// Respond with a success message
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "File uploaded successfully"}`))
+	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
 }
 
 func main() {
-	// Ensure the uploads directory exists
-	if _, err := os.Stat("uploads"); os.IsNotExist(err) {
-		err := os.Mkdir("uploads", 0755)
-		if err != nil {
-			fmt.Println("Error creating uploads directory:", err)
-			return
-		}
-	}
-
+	// Set up the /upload route
 	http.HandleFunc("/upload", uploadHandler)
+
+	// Start the server
 	fmt.Println("Server started on :8080")
 	http.ListenAndServe(":8080", nil)
 }
