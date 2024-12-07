@@ -44,7 +44,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a unique filename
+	//Generate a unique filename
 	fileName := uuid.New().String() + ext
 	outputPath := filepath.Join(uploadDir, fileName)
 
