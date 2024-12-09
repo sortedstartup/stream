@@ -14,7 +14,7 @@ import (
 
 const (
 	uploadDir     = "uploads"
-	maxUploadSize = 100 << 20 // 100 MB
+	maxUploadSize = 100 << 20 
 )
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {

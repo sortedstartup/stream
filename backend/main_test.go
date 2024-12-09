@@ -78,7 +78,7 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 	}
 }
 
-// Helper function to create a fake file upload request
+// helper function to create a fake file upload request
 func createFakeFileUploadRequest(fieldName, fileName string, fileSize int) *http.Request {
 	// Create a dummy file with the specified size
 	var buf bytes.Buffer
