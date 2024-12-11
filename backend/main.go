@@ -14,7 +14,7 @@ import (
 
 const (
 	uploadDir     = "uploads"
-	maxUploadSize = 100 << 20 
+	maxUploadSize = 100 << 20 // 100 MB
 )
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the uploaded file
-	file, fileHeader, err := r.FormFile("video")
+	file, fileHeader, err := r.FormFile("video") // Ensure "video" matches the test cases
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		fmt.Println("Error retrieving file:", err)
@@ -57,11 +57,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileName := uuid.New().String() + ext
-	outputPath := filepath.Join(uploadDir, fileName)
+
+	// Resolve absolute path for the uploads directory
+	absUploadDir, err := filepath.Abs(uploadDir)
+	if err != nil {
+		http.Error(w, "Failed to resolve upload directory", http.StatusInternalServerError)
+		fmt.Println("Error resolving upload directory:", err)
+		return
+	}
+	outputPath := filepath.Join(absUploadDir, fileName)
 
 	// Ensure the uploads directory exists
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		err := os.Mkdir(uploadDir, 0755)
+	if _, err := os.Stat(absUploadDir); os.IsNotExist(err) {
+		err := os.Mkdir(absUploadDir, 0755)
 		if err != nil {
 			http.Error(w, "Error creating uploads directory", http.StatusInternalServerError)
 			fmt.Println("Error creating uploads directory:", err)
