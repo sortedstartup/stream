@@ -2,100 +2,116 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
+const testUploadDir = "test_uploads"
+
+func TestMain(m *testing.M) {
+	// Ensure test uploads directory is cleaned up before and after tests
+	os.RemoveAll(testUploadDir)
+	os.Mkdir(testUploadDir, 0755)
+	code := m.Run()
+	os.RemoveAll(testUploadDir)
+	os.Exit(code)
+}
+
 func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
-	t.Log("Testing Content-Length Exceeds Limit...")
-	// Create a request that exceeds the 100MB limit
-	req := createFakeFileUploadRequest("file", "largefile.txt", 1024*1024*1024) // 1GB file
-	rr := httptest.NewRecorder()
+	reqBody := bytes.NewBuffer(make([]byte, maxUploadSize+1))
+	req := httptest.NewRequest(http.MethodPost, "/upload", reqBody)
+	req.Header.Set("Content-Length", "104857601")
 
-	// Call the handler
+	rec := httptest.NewRecorder()
 	handler := http.HandlerFunc(uploadHandler)
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(rec, req)
 
-	// Check if the response code is 413 (Payload Too Large)
-	if rr.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, rr.Code)
-	}
-
-	// Check if the error message is correct
-	expectedBody := "File size exceeds the 100 MB limit\n"
-	if rr.Body.String() != expectedBody {
-		t.Errorf("Expected body %q, got %q", expectedBody, rr.Body.String())
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, rec.Code)
 	}
 }
 
 func TestUploadHandlerNoContentLengthHeader(t *testing.T) {
-	t.Log("Testing No Content-Length Header...")
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("video", "test.webm")
+	part.Write([]byte("dummy content"))
+	writer.Close()
 
-	// Create a request without the Content-Length header
-	req := createFakeFileUploadRequest("file", "test.mp4", 100*1024*1024) // 100MB file
-	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	// Call the handler
+	rec := httptest.NewRecorder()
 	handler := http.HandlerFunc(uploadHandler)
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(rec, req)
 
-	// Check if the response code is 413 (Payload Too Large) or 200 OK
-	// If the file exceeds the limit, the server should reject with 413
-	if rr.Code != http.StatusRequestEntityTooLarge && rr.Code != http.StatusOK {
-		t.Errorf("Expected status code 200 or 413, got %d", rr.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, rec.Code)
 	}
 
-	// If it's 200 OK, check if the file exists
-	if rr.Code == http.StatusOK {
-		if _, err := os.Stat("uploads/test.mp4"); os.IsNotExist(err) {
-			t.Errorf("Expected file to be saved at uploads/test.mp4, but it does not exist")
-		}
+	// Check if the file exists in the uploads directory
+	absUploadDir, _ := filepath.Abs(uploadDir)
+	expectedPath := filepath.Join(absUploadDir, "test.webm")
+	if _, err := os.Stat(expectedPath); err == nil {
+		t.Errorf("File should not exist at %s, but it does", expectedPath)
 	}
 }
 
 func TestUploadHandlerMaxBytesReader(t *testing.T) {
-	t.Log("Testing MaxBytesReader...")
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
 
-	// Create a request with a file smaller than the limit
-	req := createFakeFileUploadRequest("file", "test.mp4", 50*1024*1024) // 50MB file
-	rr := httptest.NewRecorder()
+	// Create a large file part exceeding the limit
+	part, _ := writer.CreateFormFile("video", "largefile.webm")
+	io.CopyN(part, bytes.NewReader(make([]byte, maxUploadSize+1)), maxUploadSize+1)
+	writer.Close()
 
-	// Call the handler
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	rec := httptest.NewRecorder()
 	handler := http.HandlerFunc(uploadHandler)
-	handler.ServeHTTP(rr, req)
+	handler.ServeHTTP(rec, req)
 
-	// Check if the response code is 200 OK
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", rr.Code)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, rec.Code)
 	}
 
-	// Check if the file exists
-	if _, err := os.Stat("uploads/test.mp4"); os.IsNotExist(err) {
-		t.Errorf("Expected file to be saved at uploads/test.mp4, but it does not exist")
+	// Check that the file is not created
+	absUploadDir, _ := filepath.Abs(uploadDir)
+	expectedPath := filepath.Join(absUploadDir, "largefile.webm")
+	if _, err := os.Stat(expectedPath); err == nil {
+		t.Errorf("File should not exist at %s, but it does", expectedPath)
 	}
 }
 
-// helper function to create a fake file upload request
-func createFakeFileUploadRequest(fieldName, fileName string, fileSize int) *http.Request {
-	// Create a dummy file with the specified size
-	var buf bytes.Buffer
-	for i := 0; i < fileSize; i++ {
-		buf.WriteByte('a') // Write dummy data to the file
-	}
-
-	// Create a multipart writer and add the file field
+func TestUploadHandlerSuccessfulUpload(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile(fieldName, fileName)
-	part.Write(buf.Bytes()) // Add the fake file content
-
-	// Close the writer and prepare the request
+	part, _ := writer.CreateFormFile("video", "success.webm")
+	part.Write([]byte("valid content"))
 	writer.Close()
-	req := httptest.NewRequest("POST", "/upload", body)
+
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	return req
+	rec := httptest.NewRecorder()
+	handler := http.HandlerFunc(uploadHandler)
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	// Check if the file was saved correctly
+	absUploadDir, _ := filepath.Abs(uploadDir)
+	files, err := os.ReadDir(absUploadDir)
+	if err != nil || len(files) == 0 {
+		t.Errorf("Expected file in uploads directory, but none found")
+	}
 }
