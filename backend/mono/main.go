@@ -102,8 +102,8 @@ func NewMonolith() (*Monolith, error) {
 	// GRPC Web is a http server 1.0 server that wraps a grpc server
 	// Browsers JS clients can only talk to GRPC web for now
 	wrappedGrpc := grpcweb.WrapServer(grpcServer)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	parentMux := http.NewServeMux()
+	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
 			// EnableCORS(wrappedGrpc).ServeHTTP(w, r)
 			wrappedGrpc.ServeHTTP(w, r)
@@ -113,9 +113,13 @@ func NewMonolith() (*Monolith, error) {
 		//staticUI.ServeHTTP(w, r)
 	})
 
+	// parentMux.Handle("/test/*", aNewMux())
+	// this muxOne can be got from video service struct
+	parentMux.Handle("/api/videoservice/", http.StripPrefix("/api/videoservice", videoAPI.ServerMux))
+
 	httpServer := &http.Server{
 		Addr:    config.Server.GrpcWebAddrPortString(),
-		Handler: enableCORS(mux),
+		Handler: enableCORS(parentMux),
 	}
 
 	return &Monolith{
