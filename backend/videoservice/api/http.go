@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"errors"
@@ -106,13 +106,4 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
-}
-
-func main() {
-	// Set up the /upload route
-	http.HandleFunc("/upload", uploadHandler)
-
-	// Start the server
-	fmt.Println("Server started on :8080")
-	http.ListenAndServe(":8080", nil)
 }
