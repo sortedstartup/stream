@@ -60,7 +60,7 @@ export default function ScreenRecorder() {
     document.body.removeChild(a);
   };
 
-  //Upload the video to the server
+  // Upload the video to the server
   const uploadVideo = async (videoBlob) => {
     const formData = new FormData();
     formData.append("video", videoBlob, "recording.webm");
