@@ -26,7 +26,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
-		http.Error(w, "File size exceeds the 200 MB limit", http.StatusRequestEntityTooLarge)
+		http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -42,7 +42,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the uploaded file
-	file, fileHeader, err := r.FormFile("video") // Ensure "video" matches the test cases
+	file, fileHeader, err := r.FormFile("video") 
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		fmt.Println("Error retrieving file:", err)
