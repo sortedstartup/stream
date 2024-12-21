@@ -1,7 +1,8 @@
 go 1.23.2
 
 use (
+	.
+	./common
+	./mono
 	./videoservice
-    ./common
-    ./mono
 )
