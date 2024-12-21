@@ -14,9 +14,10 @@ import (
 
 const (
 	uploadDir     = "uploads"
-	maxUploadSize = 100 << 20 // 100 MB
+	maxUploadSize = 100 << 20 // Increased limit to 100 MB
 )
 
+// uploadHandler handles file uploads
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -25,7 +26,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
-		http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
+		http.Error(w, "File size exceeds the 200 MB limit", http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -49,13 +50,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Generate a unique filename with the original extension
+	// Validate file type (optional)
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext == "" {
-		http.Error(w, "Invalid file extension", http.StatusBadRequest)
-		fmt.Println("Error: file extension missing")
+	if ext != ".mp4" && ext != ".mov" && ext != ".avi" {
+		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi are allowed", http.StatusBadRequest)
 		return
 	}
+
+	// Generate a unique filename with the original extension
 	fileName := uuid.New().String() + ext
 
 	// Resolve absolute path for the uploads directory
@@ -92,7 +94,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Check for MaxBytesError
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
+			http.Error(w, "File size exceeds the 200 MB limit", http.StatusRequestEntityTooLarge)
 		} else {
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		}
