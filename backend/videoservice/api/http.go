@@ -50,7 +50,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Validate file type (optional)
+	// Validate file type
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if ext != ".mp4" && ext != ".mov" && ext != ".avi" {
 		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi are allowed", http.StatusBadRequest)
@@ -94,7 +94,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Check for MaxBytesError
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			http.Error(w, "File size exceeds the 200 MB limit", http.StatusRequestEntityTooLarge)
+			http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
 		} else {
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		}
