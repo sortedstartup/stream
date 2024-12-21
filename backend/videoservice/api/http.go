@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"errors"
@@ -14,9 +14,10 @@ import (
 
 const (
 	uploadDir     = "uploads"
-	maxUploadSize = 100 << 20 // 100 MB
+	maxUploadSize = 100 << 20 // Increased limit to 100 MB
 )
 
+// uploadHandler handles file uploads
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -41,7 +42,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the uploaded file
-	file, fileHeader, err := r.FormFile("video") // Ensure "video" matches the test cases
+	file, fileHeader, err := r.FormFile("video") 
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		fmt.Println("Error retrieving file:", err)
@@ -49,13 +50,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Generate a unique filename with the original extension
+	// Validate file type
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext == "" {
-		http.Error(w, "Invalid file extension", http.StatusBadRequest)
-		fmt.Println("Error: file extension missing")
+	if ext != ".mp4" && ext != ".mov" && ext != ".avi" {
+		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi are allowed", http.StatusBadRequest)
 		return
 	}
+
+	// Generate a unique filename with the original extension
 	fileName := uuid.New().String() + ext
 
 	// Resolve absolute path for the uploads directory
@@ -106,13 +108,4 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
-}
-
-func main() {
-	// Set up the /upload route
-	http.HandleFunc("/upload", uploadHandler)
-
-	// Start the server
-	fmt.Println("Server started on :8080")
-	http.ListenAndServe(":8080", nil)
 }

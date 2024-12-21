@@ -60,13 +60,13 @@ export default function ScreenRecorder() {
     document.body.removeChild(a);
   };
 
-  //Upload the video to the server
+  // Upload the video to the server
   const uploadVideo = async (videoBlob) => {
     const formData = new FormData();
     formData.append("video", videoBlob, "recording.webm");
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/upload", {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/videoservice/upload", {
         method: "POST",
         body: formData,
       });
@@ -75,9 +75,18 @@ export default function ScreenRecorder() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Upload success:", data);
-      alert("Video uploaded successfully!");
+      // Handle empty response body gracefully
+      const responseText = await response.text();
+      console.log("Server response:", responseText);
+
+      if (responseText) {
+        const data = JSON.parse(responseText);
+        console.log("Upload success:", data);
+        alert(data.message || "Video uploaded successfully!");
+      } else {
+        console.warn("Server returned an empty response.");
+        alert("Upload completed, but server returned no data.");
+      }
     } catch (error) {
       console.error("Error uploading video:", error);
       alert("Error uploading video!");
