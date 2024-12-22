@@ -115,7 +115,7 @@ func NewMonolith() (*Monolith, error) {
 
 	// parentMux.Handle("/test/*", aNewMux())
 	// this muxOne can be got from video service struct
-	parentMux.Handle("/api/videoservice/", http.StripPrefix("/api/videoservice", videoAPI.ServerMux))
+	parentMux.Handle("/api/videoservice/", http.StripPrefix("/api/videoservice", videoAPI.HTTPServerMux))
 
 	httpServer := &http.Server{
 		Addr:    config.Server.GrpcWebAddrPortString(),

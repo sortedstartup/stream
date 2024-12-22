@@ -1,0 +1,13 @@
+version: "2"
+cloud:
+  # Replace <PROJECT_ID> with your project ID from the sqlc Cloud dashboard
+  project: "<PROJECT_ID>"
+sql:
+  - engine: "sqlite"
+    queries: 
+     - "queries.sql"
+    schema: "../migrations"
+    gen:
+      go:
+        package: "db"
+        out: "../../db"
