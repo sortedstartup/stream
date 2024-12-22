@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	uploadDir     = "uploads"
-	maxUploadSize = 100 << 20 // Increased limit to 100 MB
+	uploadDir     = "uploads" // Directory to store uploaded files
+	maxUploadSize = 100 << 20 // Maximum file size limit: 100 MB
 )
 
 // uploadHandler handles file uploads
@@ -42,7 +42,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the uploaded file
-	file, fileHeader, err := r.FormFile("video") 
+	file, fileHeader, err := r.FormFile("video") // "video" is the form field name
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		fmt.Println("Error retrieving file:", err)
@@ -52,8 +52,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext != ".mp4" && ext != ".mov" && ext != ".avi" {
-		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi are allowed", http.StatusBadRequest)
+	if ext != ".mp4" && ext != ".mov" && ext != ".avi" && ext != ".webm" {
+		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi, .webm are allowed", http.StatusBadRequest)
 		return
 	}
 
@@ -108,4 +108,18 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
+}
+
+// StartServer initializes and starts the HTTP server
+func StartServer() {
+	http.HandleFunc("/upload", uploadHandler) // Route for handling uploads
+
+	// Serve static files (optional, e.g., for uploaded file preview)
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
+
+	port := "8080"
+	fmt.Printf("Server is running on http://localhost:%s\n", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		fmt.Println("Error starting server:", err)
+	}
 }
