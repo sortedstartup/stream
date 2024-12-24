@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
 	"sortedstartup.com/stream/videoservice/proto"
@@ -16,11 +15,9 @@ type VideoAPI struct {
 	config        config.VideoServiceConfig
 	HTTPServerMux *http.ServeMux
 	db            *sql.DB
+	log           *slog.Logger
+	dbQueries     *db.Queries
 
-	log       *slog.Logger
-	dbQueries *db.Queries
-
-	//implemented proto server
 	proto.UnimplementedVideoServiceServer
 }
 
@@ -32,16 +29,25 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		return nil, err
 	}
 
+	dbQueries := db.New(_db)
+
 	ServerMux := http.NewServeMux()
-	ServerMux.HandleFunc("/upload", uploadHandler)
+
+	// Pass dbQueries to uploadHandler via closure
+	ServerMux.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+		uploadHandler(w, r, dbQueries) // Pass dbQueries to the handler
+	})
+	ServerMux.HandleFunc("/videos", func(w http.ResponseWriter, r *http.Request) {
+		listVideosHandler(w, r, dbQueries) // List videos handler
+	})
 
 	return &VideoAPI{
 		HTTPServerMux: ServerMux,
 		config:        config,
 		db:            _db,
 		log:           childLogger,
+		dbQueries:     dbQueries,
 	}, nil
-	// return &VideoAPI{}, nil
 }
 
 func (s *VideoAPI) Start() error {
@@ -58,8 +64,8 @@ func (s *VideoAPI) Init() error {
 	return nil
 }
 
+// ListVideos fetches all videos from the database
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
-
 	videos, err := s.dbQueries.GetAllVideo(ctx)
 	if err != nil {
 		return nil, err
