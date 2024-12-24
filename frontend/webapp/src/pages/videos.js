@@ -19,7 +19,8 @@ export default function VideosList() {
         const contentType = response.headers.get("Content-Type");
         if (contentType?.includes("application/json")) {
           const data = await response.json();
-          setVideos(data.videos || []);
+          console.log("Fetched data:", data); // Log the data for debugging
+          setVideos(data || []);
         } else {
           throw new Error("Invalid response type, expected JSON");
         }
@@ -49,7 +50,9 @@ export default function VideosList() {
               <p>{video.description || "No description available."}</p>
               <p>
                 <strong>Uploaded At:</strong>{" "}
-                {new Date(video.created_at).toLocaleString()}
+                {video.created_at
+                  ? new Date(video.created_at.seconds * 1000).toLocaleString()
+                  : "Invalid date"}
               </p>
               <video controls width="400">
                 <source
@@ -67,3 +70,4 @@ export default function VideosList() {
     </div>
   );
 }
+
