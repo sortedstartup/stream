@@ -66,7 +66,7 @@ export default function ScreenRecorder() {
     formData.append("video", videoBlob, "recording.webm");
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/videoservice/upload", {
+      const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL + "/api/videoservice/upload", {
         method: "POST",
         body: formData,
       });
