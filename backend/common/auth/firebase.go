@@ -44,7 +44,7 @@ func (f *Firebase) VerifyIDToken(token string) (*AuthContext, error) {
 	// TODO: add docs about when this makes RPC calls
 	tok, err := f.Auth.VerifyIDToken(ctx, token)
 	if err != nil {
-		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false, FamilyID: ""}, err
+		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, err
 	}
 
 	user := &User{
