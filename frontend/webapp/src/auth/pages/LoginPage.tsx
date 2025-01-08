@@ -1,18 +1,18 @@
 import { $isLoggedIn, $user, LoginUser, LogoutUser } from "../store/user"
 import { useStore } from '@nanostores/react'
 import 'firebaseui/dist/firebaseui.css';
-import authPlugin from "../plugin/AuthPluginWeb"
-import { Redirect, useHistory, useLocation } from 'react-router';
+import { AuthPluginWeb } from "../plugin/AuthPluginWeb"
 import { useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { LocationState } from '../components/ProtectedRoute';
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router';
 
 const LoginPage = () => {
-
   const user = useStore($user);
   const isLoggedIn = useStore($isLoggedIn);
-  const location = useLocation()
-  const history = useHistory()
+  const location = useLocation();
+  const navigate = useNavigate();
+  const authPlugin = new AuthPluginWeb();
 
   let from = null;
   if(location.state) {
@@ -40,51 +40,44 @@ const LoginPage = () => {
   }
 
   return (
-    <IonPage>
+    <div className="page">
+      <header>
+        <nav>
+          <button className="menu-button">☰</button>
+          <h1>Login</h1>
+        </nav>
+      </header>
 
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonMenuButton />
-          </IonButtons>
-          <IonTitle>Login</IonTitle>
-        </IonToolbar>
-      </IonHeader>
+      <div style={{ textAlign: 'center' }}>
+        <h2>Proof Track</h2>
+      </div>   
 
-        <div style={{ textAlign: 'center' }}>
-          <h2>Proof Track</h2>
-        </div>   
+      {/* Redirect to next page */}
+      {isLoggedIn && navigate("/dashboard")}
 
-          {/* Redirect to next page */}
-          {isLoggedIn?<Redirect to="/dashboard" />:<></>}
-          
+      {
+        isLoggedIn ? (
+          <button onClick={() => { LogoutUser() }}>Logout</button>
+        ) : (
+          <button onClick={() => {
+            const _user = authPlugin.login({ value: '' })
+            // todo: handle better
+            _user.then((user) => {
+              console.debug("LoginPage: user recieved")
+              authPlugin.getToken().then((token) => {
+                LoginUser(user.user, token.token)
+              })
 
-          {
-            isLoggedIn ?
-              <>
-                <IonButton onClick={() => { LogoutUser() }}>Logout</IonButton>
-              </>
-              :
-              <IonButton onClick={() => {
-
-                const _user = authPlugin.login({ value: '' })
-                // todo: handle better
-                _user.then((user) => {
-                  console.debug("LoginPage: user recieved")
-                  authPlugin.getToken().then((token) => {
-                    LoginUser(user.user, token.token)
-                  })
-
-                  if(from)
-                    history.replace(from);
-
-                })
-              }}>Show Login</IonButton>
-          }
+              if(from) {
+                navigate(from);
+              }
+            })
+          }}>Show Login</button>
+        )
+      }
 
       <div id="firebaseui-auth-container"></div>
-
-      </IonPage>
+    </div>
   )
 }
 
