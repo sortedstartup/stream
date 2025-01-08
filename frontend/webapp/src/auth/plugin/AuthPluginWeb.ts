@@ -1,9 +1,8 @@
 /* eslint-disable object-shorthand */
-import { WebPlugin } from '@capacitor/core';
 import * as firebaseui from 'firebaseui';
 import firebaseApp from 'firebase/compat/app';
 
-import type { AuthPlugin } from '../../plugin/AuthPlugin';
+// import type { AuthPlugin } from '../../plugin/AuthPlugin';
 // import { environment } from '../../../environments/environment';
 import { User } from '../model/user';
 
@@ -14,7 +13,7 @@ const app = fbapp
 const ui = fbui//new firebaseui.auth.AuthUI(getAuth());
 const auth = fbapp.auth()
 
-export class AuthPluginWeb extends WebPlugin implements AuthPlugin {
+export class AuthPluginWeb {
 
     waitForAuth(): Promise<void> {
         // TODO: i dont fully understand how it works
