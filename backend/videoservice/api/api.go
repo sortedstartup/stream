@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	_ "modernc.org/sqlite"
+	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
 	"sortedstartup.com/stream/videoservice/proto"
@@ -41,7 +42,6 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		db:            _db,
 		log:           childLogger,
 	}, nil
-	// return &VideoAPI{}, nil
 }
 
 func (s *VideoAPI) Start() error {
@@ -60,7 +60,17 @@ func (s *VideoAPI) Init() error {
 
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
 
-	videos, err := s.dbQueries.GetAllVideo(ctx)
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	userID := authContext.User.ID
+
+	videos, err := s.dbQueries.GetAllVideoUploadedByUserPaginated(ctx, db.GetAllVideoUploadedByUserPaginatedParams{
+		UserID:     userID,
+		PageSize:   int64(req.GetPageSize()),
+		PageNumber: int64(req.GetPageNumber()),
+	})
 	if err != nil {
 		return nil, err
 	}
