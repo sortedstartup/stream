@@ -1,15 +1,18 @@
 'use client';
 
-import { ListVideosRequest, Video, VideoServiceClient } from "@/proto/videoservice"
+
+
 import { atom, onMount } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
-import { $authToken } from "../auth/store/user";
+import { $authToken } from "../auth/store/auth";
+import { ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
+
 
 export const $videos = atom<Video[]>([])
 
 onMount($videos,() => {
     console.log("videos.ts -> onMount()")
-    // fetchVideos()
+    fetchVideos()
 })
 
 const unaryInterceptor: UnaryInterceptor<any, any> = {
@@ -22,7 +25,7 @@ const unaryInterceptor: UnaryInterceptor<any, any> = {
   };
   
 export const videoService = new VideoServiceClient(
-    "http://127.0.0.1:8080",
+    import.meta.env.VITE_PUBLIC_API_URL,
     {},
     {
         unaryInterceptors: [unaryInterceptor],
@@ -34,6 +37,7 @@ export const fetchVideos = async () => {
         pageNumber: 1,
         pageSize: 10,
     }),{})
+
 
     $videos.set(response.videos)
 }

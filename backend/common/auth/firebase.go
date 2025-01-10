@@ -19,13 +19,13 @@ func NewFirebase() (*Firebase, error) {
 	app, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
 		//TODO: return right kind of error
-		slog.Error("error initializing firebase app")
+		slog.Error("error initializing firebase app", "err", err)
 		return nil, err
 	}
 
 	auth, err := app.Auth(context.Background())
 	if err != nil {
-		slog.Error("error initializing firebase auth")
+		slog.Error("error initializing firebase auth", "err", err)
 		//TODO: return right kind of error
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (f *Firebase) VerifyIDToken(token string) (*AuthContext, error) {
 	// TODO: add docs about when this makes RPC calls
 	tok, err := f.Auth.VerifyIDToken(ctx, token)
 	if err != nil {
-		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false, FamilyID: ""}, err
+		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, err
 	}
 
 	user := &User{
