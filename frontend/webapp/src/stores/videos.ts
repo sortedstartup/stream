@@ -38,5 +38,6 @@ export const fetchVideos = async () => {
         pageSize: 10,
     }),{})
 
+
     $videos.set(response.videos)
 }

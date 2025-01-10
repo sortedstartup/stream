@@ -1,10 +1,13 @@
 import { useState, useRef } from "react";
+import { $authToken } from "../auth/store/auth";
+import { useStore } from "@nanostores/react";
 
 export default function ScreenRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const mediaRecorder = useRef(null);
   const recordedChunks = useRef([]);
+  const authToken = useStore($authToken)
 
   const startRecording = async () => {
     try {
@@ -69,6 +72,9 @@ export default function ScreenRecorder() {
       const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL + "/api/videoservice/upload", {
         method: "POST",
         body: formData,
+        headers: {
+          "authorization": authToken,
+        },
       });
 
       if (!response.ok) {

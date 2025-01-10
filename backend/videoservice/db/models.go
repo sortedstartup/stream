@@ -15,4 +15,5 @@ type Video struct {
 	Url            string
 	CreatedAt      time.Time
 	UploadedUserID string
+	UpdatedAt      time.Time
 }

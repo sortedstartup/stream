@@ -9,9 +9,11 @@ const ListOfVideos = () => {
     return (
         <div>
             <h1>List of Videos</h1>
-            {videos.map((video) => (
-                <div key={video.id}>{video.title}</div>
-            ))}
+            <ul>
+                {videos.map((video) => (
+                    <li key={video.id}>{video.title}</li>
+                ))}
+            </ul>
         </div>
     )
 }

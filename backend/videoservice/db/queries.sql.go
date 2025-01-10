@@ -7,10 +7,54 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
+const createVideoUploaded = `-- name: CreateVideoUploaded :exec
+INSERT INTO videos (
+    id,
+    title,
+    description,
+    url,
+    uploaded_user_id,
+    created_at,
+    updated_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3, 
+    ?4,
+    ?5,
+    ?6,
+    ?7
+)
+`
+
+type CreateVideoUploadedParams struct {
+	ID             string
+	Title          string
+	Description    string
+	Url            string
+	UploadedUserID string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUploadedParams) error {
+	_, err := q.db.ExecContext(ctx, createVideoUploaded,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.Url,
+		arg.UploadedUserID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const getAllVideoUploadedByUser = `-- name: GetAllVideoUploadedByUser :many
-SELECT id, title, description, url, created_at, uploaded_user_id FROM videos WHERE uploaded_user_id = ?1
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos WHERE uploaded_user_id = ?1
 `
 
 func (q *Queries) GetAllVideoUploadedByUser(ctx context.Context, id string) ([]Video, error) {
@@ -29,6 +73,7 @@ func (q *Queries) GetAllVideoUploadedByUser(ctx context.Context, id string) ([]V
 			&i.Url,
 			&i.CreatedAt,
 			&i.UploadedUserID,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -44,7 +89,7 @@ func (q *Queries) GetAllVideoUploadedByUser(ctx context.Context, id string) ([]V
 }
 
 const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
-SELECT id, title, description, url, created_at, uploaded_user_id FROM videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
 WHERE uploaded_user_id = ?1
 ORDER BY created_at
 DESC LIMIT ?3 OFFSET ?2
@@ -72,6 +117,7 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 			&i.Url,
 			&i.CreatedAt,
 			&i.UploadedUserID,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
