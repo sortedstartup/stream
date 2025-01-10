@@ -33,6 +33,8 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		return nil, err
 	}
 
+	dbQueries := db.New(_db)
+
 	ServerMux := http.NewServeMux()
 	ServerMux.HandleFunc("/upload", uploadHandler)
 
@@ -41,6 +43,7 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		config:        config,
 		db:            _db,
 		log:           childLogger,
+		dbQueries:     dbQueries,
 	}, nil
 }
 

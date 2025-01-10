@@ -39,8 +39,9 @@ func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor 
 		}
 
 		authContext, verificationErr := fbauth.VerifyIDToken(authToken)
+
 		if verificationErr != nil {
-			slog.Debug("error verifying ID token", "err", verificationErr)
+			slog.Info("error verifying ID token", "err", verificationErr)
 			return nil, status.Errorf(codes.Unauthenticated, "invalid authentication token")
 		}
 
