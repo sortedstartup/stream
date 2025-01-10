@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -49,6 +50,29 @@ func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor 
 
 		return handler(newctx, req)
 	}
+}
+
+func FirebaseHTTPAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("authorization")
+
+		if authHeader == "" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		authContext, verificationErr := fbauth.VerifyIDToken(authHeader)
+
+		if verificationErr != nil {
+			slog.Info("error verifying ID token", "err", verificationErr)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		newctx := context.WithValue(r.Context(), auth.AUTH_CONTEXT_KEY, authContext)
+		r = r.WithContext(newctx)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getAuthHeader(ctx context.Context) (string, error) {

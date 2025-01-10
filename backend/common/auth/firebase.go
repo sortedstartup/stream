@@ -19,13 +19,13 @@ func NewFirebase() (*Firebase, error) {
 	app, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
 		//TODO: return right kind of error
-		slog.Error("error initializing firebase app")
+		slog.Error("error initializing firebase app", "err", err)
 		return nil, err
 	}
 
 	auth, err := app.Auth(context.Background())
 	if err != nil {
-		slog.Error("error initializing firebase auth")
+		slog.Error("error initializing firebase auth", "err", err)
 		//TODO: return right kind of error
 		return nil, err
 	}

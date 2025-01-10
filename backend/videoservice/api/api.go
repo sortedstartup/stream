@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	_ "modernc.org/sqlite"
+	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
@@ -26,6 +27,13 @@ type VideoAPI struct {
 }
 
 func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) {
+	slog.Info("NewVideoAPIProduction")
+
+	fbAuth, err := auth.NewFirebase()
+	if err != nil {
+		return nil, err
+	}
+
 	childLogger := slog.With("service", "VideoAPI")
 
 	_db, err := sql.Open(config.DB.Driver, config.DB.Url)
@@ -36,15 +44,18 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 	dbQueries := db.New(_db)
 
 	ServerMux := http.NewServeMux()
-	ServerMux.HandleFunc("/upload", uploadHandler)
 
-	return &VideoAPI{
+	videoAPI := &VideoAPI{
 		HTTPServerMux: ServerMux,
 		config:        config,
 		db:            _db,
 		log:           childLogger,
 		dbQueries:     dbQueries,
-	}, nil
+	}
+
+	ServerMux.Handle("/upload", interceptors.FirebaseHTTPAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
+
+	return videoAPI, nil
 }
 
 func (s *VideoAPI) Start() error {
@@ -65,16 +76,24 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
+		slog.Error("Error getting auth from context", "err", err)
 		return nil, err
 	}
 	userID := authContext.User.ID
+	pageSize := req.PageSize
+	pageNumber := req.PageNumber
+
+	if pageSize == 0 {
+		pageSize = 10
+	}
 
 	videos, err := s.dbQueries.GetAllVideoUploadedByUserPaginated(ctx, db.GetAllVideoUploadedByUserPaginatedParams{
 		UserID:     userID,
-		PageSize:   int64(req.GetPageSize()),
-		PageNumber: int64(req.GetPageNumber()),
+		PageSize:   int64(pageSize),
+		PageNumber: int64(pageNumber),
 	})
 	if err != nil {
+		slog.Error("Error getting videos", "err", err)
 		return nil, err
 	}
 
