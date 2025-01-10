@@ -4,7 +4,7 @@
 
 import { atom, onMount } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
-import { $authToken } from "../auth/store/user";
+import { $authToken } from "../auth/store/auth";
 import { ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
 
 
