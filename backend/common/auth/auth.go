@@ -27,11 +27,10 @@ const AUTH_CONTEXT_KEY AuthContextKey = "auth"
 
 type AuthContext struct {
 	User            *User
-	FamilyID        string
 	IsAuthenticated bool
 }
 
-var ANONYMOUS_AUTH_CTX AuthContext = AuthContext{User: &ANONYMOUS, IsAuthenticated: false, FamilyID: ""}
+var ANONYMOUS_AUTH_CTX AuthContext = AuthContext{User: &ANONYMOUS, IsAuthenticated: false}
 
 type Auth interface {
 	VerifyIDToken(token string) (authCtx *AuthContext, err error)

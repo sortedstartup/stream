@@ -9,9 +9,11 @@ import (
 )
 
 type Video struct {
-	ID          string
-	Title       string
-	Description string
-	Url         string
-	CreatedAt   time.Time
+	ID             string
+	Title          string
+	Description    string
+	Url            string
+	CreatedAt      time.Time
+	UploadedUserID string
+	UpdatedAt      time.Time
 }

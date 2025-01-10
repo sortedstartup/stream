@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"sortedstartup.com/stream/common/interceptors"
+	"sortedstartup.com/stream/videoservice/db"
 )
 
 const (
@@ -18,15 +22,27 @@ const (
 )
 
 // uploadHandler handles file uploads
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
+func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
+	slog.Info("uploadHandler")
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		slog.Error("Only POST method is allowed")
 		return
 	}
+
+	authContext, err := interceptors.AuthFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		slog.Error("Unauthorized", "err", err)
+		return
+	}
+	userID := authContext.User.ID
 
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
 		http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
+		slog.Error("File size exceeds the 100 MB limit")
 		return
 	}
 
@@ -34,10 +50,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
 	// Parse the multipart form
-	err := r.ParseMultipartForm(maxUploadSize)
+	err = r.ParseMultipartForm(maxUploadSize)
 	if err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		fmt.Println("Error parsing form:", err)
+		slog.Error("Invalid form data", "err", err)
 		return
 	}
 
@@ -45,7 +61,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	file, fileHeader, err := r.FormFile("video") // "video" is the form field name
 	if err != nil {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
-		fmt.Println("Error retrieving file:", err)
+		slog.Error("Error retrieving file", "err", err)
 		return
 	}
 	defer file.Close()
@@ -54,17 +70,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if ext != ".mp4" && ext != ".mov" && ext != ".avi" && ext != ".webm" {
 		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi, .webm are allowed", http.StatusBadRequest)
+		slog.Error("Unsupported file format. Only .mp4, .mov, .avi, .webm are allowed")
 		return
 	}
 
 	// Generate a unique filename with the original extension
-	fileName := uuid.New().String() + ext
+	uid := uuid.New().String()
+	fileName := uid + ext
 
 	// Resolve absolute path for the uploads directory
 	absUploadDir, err := filepath.Abs(uploadDir)
 	if err != nil {
 		http.Error(w, "Failed to resolve upload directory", http.StatusInternalServerError)
-		fmt.Println("Error resolving upload directory:", err)
+		slog.Error("Failed to resolve upload directory", "err", err)
 		return
 	}
 	outputPath := filepath.Join(absUploadDir, fileName)
@@ -74,7 +92,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		err := os.Mkdir(absUploadDir, 0755)
 		if err != nil {
 			http.Error(w, "Error creating uploads directory", http.StatusInternalServerError)
-			fmt.Println("Error creating uploads directory:", err)
+			slog.Error("Error creating uploads directory", "err", err)
 			return
 		}
 	}
@@ -83,7 +101,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		http.Error(w, "Unable to create file", http.StatusInternalServerError)
-		fmt.Println("Error creating file:", err)
+		slog.Error("Error creating file", "err", err)
 		return
 	}
 	defer outFile.Close()
@@ -94,32 +112,35 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Check for MaxBytesError
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
+			slog.Error("File size exceeds the 100 MB limit", "err", err)
 			http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
 		} else {
+			slog.Error("Failed to save file", "err", err)
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		}
 
 		// Delete the partially written file
 		os.Remove(outputPath)
-		fmt.Println("Error saving file, partial file deleted:", err)
+		slog.Error("Error saving file, partial file deleted", "err", err)
+		return
+	}
+
+	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
+		ID:             uid,
+		Title:          uid,
+		Description:    uid,
+		Url:            outputPath,
+		UploadedUserID: userID,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	})
+	if err != nil {
+		slog.Error("Failed to add video to the database", "err", err)
+		http.Error(w, "Failed to add video to the library", http.StatusInternalServerError)
 		return
 	}
 
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
-}
-
-// StartServer initializes and starts the HTTP server
-func StartServer() {
-	http.HandleFunc("/upload", uploadHandler) // Route for handling uploads
-
-	// Serve static files (optional, e.g., for uploaded file preview)
-	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
-
-	port := "8080"
-	fmt.Printf("Server is running on http://localhost:%s\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		fmt.Println("Error starting server:", err)
-	}
 }
