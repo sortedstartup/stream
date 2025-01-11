@@ -4,8 +4,10 @@ import { useStore } from '@nanostores/react'
 import { $isLoggedIn } from '../store/auth'
 import { startUi, signOut } from '../providers/firebase-auth'
 import { setAuthState, clearAuthState } from '../store/auth'
+import { Header } from '../../components/layout/Header'
 
-export default function LoginPage() {
+export const LoginPage = () => {
+    
   const navigate = useNavigate()
   const isLoggedIn = useStore($isLoggedIn)
   const firebaseUiContainerRef = useRef(null)
@@ -39,28 +41,47 @@ export default function LoginPage() {
     navigate('/login')
   }
 
+
+
+
   if (isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg text-center">
-          <h2 className="text-2xl font-bold mb-6">You are logged in</h2>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
+      <>
+        {Header}
+        <div className="min-h-[calc(100vh-4rem)] hero bg-base-200">
+          <div className="hero-content text-center">
+            <div className="card w-96 bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title justify-center text-2xl">You are logged in</h2>
+                <div className="card-actions justify-center mt-6">
+                  <button
+                    onClick={handleLogout}
+                    className="btn btn-error"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-6">Login</h2>
-        <div id="firebaseui-auth-container" ref={firebaseUiContainerRef}></div>
+    <>
+      {Header}
+      <div className="min-h-[calc(100vh-4rem)] hero bg-base-200">
+        <div className="hero-content">
+          <div className="card w-96 bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title justify-center text-2xl">Login</h2>
+              <div id="firebaseui-auth-container" ref={firebaseUiContainerRef}></div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 } 
