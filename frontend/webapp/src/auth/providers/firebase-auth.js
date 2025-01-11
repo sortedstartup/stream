@@ -55,6 +55,16 @@ export const startUi = (elementId, onSuccess) => {
   ui.start(elementId, config)
 }
 
+export const logout = async () => {
+  try {
+    await auth.signOut()
+    return true
+  } catch (error) {
+    console.error('Error signing out:', error)
+    return false
+  }
+}
+
 
 export const getCurrentUser = () => auth.currentUser
 

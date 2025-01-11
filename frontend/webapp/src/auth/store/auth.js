@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
-import { auth } from '../providers/firebase-auth'
+import { auth, logout } from '../providers/firebase-auth'
+
 // Create atoms for auth state
 export const $isLoggedIn = atom(false)
 export const $currentUser = atom(null)
@@ -34,6 +35,7 @@ export const setAuthState = ({ user, token }) => {
 }
 
 export const clearAuthState = () => {
+  logout()
   $authToken.set("")
   $currentUser.set(null)
   $isLoggedIn.set(false)

@@ -100,12 +100,11 @@ export default function ScreenRecorder() {
   };
 
   return (
-    <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Screen Recorder</h1>
+    <div>
       {!isRecording ? (
-        <button onClick={startRecording}>Start Recording</button>
+        <button className="btn btn-primary" onClick={startRecording}>Start Recording</button>
       ) : (
-        <button onClick={stopRecording}>Stop Recording</button>
+        <button className="btn btn-primary" onClick={stopRecording}>Stop Recording</button>
       )}
 
       {videoUrl && (
