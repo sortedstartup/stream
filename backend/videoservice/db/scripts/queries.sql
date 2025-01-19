@@ -26,3 +26,8 @@ INSERT INTO videos (
     @updated_at
 );
 
+-- name: GetVideoByID :one
+SELECT * FROM videos 
+WHERE id = @id AND uploaded_user_id = @user_id
+LIMIT 1;
+
