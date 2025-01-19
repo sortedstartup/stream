@@ -7,6 +7,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { LoginPage } from './auth/pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import ProtectedRoute from './auth/components/ProtectedRoute'
+import { VideoPage } from './pages/VideoPage'
 
 function App() {
   return (
@@ -21,6 +22,11 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/video/:id" element={
+          <ProtectedRoute>
+            <VideoPage />
           </ProtectedRoute>
         } />
       </Routes>

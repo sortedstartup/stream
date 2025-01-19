@@ -2,12 +2,15 @@ import { useState, useRef } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
 
-export default function ScreenRecorder() {
+export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentVideoBlob, setCurrentVideoBlob] = useState(null);
+  const [uploadFailed, setUploadFailed] = useState(false);
   const mediaRecorder = useRef(null);
   const recordedChunks = useRef([]);
-  const authToken = useStore($authToken)
+  const authToken = useStore($authToken);
 
   const startRecording = async () => {
     try {
@@ -34,6 +37,7 @@ export default function ScreenRecorder() {
       mediaRecorder.current.onstop = () => {
         const blob = new Blob(recordedChunks.current, { type: "video/webm" });
         setVideoUrl(URL.createObjectURL(blob));
+        setCurrentVideoBlob(blob);
         uploadVideo(blob);
       };
 
@@ -63,8 +67,11 @@ export default function ScreenRecorder() {
     document.body.removeChild(a);
   };
 
-  // Upload the video to the server
   const uploadVideo = async (videoBlob) => {
+    if (isUploading) return;
+    
+    setIsUploading(true);
+    setUploadFailed(false);
     const formData = new FormData();
     formData.append("video", videoBlob, "recording.webm");
 
@@ -78,40 +85,87 @@ export default function ScreenRecorder() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Upload failed with status: ${response.status}`);
       }
 
-      // Handle empty response body gracefully
       const responseText = await response.text();
-      console.log("Server response:", responseText);
-
+      let message = "Video uploaded successfully!";
+      
       if (responseText) {
         const data = JSON.parse(responseText);
-        console.log("Upload success:", data);
-        alert(data.message || "Video uploaded successfully!");
-      } else {
-        console.warn("Server returned an empty response.");
-        alert("Upload completed, but server returned no data.");
+        message = data.message || message;
       }
+
+      onUploadSuccess && onUploadSuccess({ message });
+      setUploadFailed(false);
     } catch (error) {
       console.error("Error uploading video:", error);
-      alert("Error uploading video!");
+      onUploadError && onUploadError(error);
+      setUploadFailed(true);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleReupload = () => {
+    if (currentVideoBlob) {
+      uploadVideo(currentVideoBlob);
     }
   };
 
   return (
-    <div>
-      {!isRecording ? (
-        <button className="btn btn-primary" onClick={startRecording}>Start Recording</button>
-      ) : (
-        <button className="btn btn-primary" onClick={stopRecording}>Stop Recording</button>
-      )}
+    <div className="space-y-4">
+      <div className="flex justify-center gap-4">
+        {!isRecording ? (
+          <button 
+            className="btn btn-primary" 
+            onClick={startRecording}
+            disabled={isUploading}
+          >
+            Start Recording
+          </button>
+        ) : (
+          <button 
+            className="btn btn-error" 
+            onClick={stopRecording}
+            disabled={isUploading}
+          >
+            Stop Recording
+          </button>
+        )}
+      </div>
 
       {videoUrl && (
-        <div>
-          <h3>Recording Preview:</h3>
-          <video controls src={videoUrl} style={{ width: "100%", maxWidth: "600px" }}></video>
-          <button onClick={downloadRecording}>Download Video</button>
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Recording Preview:</h3>
+          <video 
+            controls 
+            src={videoUrl} 
+            className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+          />
+          <div className="flex justify-center gap-4">
+            <button 
+              className="btn btn-secondary"
+              onClick={downloadRecording}
+              disabled={isUploading}
+            >
+              Download Video
+            </button>
+            {uploadFailed && !isUploading && (
+              <button 
+                className="btn btn-primary"
+                onClick={handleReupload}
+              >
+                Re-upload Video
+              </button>
+            )}
+          </div>
+          {isUploading && (
+            <div className="flex justify-center items-center gap-2">
+              <span className="loading loading-spinner loading-md"></span>
+              <span>Uploading video...</span>
+            </div>
+          )}
         </div>
       )}
     </div>

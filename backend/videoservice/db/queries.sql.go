@@ -131,3 +131,29 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 	}
 	return items, nil
 }
+
+const getVideoByID = `-- name: GetVideoByID :one
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
+WHERE id = ?1 AND uploaded_user_id = ?2
+LIMIT 1
+`
+
+type GetVideoByIDParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) GetVideoByID(ctx context.Context, arg GetVideoByIDParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByID, arg.ID, arg.UserID)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UploadedUserID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

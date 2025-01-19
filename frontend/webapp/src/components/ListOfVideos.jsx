@@ -1,8 +1,11 @@
 import { useStore } from '@nanostores/react'
 import { $videos } from '../stores/videos'
 import { VideoStatus, Visibility } from '../proto/videoservice'
+import { useNavigate } from 'react-router'
 
 const VideoCard = ({ video }) => {
+    const navigate = useNavigate()
+
     const getStatusBadge = (status) => {
         const statusClasses = {
             [VideoStatus.STATUS_PROCESSING]: "badge badge-warning",
@@ -20,7 +23,10 @@ const VideoCard = ({ video }) => {
     }
 
     return (
-        <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+        <div 
+            className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300 cursor-pointer" 
+            onClick={() => navigate(`/video/${video.id}`)}
+        >
             {/* Thumbnail */}
             <figure className="relative aspect-video">
                 {video.thumbnail_url ? (

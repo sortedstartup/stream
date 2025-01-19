@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -143,4 +144,74 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
+}
+
+func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
+	// Only allow GET requests
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract video ID from URL path
+	videoID := r.URL.Path[len("/video/"):]
+	if videoID == "" {
+		http.Error(w, "Video ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// authContext, err := interceptors.AuthFromContext(r.Context())
+	// if err != nil {
+	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	// 	slog.Error("Unauthorized", "err", err)
+	// 	return
+	// }
+	// userID := authContext.User.ID
+
+	// Get video details from database
+	userID := "NYQP5kv9edUjhfhcRZFavMgbOA03"
+	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
+		ID:     videoID,
+		UserID: userID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Video not found", http.StatusNotFound)
+			return
+		}
+		api.log.Error("Failed to get video from database", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Open the video file
+	// videoPath := filepath.Join(api.config.Storage.Path, video.ID)
+	// file, err := os.Open(videoPath)
+
+	file, err := os.Open(video.Url) // Use the URL field from the database
+	if err != nil {
+		api.log.Error("Failed to open video file", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Get file info for Content-Length header
+	fileInfo, err := file.Stat()
+	if err != nil {
+		api.log.Error("Failed to get file info", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set appropriate headers
+	w.Header().Set("Content-Type", "video/webm") // Adjust content type based on your video format
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+
+	// Stream the file to the response
+	// TODO: make it efficient and streaming
+	if _, err := io.Copy(w, file); err != nil {
+		api.log.Error("Failed to stream video file", "error", err)
+		// Can't send error response here as we've already started writing the response
+	}
 }
