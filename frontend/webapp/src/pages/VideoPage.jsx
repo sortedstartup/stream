@@ -1,16 +1,53 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
+import { $authToken } from "../auth/store/auth";
+//nanostores
+import { useStore } from '@nanostores/react'
 
 const CustomVideoPlayer = ({ videoUrl }) => {
     const videoRef = useRef(null)
+    const mediaSourceRef = useRef(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
+    const authToken = useStore($authToken)
 
-    const togglePlay = () => {
+    const setupMediaSource = () => {
+        return new Promise((resolve) => {
+            // Create new MediaSource instance
+            mediaSourceRef.current = new MediaSource()
+            const mediaUrl = URL.createObjectURL(mediaSourceRef.current)
+            videoRef.current.src = mediaUrl
+
+            mediaSourceRef.current.addEventListener('sourceopen', () => {
+                // Fetch video with authentication
+                // console.log(Auth)
+                fetch(videoUrl, {
+                    headers: {
+                        'authorization': `${authToken}`,
+                    }
+                })
+                .then(response => response.blob())
+                .then(async videoBlob => {
+                    const sourceBuffer = mediaSourceRef.current.addSourceBuffer('video/webm; codecs="vp8,opus"')
+                    sourceBuffer.addEventListener('updateend', () => {
+                        mediaSourceRef.current.endOfStream()
+                        resolve() // Resolve the promise when setup is complete
+                    })
+                    sourceBuffer.appendBuffer(await videoBlob.arrayBuffer())
+                })
+                .catch(error => console.error('Error fetching video:', error))
+            })
+        })
+    }
+
+    const togglePlay = async () => {
         if (videoRef.current.paused) {
-            videoRef.current.play()
+            if (!mediaSourceRef.current) {
+                await setupMediaSource() // Wait for MediaSource setup to complete
+            }
+            await videoRef.current.play()
             setIsPlaying(true)
         } else {
             videoRef.current.pause()
@@ -51,7 +88,6 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                 className="w-full aspect-video"
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
-                src={videoUrl}
             />
             
             <div className="p-4 space-y-2">
@@ -115,13 +151,13 @@ export const VideoPage = () => {
 
     useEffect(() => {
         const fetchVideo = async () => {
-            const response = await fetch(`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`)
-            setVideo(response.json())
+            //const response = await fetch(`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`)
+            setVideo("tmp")
         }
         fetchVideo()
     }, [id])
 
-    if (!video) return <div>Loading...</div>
+   if (!video) return <div>Loading...</div>
 
     return (
         <div className="container mx-auto px-4 py-8">
