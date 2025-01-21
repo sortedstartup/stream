@@ -55,7 +55,7 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 
 	ServerMux.Handle("/upload", interceptors.FirebaseHTTPAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
 	//TODO: implement auth middleware
-	ServerMux.Handle("/video/", http.HandlerFunc(videoAPI.serveVideoHandler))
+	ServerMux.Handle("/video/", interceptors.FirebaseHTTPAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.serveVideoHandler)))
 
 	return videoAPI, nil
 }
