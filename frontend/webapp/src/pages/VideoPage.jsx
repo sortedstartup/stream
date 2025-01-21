@@ -3,6 +3,8 @@ import { useParams } from 'react-router'
 import { $authToken } from "../auth/store/auth";
 //nanostores
 import { useStore } from '@nanostores/react'
+import { fetchVideo } from '../stores/videos';
+import {Video} from "../proto/videoservice"
 
 const CustomVideoPlayer = ({ videoUrl }) => {
     const videoRef = useRef(null)
@@ -150,11 +152,9 @@ export const VideoPage = () => {
     const [video, setVideo] = useState(null)
 
     useEffect(() => {
-        const fetchVideo = async () => {
-            //const response = await fetch(`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`)
-            setVideo("tmp")
-        }
-        fetchVideo()
+        fetchVideo(id).then(video=>{
+            setVideo(video)
+        })
     }, [id])
 
    if (!video) return <div>Loading...</div>

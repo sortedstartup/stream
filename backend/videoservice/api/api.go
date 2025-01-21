@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
@@ -111,4 +113,39 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	}
 
 	return &proto.ListVideosResponse{Videos: protoVideos}, nil
+}
+
+func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*proto.Video, error) {
+	// Get auth context to verify user has access
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		s.log.Error("Error getting auth from context", "err", err)
+		return nil, err
+	}
+
+	// Get video from database
+	video, err := s.dbQueries.GetVideoByID(ctx, db.GetVideoByIDParams{
+		ID:     req.VideoId,
+		UserID: authContext.User.ID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "video not found")
+		}
+		s.log.Error("Error getting video", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	// Verify user has access to this video
+	if video.UploadedUserID != authContext.User.ID {
+		return nil, status.Error(codes.PermissionDenied, "permission denied")
+	}
+
+	// Convert to proto message
+	return &proto.Video{
+		Id:          video.ID,
+		Title:       video.Title,
+		Description: video.Description,
+		Url:         video.Url,
+	}, nil
 }
