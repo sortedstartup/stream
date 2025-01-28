@@ -1,3 +1,4 @@
+import React from 'react'
 import { Home, Settings, Users, Video, Circle } from 'react-feather'
 import { Link } from 'react-router'
 

@@ -1,6 +1,9 @@
+import React from 'react'
 import { Layout } from "../components/layout/Layout";
+import { useNavigate } from 'react-router';
 
 export const HomePage = () => {
+    const navigate = useNavigate()
     return (
         <Layout>
             <div className="space-y-8">
@@ -10,7 +13,7 @@ export const HomePage = () => {
                 </div>
 
                 <div className="flex justify-center">
-                    <button className="btn btn-primary btn-lg gap-2">
+                    <button onClick={() => navigate('/record')} className="btn btn-primary btn-lg gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                             <circle cx="12" cy="12" r="3" fill="currentColor"/>

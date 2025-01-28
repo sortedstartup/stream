@@ -1,7 +1,7 @@
+import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $currentUser, clearAuthState } from '../../auth/store/auth'
 import { useNavigate } from 'react-router'
-
 
 const toggleTheme = (e) => {
     const html = document.querySelector('html')

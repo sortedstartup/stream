@@ -1,3 +1,4 @@
+import React from 'react'
 import { useStore } from '@nanostores/react'
 import { Navigate } from 'react-router'
 import { $isLoggedIn } from '../store/auth'
