@@ -1,6 +1,0 @@
-{
-	"dependencies": {
-		"firebase": "^11.1.0",
-		"firebaseui": "^6.1.0"
-	}
-}
