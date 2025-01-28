@@ -1,3 +1,4 @@
+import React from 'react'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { useStore } from '@nanostores/react'
@@ -47,7 +48,7 @@ export const LoginPage = () => {
   if (isLoggedIn) {
     return (
       <>
-        {Header}
+        <Header/>
         <div className="min-h-[calc(100vh-4rem)] hero bg-base-200">
           <div className="hero-content text-center">
             <div className="card w-96 bg-base-100 shadow-xl">
@@ -71,7 +72,7 @@ export const LoginPage = () => {
 
   return (
     <>
-      {Header}
+      <Header/>
       <div className="min-h-[calc(100vh-4rem)] hero bg-base-200">
         <div className="hero-content">
           <div className="card w-96 bg-base-100 shadow-xl">

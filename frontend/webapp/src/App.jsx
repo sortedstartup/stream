@@ -1,3 +1,4 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
 import { HomePage } from './pages/HomePage'
 import { TeamPage } from './pages/TeamPage'

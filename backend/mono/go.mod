@@ -1,6 +1,6 @@
 module sortedstartup.com/stream/mono
 
-go 1.23.2
+go 1.23.5
 
 require (
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect

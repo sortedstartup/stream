@@ -1,3 +1,4 @@
+import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $videos } from '../stores/videos'
 import { VideoStatus, Visibility } from '../proto/videoservice'

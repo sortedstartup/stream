@@ -1,3 +1,4 @@
+import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $currentUser } from '../auth/store/auth'
 import { Header } from '../components/layout/Header'
