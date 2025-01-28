@@ -1,3 +1,4 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
 import { HomePage } from './pages/HomePage'
 import { TeamPage } from './pages/TeamPage'
@@ -7,6 +8,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { LoginPage } from './auth/pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import ProtectedRoute from './auth/components/ProtectedRoute'
+import { VideoPage } from './pages/VideoPage'
 
 function App() {
   return (
@@ -21,6 +23,11 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/video/:id" element={
+          <ProtectedRoute>
+            <VideoPage />
           </ProtectedRoute>
         } />
       </Routes>

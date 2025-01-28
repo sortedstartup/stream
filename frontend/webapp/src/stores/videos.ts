@@ -1,12 +1,7 @@
-'use client';
-
-
-
 import { atom, onMount } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
-import { ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
-
+import { GetVideoRequest, ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
 
 export const $videos = atom<Video[]>([])
 
@@ -34,10 +29,17 @@ export const videoService = new VideoServiceClient(
 
 export const fetchVideos = async () => {
     const response = await videoService.ListVideos(ListVideosRequest.fromObject({
-        pageNumber: 1,
+        pageNumber: 0,
         pageSize: 10,
     }),{})
 
-
     $videos.set(response.videos)
+}
+
+export const fetchVideo = async (id: string) => {
+    const response = await videoService.GetVideo(GetVideoRequest.fromObject({
+         video_id: id
+    }),{})
+
+    return response
 }
