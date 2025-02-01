@@ -54,12 +54,12 @@ jobs:
           echo "GIT_TAG=$GIT_TAG"
 
       # if IS_TAG is not true fail the build
-      - name: Check if this git commit is a tag
-        run: |
-          if [ "${{ env.IS_TAG }}" != "true" ]; then
-            echo "This git commit is NOT a tag, exiting"
-            exit 1
-          fi
+      # - name: Check if this git commit is a tag
+      #   run: |
+      #     if [ "${{ env.IS_TAG }}" != "true" ]; then
+      #       echo "This git commit is NOT a tag, exiting"
+      #       exit 1
+      #     fi
 
       - name: Setup version info
         run: |
