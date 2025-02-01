@@ -1,18 +1,10 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, User, AuthError } from 'firebase/auth'
 import * as firebaseui from 'firebaseui'
 import 'firebaseui/dist/firebaseui.css'
 
 // Your Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyAdr9BQRPomQFz9r4lKvlnRSLGblAAW3ME",
-    authDomain: "streams-testing-36d22.firebaseapp.com",
-    projectId: "streams-testing-36d22",
-    storageBucket: "streams-testing-36d22.firebasestorage.app",
-    messagingSenderId: "981264158021",
-    appId: "1:981264158021:web:91fc2ff96b62059f2f022c",
-    measurementId: "G-SJTLFPX7EJ"
-};
+const firebaseConfig = JSON.parse(import.meta.env.VITE_FIREBASE_CONFIG);
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig)
@@ -26,14 +18,14 @@ const uiConfig = {
     'facebook.com',
     'email'
   ],
-  signInFlow: 'popup',
+  signInFlow: 'popup' as const,
   callbacks: {
     signInSuccessWithAuthResult: () => false // Don't redirect, we'll handle it
   }
 }
 
 // Initialize FirebaseUI
-let ui
+let ui: firebaseui.auth.AuthUI | undefined
 export const getUi = () => {
   if (!ui) {
     ui = new firebaseui.auth.AuthUI(auth)
@@ -41,12 +33,18 @@ export const getUi = () => {
   return ui
 }
 
-export const startUi = (elementId, onSuccess) => {
+interface AuthResult {
+  user: User
+  credential: any
+  additionalUserInfo?: any
+}
+
+export const startUi = (elementId: string, onSuccess: (result: AuthResult) => void) => {
   const ui = getUi()
   const config = {
     ...uiConfig,
     callbacks: {
-      signInSuccessWithAuthResult: (authResult) => {
+      signInSuccessWithAuthResult: (authResult: AuthResult) => {
         onSuccess(authResult)
         return false
       }
@@ -55,7 +53,7 @@ export const startUi = (elementId, onSuccess) => {
   ui.start(elementId, config)
 }
 
-export const logout = async () => {
+export const logout = async (): Promise<boolean> => {
   try {
     await auth.signOut()
     return true
@@ -65,8 +63,7 @@ export const logout = async () => {
   }
 }
 
-
-export const getCurrentUser = () => auth.currentUser
+export const getCurrentUser = (): User | null => auth.currentUser
 
 export const signOut = () => auth.signOut() 
 
