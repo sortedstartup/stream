@@ -23,6 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# environment files
-.env.staging
-.env.production
