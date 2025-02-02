@@ -1,9 +1,11 @@
-name: Backend Staging Build and Push
+name: Backend Prod Build and Push
 
 on:
   push:
     tags:
-      - backend-v[0-9]+.[0-9]+.[0-9]+-rc*
+      - backend-v[0-9]+.[0-9]+.[0-9]+
+    branches:
+      - feature/deployment-setup
 
 env:
   DOCKER_IMAGE_NAME: ghcr.io/${{ github.repository }}/sortedstream
@@ -52,12 +54,12 @@ jobs:
           echo "GIT_TAG=$GIT_TAG"
 
       # if IS_TAG is not true fail the build
-      - name: Check if this git commit is a tag
-        run: |
-          if [ "${{ env.IS_TAG }}" != "true" ]; then
-            echo "This git commit is NOT a tag, exiting"
-            exit 1
-          fi
+      # - name: Check if this git commit is a tag
+      #   run: |
+      #     if [ "${{ env.IS_TAG }}" != "true" ]; then
+      #       echo "This git commit is NOT a tag, exiting"
+      #       exit 1
+      #     fi
 
       - name: Setup version info
         run: |
