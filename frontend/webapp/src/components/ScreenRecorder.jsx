@@ -11,7 +11,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [showForm, setShowForm] = useState(false);
-  
+
   const mediaRecorder = useRef(null);
   const recordedChunks = useRef([]);
   const authToken = useStore($authToken);
@@ -42,7 +42,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         const blob = new Blob(recordedChunks.current, { type: "video/webm" });
         setVideoUrl(URL.createObjectURL(blob));
         setCurrentVideoBlob(blob);
-        setShowForm(true); // Show the form after recording stops
+        setShowForm(true);
       };
 
       mediaRecorder.current.start();
@@ -58,6 +58,17 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       setIsRecording(false);
       mediaRecorder.current.stream.getTracks().forEach((track) => track.stop());
     }
+  };
+
+  const downloadRecording = () => {
+    if (!videoUrl) return;
+
+    const a = document.createElement("a");
+    a.href = videoUrl;
+    a.download = "recording.webm";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const uploadVideo = async () => {
@@ -97,13 +108,19 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       onUploadSuccess && onUploadSuccess({ message });
       setUploadFailed(false);
       setShowForm(false);
-      setVideoUrl(null); // Clear video after successful upload
+      setVideoUrl(null);
     } catch (error) {
       console.error("Error uploading video:", error);
       onUploadError && onUploadError(error);
       setUploadFailed(true);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleReupload = () => {
+    if (currentVideoBlob) {
+      uploadVideo();
     }
   };
 
@@ -153,17 +170,23 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
             </div>
           )}
 
+          <div className="flex justify-center gap-4 mt-4">
+            <button className="btn btn-secondary" onClick={downloadRecording} disabled={isUploading}>
+              Download Video
+            </button>
+
+            {uploadFailed && !isUploading && (
+              <button className="btn btn-primary" onClick={handleReupload}>
+                Re-upload Video
+              </button>
+            )}
+          </div>
+
           {isUploading && (
             <div className="flex justify-center items-center gap-2">
               <span className="loading loading-spinner loading-md"></span>
               <span>Uploading video...</span>
             </div>
-          )}
-
-          {uploadFailed && !isUploading && (
-            <button className="btn btn-primary w-full" onClick={uploadVideo}>
-              Retry Upload
-            </button>
           )}
         </div>
       )}
