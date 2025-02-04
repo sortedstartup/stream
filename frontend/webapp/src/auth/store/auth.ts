@@ -1,10 +1,11 @@
 import { atom } from 'nanostores'
 import { auth, logout } from '../providers/firebase-auth'
+import { User } from 'firebase/auth'
 
 // Create atoms for auth state
 export const $isLoggedIn = atom(false)
-export const $currentUser = atom(null)
-export const $authToken = atom("")
+export const $currentUser = atom<User | null>(null)
+export const $authToken = atom<string>("")
 
 // Initialize auth state from localStorage
 const savedToken = localStorage.getItem('authToken')
@@ -26,8 +27,13 @@ export const initTokenRefreshHandler = () => {
 
 initTokenRefreshHandler()
 
+interface AuthState {
+  user: User | null
+  token: string
+}
+
 // Auth actions
-export const setAuthState = ({ user, token }) => {
+export const setAuthState = ({ user, token }: AuthState) => {
   $authToken.set(token)
   $currentUser.set(user)
   $isLoggedIn.set(true)
