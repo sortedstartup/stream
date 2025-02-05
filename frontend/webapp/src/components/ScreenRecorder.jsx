@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
 
@@ -15,6 +15,15 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const mediaRecorder = useRef(null);
   const recordedChunks = useRef([]);
   const authToken = useStore($authToken);
+
+  // Load previously saved recording if exists
+  useEffect(() => {
+    const savedRecording = localStorage.getItem("savedRecording");
+    if (savedRecording) {
+      setVideoUrl(savedRecording);
+      setShowForm(true);
+    }
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -43,6 +52,9 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         setVideoUrl(URL.createObjectURL(blob));
         setCurrentVideoBlob(blob);
         setShowForm(true);
+
+        // Store recording in localStorage
+        localStorage.setItem("savedRecording", URL.createObjectURL(blob));
       };
 
       mediaRecorder.current.start();
@@ -109,6 +121,9 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       setUploadFailed(false);
       setShowForm(false);
       setVideoUrl(null);
+
+      // Clear saved video and chunks from storage after successful upload
+      localStorage.removeItem("savedRecording");
     } catch (error) {
       console.error("Error uploading video:", error);
       onUploadError && onUploadError(error);
