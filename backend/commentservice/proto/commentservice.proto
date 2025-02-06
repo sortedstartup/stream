@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package commentservice;
+
+import "google/protobuf/timestamp.proto";
+
+service CommentService {
+  rpc CreateComment(CreateCommentRequest) returns (Comment);
+  rpc GetComment(GetCommentRequest) returns (Comment);
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+  rpc UpdateComment(UpdateCommentRequest) returns (Comment);
+  rpc DeleteComment(DeleteCommentRequest) returns (Empty);
+}
+
+message Comment {
+  string id = 1;
+  string content = 2;
+  string video_id = 3;
+  string user_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message CreateCommentRequest {
+  string content = 1;
+  string video_id = 2;
+}
+
+message GetCommentRequest {
+  string comment_id = 1;
+}
+
+message ListCommentsRequest {
+  int32 page_size = 1;
+  int32 page_number = 2;
+}
+
+message ListCommentsResponse {
+  repeated Comment comments = 1;
+  int32 next_page_number = 2;
+}
+
+message UpdateCommentRequest {
+  string comment_id = 1;
+  string content = 2;
+}
+
+message DeleteCommentRequest {
+  string comment_id = 1;
+}
+
+message Empty {}
