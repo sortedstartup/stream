@@ -3,18 +3,15 @@ package api
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
 	"sortedstartup.com/stream/commentservice/db"
 	"sortedstartup.com/stream/commentservice/proto"
-	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
 )
 
@@ -33,10 +30,10 @@ type CommentAPI struct {
 func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, error) {
 	slog.Info("NewCommentAPIProduction")
 
-	fbAuth, err := auth.NewFirebase()
-	if err != nil {
-		return nil, err
-	}
+	// fbAuth, err := auth.NewFirebase()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	childLogger := slog.With("service", "CommentAPI")
 
@@ -47,17 +44,12 @@ func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, e
 
 	dbQueries := db.New(_db)
 
-	ServerMux := http.NewServeMux()
-
 	commentAPI := &CommentAPI{
-		HTTPServerMux: ServerMux,
-		config:        config,
-		db:            _db,
-		log:           childLogger,
-		dbQueries:     dbQueries,
+		config:    config,
+		db:        _db,
+		log:       childLogger,
+		dbQueries: dbQueries,
 	}
-
-	ServerMux.Handle("/comment", interceptors.FirebaseHTTPAuthMiddleware(fbAuth, http.HandlerFunc(commentAPI.commentHandler)))
 
 	return commentAPI, nil
 }
@@ -146,53 +138,4 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		Content: comment.Content,
 		VideoId: comment.VideoID,
 	}, nil
-}
-
-func (api *CommentAPI) commentHandler(w http.ResponseWriter, r *http.Request) {
-	// Only allow POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Extract comment content from request body
-	content := r.FormValue("content")
-	if content == "" {
-		http.Error(w, "Content is required", http.StatusBadRequest)
-		return
-	}
-
-	// Extract video ID from request body
-	videoID := r.FormValue("video_id")
-	if videoID == "" {
-		http.Error(w, "Video ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Get auth context to verify user
-	authContext, err := interceptors.AuthFromContext(r.Context())
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		slog.Error("Unauthorized", "err", err)
-		return
-	}
-	userID := authContext.User.ID
-
-	// Create a new comment in the database
-	commentID := uuid.New().String()
-	err = api.dbQueries.CreateComment(r.Context(), db.CreateCommentParams{
-		ID:      commentID,
-		Content: content,
-		VideoID: videoID,
-		UserID:  userID,
-	})
-	if err != nil {
-		slog.Error("Failed to add comment to the database", "err", err)
-		http.Error(w, "Failed to add comment", http.StatusInternalServerError)
-		return
-	}
-
-	// Respond with success
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"message": "Comment added successfully", "comment_id": "%s"}`, commentID)))
 }
