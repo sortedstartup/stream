@@ -3,17 +3,19 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	_ "modernc.org/sqlite"
-	"sortedstartup.com/stream/common/auth"
-	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/commentservice/config"
 	"sortedstartup.com/stream/commentservice/db"
 	"sortedstartup.com/stream/commentservice/proto"
+	"sortedstartup.com/stream/common/auth"
+	"sortedstartup.com/stream/common/interceptors"
 )
 
 type CommentAPI struct {
