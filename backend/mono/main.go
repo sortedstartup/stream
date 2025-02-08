@@ -17,13 +17,17 @@ import (
 
 	videoAPI "sortedstartup.com/stream/videoservice/api"
 	videoProto "sortedstartup.com/stream/videoservice/proto"
+
+	commentAPI "sortedstartup.com/stream/commentservice/api"
+	commentProto "sortedstartup.com/stream/commentservice/proto"
 )
 
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI *videoAPI.VideoAPI
+	VideoAPI   *videoAPI.VideoAPI
+	CommentAPI *commentAPI.CommentAPI
 
 	GRPCServer    *grpc.Server
 	GRPCWebServer *http.Server
@@ -97,6 +101,13 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
+	log.Info("Creating commentservice API")
+	commentAPI, err := commentAPI.NewCommentAPIProduction(config.CommentService)
+	if err != nil {
+		log.Error("Could not create commentservice API", "err", err)
+		return nil, err
+	}
+
 	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors.PanicRecoveryInterceptor(), interceptors.FirebaseAuthInterceptor(firebase)))
 
 	// GRPC Web is a http server 1.0 server that wraps a grpc server
@@ -116,6 +127,7 @@ func NewMonolith() (*Monolith, error) {
 	// parentMux.Handle("/test/*", aNewMux())
 	// this muxOne can be got from video service struct
 	parentMux.Handle("/api/videoservice/", http.StripPrefix("/api/videoservice", videoAPI.HTTPServerMux))
+	parentMux.Handle("/api/commentservice/", http.StripPrefix("/api/commentservice", commentAPI.HTTPServerMux))
 
 	httpServer := &http.Server{
 		Addr:    config.Server.GrpcWebAddrPortString(),
@@ -125,6 +137,7 @@ func NewMonolith() (*Monolith, error) {
 	return &Monolith{
 		Config:        &config,
 		VideoAPI:      videoAPI,
+		CommentAPI:    commentAPI,
 		Firebase:      firebase,
 		GRPCServer:    grpcServer,
 		GRPCWebServer: httpServer,
@@ -140,6 +153,12 @@ func (m *Monolith) InitServices() error {
 		return err
 	}
 
+	m.log.Info("Initializing Comment Service")
+	err = m.CommentAPI.Init()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -147,6 +166,12 @@ func (m *Monolith) StartServices() error {
 
 	m.log.Info("Starting Task Service")
 	err := m.VideoAPI.Start()
+	if err != nil {
+		return err
+	}
+
+	m.log.Info("Starting Comment Service")
+	err = m.CommentAPI.Start()
 	if err != nil {
 		return err
 	}
@@ -163,6 +188,7 @@ func (m *Monolith) startServer() error {
 	}
 
 	videoProto.RegisterVideoServiceServer(m.GRPCServer, m.VideoAPI)
+	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 
 	reflection.Register(m.GRPCServer)
 

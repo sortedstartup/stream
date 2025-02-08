@@ -7,13 +7,15 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+	c "sortedstartup.com/stream/commentservice/config"
 	s "sortedstartup.com/stream/videoservice/config"
 )
 
 type MonolithConfig struct {
-	Server       ServerConfig         `json:"server" mapstructure:"server"`
-	LogLevel     string               `json:"logLevel" mapstructure:"logLevel"`
-	VideoService s.VideoServiceConfig `json:"videoService" mapstructure:"videoService"`
+	Server         ServerConfig           `json:"server" mapstructure:"server"`
+	LogLevel       string                 `json:"logLevel" mapstructure:"logLevel"`
+	VideoService   s.VideoServiceConfig   `json:"videoService" mapstructure:"videoService"`
+	CommentService c.CommentServiceConfig `json:"commentService" mapstructure:"commentService"`
 }
 
 type ServerConfig struct {
@@ -49,6 +51,9 @@ func New() (MonolithConfig, error) {
 
 	viper.SetDefault("videoService.db.driver", "sqlite")
 	viper.SetDefault("videoService.db.url", "db.sqlite")
+
+	viper.SetDefault("commentService.db.driver", "sqlite")
+	viper.SetDefault("commentService.db.url", "db.sqlite")
 
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {
