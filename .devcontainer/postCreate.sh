@@ -22,8 +22,9 @@ download_go_dependencies() {
 # function to download node dependencies
 download_node_dependencies() {
     echo "Downloading node dependencies"
-    cd $ROOT_DIR/frontend/ionic
-    npm install
+    cd $ROOT_DIR/frontend/webapp
+    npm install -g pnpm
+    pnpm install
     if [ $? -ne 0 ]; then
         echo "Ignoring Failure: Failed to download node dependencies"
         return 0
