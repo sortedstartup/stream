@@ -33,9 +33,11 @@ message Reply {
   string content = 2;
   string comment_id = 3;
   string user_id = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp updated_at = 6;
+  string username = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
 }
+
 
 message CreateCommentRequest {
   string content = 1;
