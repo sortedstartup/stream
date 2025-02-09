@@ -12,6 +12,11 @@ service CommentService {
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
   rpc UpdateComment(UpdateCommentRequest) returns (Comment);
   rpc DeleteComment(DeleteCommentRequest) returns (Empty);
+
+  rpc CreateReply(CreateReplyRequest) returns (Reply);
+  rpc GetReplies(GetRepliesRequest) returns (ListRepliesResponse);
+  rpc UpdateReply(UpdateReplyRequest) returns (Reply);
+  rpc DeleteReply(DeleteReplyRequest) returns (Empty);
 }
 
 message Comment {
@@ -22,6 +27,17 @@ message Comment {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
 }
+
+message Reply {
+  string id = 1;
+  string content = 2;
+  string comment_id = 3;
+  string user_id = 4;
+  string username = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
 
 message CreateCommentRequest {
   string content = 1;
@@ -49,6 +65,31 @@ message UpdateCommentRequest {
 
 message DeleteCommentRequest {
   string comment_id = 1;
+}
+
+message CreateReplyRequest {
+  string content = 1;
+  string comment_id = 2;
+}
+
+message GetRepliesRequest {
+  string comment_id = 1;
+  int32 page_size = 2;
+  int32 page_number = 3;
+}
+
+message ListRepliesResponse {
+  repeated Reply replies = 1;
+  int32 next_page_number = 2;
+}
+
+message UpdateReplyRequest {
+  string reply_id = 1;
+  string content = 2;
+}
+
+message DeleteReplyRequest {
+  string reply_id = 1;
 }
 
 message Empty {}
