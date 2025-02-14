@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	_ "modernc.org/sqlite"
@@ -68,6 +69,39 @@ func (s *CommentAPI) Init() error {
 	return nil
 }
 
+func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateCommentRequest) (*proto.Comment, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	commentID := generateUUID()
+
+	// Check if ParentCommentId is nil
+	var parentCommentID sql.NullString
+	if req.ParentCommentId != nil {
+		parentCommentID = sql.NullString{String: *req.ParentCommentId, Valid: *req.ParentCommentId != ""}
+	}
+
+	err = s.dbQueries.CreateComment(ctx, db.CreateCommentParams{
+		ID:              commentID,
+		Content:         req.Content,
+		VideoID:         req.VideoId,
+		UserID:          authContext.User.ID,
+		ParentCommentID: parentCommentID,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create comment: %v", err)
+	}
+
+	return &proto.Comment{
+		Id:      commentID,
+		Content: req.Content,
+		VideoId: req.VideoId,
+		UserId:  authContext.User.ID,
+	}, nil
+}
+
 func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
 
 	authContext, err := interceptors.AuthFromContext(ctx)
@@ -100,6 +134,7 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			Id:      comment.ID,
 			Content: comment.Content,
 			VideoId: comment.VideoID,
+			UserId:  comment.UserID,
 		})
 	}
 
@@ -137,5 +172,10 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		Id:      comment.ID,
 		Content: comment.Content,
 		VideoId: comment.VideoID,
+		UserId:  comment.UserID,
 	}, nil
+}
+
+func generateUUID() string {
+	return uuid.New().String()
 }

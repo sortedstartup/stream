@@ -26,6 +26,7 @@ message Comment {
 message CreateCommentRequest {
   string content = 1;
   string video_id = 2;
+  optional string parent_comment_id = 3;
 }
 
 message GetCommentRequest {
