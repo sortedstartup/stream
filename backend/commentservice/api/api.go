@@ -4,16 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
@@ -119,8 +116,6 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
 	// Fetch comments and their replies for the given video ID
 	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
-	// Fetch comments and their replies for the given video ID
-	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
 	if err != nil {
 		s.log.Error("Error fetching comments and replies", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to fetch comments: %v", err)
@@ -135,8 +130,8 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			UserID          string    `json:"user_id"`
 			VideoID         string    `json:"video_id"`
 			ParentCommentID string    `json:"parent_comment_id"`
-			CreatedAt       time.Time `json:"created_at"` 
-			UpdatedAt       time.Time `json:"updated_at"` 
+			CreatedAt       time.Time `json:"created_at"`
+			UpdatedAt       time.Time `json:"updated_at"`
 		}
 
 		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
@@ -172,20 +167,9 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			CreatedAt:       createdAtProto,
 			UpdatedAt:       updatedAtProto,
 			Replies:         protoReplies,
-			Id:              comment.ID,
-			Content:         comment.Content,
-			VideoId:         comment.VideoID,
-			UserId:          comment.UserID,
-			ParentCommentId: comment.ParentCommentID.String,
-			CreatedAt:       createdAtProto,
-			UpdatedAt:       updatedAtProto,
-			Replies:         protoReplies,
 		})
 	}
 
-	return &proto.ListCommentsResponse{
-		Comments: protoComments,
-	}, nil
 	return &proto.ListCommentsResponse{
 		Comments: protoComments,
 	}, nil
