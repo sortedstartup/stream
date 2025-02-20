@@ -22,10 +22,18 @@ type CommentAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries db.Querier
 
 	//implemented proto server
 	proto.UnimplementedCommentServiceServer
+}
+
+// NewCommentAPITest creates a CommentAPI instance with a mock database for testing.
+func NewCommentAPITest(mockDB db.Querier, logger *slog.Logger) *CommentAPI {
+	return &CommentAPI{
+		log:       logger,
+		dbQueries: mockDB, // Use the sqlc-generated Querier interface
+	}
 }
 
 func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, error) {
@@ -141,7 +149,7 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 	return &proto.ListCommentsResponse{Comments: protoComments}, nil
 }
 
-func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.Comment, error) {
+func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.GetCommentResponse, error) {
 	// Get auth context to verify user has access
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -167,12 +175,14 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
-	// Convert to proto message
-	return &proto.Comment{
-		Id:      comment.ID,
-		Content: comment.Content,
-		VideoId: comment.VideoID,
-		UserId:  comment.UserID,
+	// ✅ Return GetCommentResponse instead of just Comment
+	return &proto.GetCommentResponse{
+		Comment: &proto.Comment{
+			Id:      comment.ID,
+			Content: comment.Content,
+			VideoId: comment.VideoID,
+			UserId:  comment.UserID,
+		},
 	}, nil
 }
 
