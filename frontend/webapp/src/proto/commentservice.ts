@@ -197,13 +197,11 @@ export class Comment extends pb_1.Message {
     }
 }
 export class CreateCommentRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [[3]];
-    constructor(data?: any[] | ({
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
         content?: string;
         video_id?: string;
-    } & (({
-        parent_comment_id?: string;
-    })))) {
+    }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
@@ -212,9 +210,6 @@ export class CreateCommentRequest extends pb_1.Message {
             }
             if ("video_id" in data && data.video_id != undefined) {
                 this.video_id = data.video_id;
-            }
-            if ("parent_comment_id" in data && data.parent_comment_id != undefined) {
-                this.parent_comment_id = data.parent_comment_id;
             }
         }
     }
@@ -230,28 +225,9 @@ export class CreateCommentRequest extends pb_1.Message {
     set video_id(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
-    get parent_comment_id() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set parent_comment_id(value: string) {
-        pb_1.Message.setOneofField(this, 3, this.#one_of_decls[0], value);
-    }
-    get has_parent_comment_id() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
-    get _parent_comment_id() {
-        const cases: {
-            [index: number]: "none" | "parent_comment_id";
-        } = {
-            0: "none",
-            3: "parent_comment_id"
-        };
-        return cases[pb_1.Message.computeOneofCase(this, [3])];
-    }
     static fromObject(data: {
         content?: string;
         video_id?: string;
-        parent_comment_id?: string;
     }): CreateCommentRequest {
         const message = new CreateCommentRequest({});
         if (data.content != null) {
@@ -260,25 +236,18 @@ export class CreateCommentRequest extends pb_1.Message {
         if (data.video_id != null) {
             message.video_id = data.video_id;
         }
-        if (data.parent_comment_id != null) {
-            message.parent_comment_id = data.parent_comment_id;
-        }
         return message;
     }
     toObject() {
         const data: {
             content?: string;
             video_id?: string;
-            parent_comment_id?: string;
         } = {};
         if (this.content != null) {
             data.content = this.content;
         }
         if (this.video_id != null) {
             data.video_id = this.video_id;
-        }
-        if (this.parent_comment_id != null) {
-            data.parent_comment_id = this.parent_comment_id;
         }
         return data;
     }
@@ -290,8 +259,6 @@ export class CreateCommentRequest extends pb_1.Message {
             writer.writeString(1, this.content);
         if (this.video_id.length)
             writer.writeString(2, this.video_id);
-        if (this.has_parent_comment_id)
-            writer.writeString(3, this.parent_comment_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -306,9 +273,6 @@ export class CreateCommentRequest extends pb_1.Message {
                     break;
                 case 2:
                     message.video_id = reader.readString();
-                    break;
-                case 3:
-                    message.parent_comment_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -387,76 +351,6 @@ export class GetCommentRequest extends pb_1.Message {
     }
     static deserializeBinary(bytes: Uint8Array): GetCommentRequest {
         return GetCommentRequest.deserialize(bytes);
-    }
-}
-export class GetCommentResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        comment?: Comment;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("comment" in data && data.comment != undefined) {
-                this.comment = data.comment;
-            }
-        }
-    }
-    get comment() {
-        return pb_1.Message.getWrapperField(this, Comment, 1) as Comment;
-    }
-    set comment(value: Comment) {
-        pb_1.Message.setWrapperField(this, 1, value);
-    }
-    get has_comment() {
-        return pb_1.Message.getField(this, 1) != null;
-    }
-    static fromObject(data: {
-        comment?: ReturnType<typeof Comment.prototype.toObject>;
-    }): GetCommentResponse {
-        const message = new GetCommentResponse({});
-        if (data.comment != null) {
-            message.comment = Comment.fromObject(data.comment);
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            comment?: ReturnType<typeof Comment.prototype.toObject>;
-        } = {};
-        if (this.comment != null) {
-            data.comment = this.comment.toObject();
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.has_comment)
-            writer.writeMessage(1, this.comment, () => this.comment.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetCommentResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetCommentResponse();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    reader.readMessage(message.comment, () => message.comment = Comment.deserialize(reader));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): GetCommentResponse {
-        return GetCommentResponse.deserialize(bytes);
     }
 }
 export class ListCommentsRequest extends pb_1.Message {
@@ -853,8 +747,8 @@ export abstract class UnimplementedCommentServiceService {
             responseStream: false,
             requestSerialize: (message: GetCommentRequest) => Buffer.from(message.serialize()),
             requestDeserialize: (bytes: Buffer) => GetCommentRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: GetCommentResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => GetCommentResponse.deserialize(new Uint8Array(bytes))
+            responseSerialize: (message: Comment) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Comment.deserialize(new Uint8Array(bytes))
         },
         ListComments: {
             path: "/commentservice.CommentService/ListComments",
@@ -886,7 +780,7 @@ export abstract class UnimplementedCommentServiceService {
     };
     [method: string]: grpc_1.UntypedHandleCall;
     abstract CreateComment(call: grpc_1.ServerUnaryCall<CreateCommentRequest, Comment>, callback: grpc_1.sendUnaryData<Comment>): void;
-    abstract GetComment(call: grpc_1.ServerUnaryCall<GetCommentRequest, GetCommentResponse>, callback: grpc_1.sendUnaryData<GetCommentResponse>): void;
+    abstract GetComment(call: grpc_1.ServerUnaryCall<GetCommentRequest, Comment>, callback: grpc_1.sendUnaryData<Comment>): void;
     abstract ListComments(call: grpc_1.ServerUnaryCall<ListCommentsRequest, ListCommentsResponse>, callback: grpc_1.sendUnaryData<ListCommentsResponse>): void;
     abstract UpdateComment(call: grpc_1.ServerUnaryCall<UpdateCommentRequest, Comment>, callback: grpc_1.sendUnaryData<Comment>): void;
     abstract DeleteComment(call: grpc_1.ServerUnaryCall<DeleteCommentRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
@@ -905,9 +799,9 @@ export class CommentServiceClient {
     CreateComment(message: CreateCommentRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<CreateCommentRequest, Comment>(this._address + "/commentservice.CommentService/CreateComment", message, metadata || {}, CommentServiceClient.CreateComment);
     }
-    private static GetComment = new grpc_web_1.MethodDescriptor<GetCommentRequest, GetCommentResponse>("/commentservice.CommentService/GetComment", grpc_web_1.MethodType.UNARY, GetCommentRequest, GetCommentResponse, (message: GetCommentRequest) => message.serialize(), GetCommentResponse.deserialize);
+    private static GetComment = new grpc_web_1.MethodDescriptor<GetCommentRequest, Comment>("/commentservice.CommentService/GetComment", grpc_web_1.MethodType.UNARY, GetCommentRequest, Comment, (message: GetCommentRequest) => message.serialize(), Comment.deserialize);
     GetComment(message: GetCommentRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetCommentRequest, GetCommentResponse>(this._address + "/commentservice.CommentService/GetComment", message, metadata || {}, CommentServiceClient.GetComment);
+        return this._client.thenableCall<GetCommentRequest, Comment>(this._address + "/commentservice.CommentService/GetComment", message, metadata || {}, CommentServiceClient.GetComment);
     }
     private static ListComments = new grpc_web_1.MethodDescriptor<ListCommentsRequest, ListCommentsResponse>("/commentservice.CommentService/ListComments", grpc_web_1.MethodType.UNARY, ListCommentsRequest, ListCommentsResponse, (message: ListCommentsRequest) => message.serialize(), ListCommentsResponse.deserialize);
     ListComments(message: ListCommentsRequest, metadata: grpc_web_1.Metadata | null) {
