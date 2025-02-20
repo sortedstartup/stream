@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 
 service CommentService {
   rpc CreateComment(CreateCommentRequest) returns (Comment);
-  rpc GetComment(GetCommentRequest) returns (Comment);
+  rpc GetComment(GetCommentRequest) returns (GetCommentResponse);
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
   rpc UpdateComment(UpdateCommentRequest) returns (Comment);
   rpc DeleteComment(DeleteCommentRequest) returns (Empty);
@@ -33,6 +33,10 @@ message CreateCommentRequest {
 
 message GetCommentRequest {
   string comment_id = 1;
+}
+
+message GetCommentResponse {
+  Comment comment = 1;
 }
 
 message ListCommentsRequest {
