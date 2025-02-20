@@ -199,7 +199,6 @@ func TestGetComment(t *testing.T) {
 	logger := slog.Default()
 	commentAPI := NewCommentAPITest(mockDB, logger)
 
-	// ✅ Mocking a user with the correct role (e.g., "user" role)
 	authUser := &auth.AuthContext{
 		User: &auth.User{
 			ID:    "test-user-id",
@@ -212,36 +211,29 @@ func TestGetComment(t *testing.T) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, authUser)
 
-	// ✅ Adding a valid auth token
 	authToken := "Bearer test-token"
 	md := metadata.Pairs("authorization", authToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	// ✅ Mocking a comment response
 	mockComment := db.Comment{
 		ID:      "mock-id",
 		Content: "Mock comment",
 		VideoID: "vid1",
-		UserID:  "test-user-id", // ✅ Ensure the user owns the comment
+		UserID:  "test-user-id", 
 	}
 
-	// ✅ Mock database call to return the comment
 	mockDB.On("GetCommentByID", ctx, mock.Anything).Return(mockComment, nil)
 
-	// 🛠️ Call the API method
 	resp, err := commentAPI.GetComment(ctx, &proto.GetCommentRequest{
 		CommentId: "mock-id",
 	})
 
-	// 🔍 Debugging Output
 	t.Logf("Received response: %+v", resp)
 	t.Logf("Received error: %v", err)
 
-	// ✅ Assertions
 	assert.NoError(t, err, "Expected no error but got one")
 	assert.NotNil(t, resp, "Expected response but got nil")
 
-	// ✅ Check if response contains the expected comment data
 	assert.NotNil(t, resp.Comment, "Expected Comment object but got nil")
 	assert.Equal(t, "mock-id", resp.Comment.Id, "Expected CommentId to match")
 	assert.Equal(t, "Mock comment", resp.Comment.Content, "Expected Content to match")
