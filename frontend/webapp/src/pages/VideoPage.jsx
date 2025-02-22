@@ -6,6 +6,7 @@ import { $authToken } from "../auth/store/auth";
 import { useStore } from '@nanostores/react'
 import { fetchVideo } from '../stores/videos';
 import {Video} from "../proto/videoservice"
+import CommentSection from "../components/CommentSection";
 
 const CustomVideoPlayer = ({ videoUrl }) => {
     const videoRef = useRef(null)
@@ -170,6 +171,7 @@ export const VideoPage = () => {
                     Uploaded on {new Date(video.created_at?.seconds * 1000).toLocaleDateString()}
                 </div>
             </div>
+            <CommentSection />
         </div>
     )
 } 
