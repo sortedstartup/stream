@@ -34,21 +34,38 @@ export const commentService = new CommentServiceClient(
 
 // Fetch comments for a specific video
 export const fetchComments = async (videoId: string) => {
-    try {
-        const response = await commentService.ListComments(
-            ListCommentsRequest.fromObject({ page_size: 50, page_number: 0 }),
-            {}
-        );
+  try {
+      const response = await commentService.ListComments(
+          new ListCommentsRequest({ page_size: 50, page_number: 0, video_id: videoId }),
+          {}
+      );
 
-        const allComments = response.comments;
+      const commentsMap: Record<string, CommentWithReplies> = {};
+      const rootComments: CommentWithReplies[] = [];
 
-        // Filter out the root comments (those without parent_comment_id)
-        const rootComments = allComments.filter((comment) => !comment.parent_comment_id);
+      response.comments.forEach(comment => {
+        commentsMap[comment.id] = Object.assign(Object.create(Object.getPrototypeOf(comment)), comment, { replies: [] });
+      });
 
-        $comments.set(rootComments); 
-    } catch (error) {
-        console.error("Failed to fetch comments:", error);
-    }
+      response.comments.forEach(comment => {
+          if (comment.parent_comment_id && commentsMap[comment.parent_comment_id]) {
+              commentsMap[comment.parent_comment_id].replies.push(commentsMap[comment.id]);
+          } else {
+              rootComments.push(commentsMap[comment.id]);
+          }
+      });
+
+      const sortReplies = (comment: CommentWithReplies) => {
+          comment.replies.sort((a, b) => (a.created_at?.seconds || 0) - (b.created_at?.seconds || 0));
+          comment.replies.forEach(sortReplies);
+      };
+
+      rootComments.forEach(sortReplies);
+
+      $comments.set(rootComments);
+  } catch (error) {
+      console.error("Failed to fetch comments:", error);
+  }
 };
 
 // Create a new comment
