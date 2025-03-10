@@ -97,7 +97,7 @@ const CommentSection: React.FC = () => {
                         )}
 
                         {/* Replies (if any) */}
-                        {comment.replies?.length > 0 && (
+                        {Array.isArray(comment.replies) && comment.replies.length > 0 && (
                             <div className="mt-3 ml-6 border-l pl-3 space-y-2">
                                 {comment.replies.map((reply) => (
                                     <div key={reply.id} className="text-sm">

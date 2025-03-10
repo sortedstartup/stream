@@ -31,6 +31,36 @@ WHERE user_id = @user_id
 ORDER BY created_at DESC
 LIMIT @page_size OFFSET (@page_number * @page_size);
 
+-- name: GetComentsAndRepliesForVideoID :many
+SELECT 
+    c1.id, 
+    c1.content, 
+    c1.video_id, 
+    c1.user_id, 
+    c1.parent_comment_id,
+    c1.created_at,  -- Keep timestamps in default format
+    c1.updated_at,  
+    COALESCE(
+        json_group_array(
+            json_object(
+                'id', c2.id,
+                'content', c2.content,
+                'user_id', c2.user_id,
+                'video_id', c2.video_id,
+                'parent_comment_id', c2.parent_comment_id,
+                'created_at', datetime(c2.created_at, 'unixepoch'),  -- Convert Unix timestamp to RFC3339
+                'updated_at', datetime(c2.updated_at, 'unixepoch')   -- Convert Unix timestamp to RFC3339
+            )
+        ) FILTER (WHERE c2.id IS NOT NULL), 
+        '[]'
+    ) AS replies
+FROM comments c1
+LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
+WHERE c1.video_id = @video_id 
+AND c1.parent_comment_id IS NULL
+GROUP BY c1.id
+ORDER BY c1.created_at DESC;
+
 -- name: GetCommentsByVideo :many
 SELECT * FROM comments 
 WHERE video_id = @video_id

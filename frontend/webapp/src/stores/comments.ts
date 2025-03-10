@@ -10,11 +10,11 @@ import {
 import { $authToken } from "../auth/store/auth";
 
 interface CommentWithReplies extends Comment {
-    replies: Comment[];
-  }  
+  replies: Comment[];
+}
 
 // Store for comments
-export const $comments = atom<Comment[]>([]);
+export const $comments = atom<CommentWithReplies[]>([]);
 
 export const commentService = new CommentServiceClient(
   import.meta.env.VITE_PUBLIC_API_URL,
@@ -32,94 +32,86 @@ export const commentService = new CommentServiceClient(
   }
 );
 
-// Fetch comments for a specific video
 export const fetchComments = async (videoId: string) => {
   try {
-      const response = await commentService.ListComments(
-          new ListCommentsRequest({ page_size: 50, page_number: 0, video_id: videoId }),
-          {}
-      );
+      console.log("Fetching comments for video:", videoId);
 
-      const commentsMap: Record<string, CommentWithReplies> = {};
-      const rootComments: CommentWithReplies[] = [];
+      const request = new ListCommentsRequest();
+      request.video_id = videoId;
 
-      response.comments.forEach(comment => {
-        commentsMap[comment.id] = Object.assign(Object.create(Object.getPrototypeOf(comment)), comment, { replies: [] });
-      });
-
-      response.comments.forEach(comment => {
-          if (comment.parent_comment_id && commentsMap[comment.parent_comment_id]) {
-              commentsMap[comment.parent_comment_id].replies.push(commentsMap[comment.id]);
-          } else {
-              rootComments.push(commentsMap[comment.id]);
-          }
-      });
-
-      const sortReplies = (comment: CommentWithReplies) => {
-          comment.replies.sort((a, b) => (a.created_at?.seconds || 0) - (b.created_at?.seconds || 0));
-          comment.replies.forEach(sortReplies);
-      };
-
-      rootComments.forEach(sortReplies);
-
-      $comments.set(rootComments);
-  } catch (error) {
-      console.error("Failed to fetch comments:", error);
+      const response = await commentService.ListComments(request, {});
+      
+      console.log("Comments fetched successfully:", response);
+      $comments.set(response.comments as CommentWithReplies[]);
+  } catch (error: unknown) {
+      if (error instanceof SyntaxError) {
+          console.error("Invalid JSON response. Possible server error.");
+      } else if (error instanceof Error) {
+          console.error("Error fetching comments:", error.message);
+      } else {
+          console.error("Unknown error fetching comments:", error);
+      }
   }
 };
 
-// Create a new comment
-export const createComment = async (videoId: string, content: string, parentCommentId?: string) => {
-    try {
-        const request = CreateCommentRequest.fromObject({
-            content,
-            video_id: videoId,
-            parent_comment_id: parentCommentId || undefined,
-        });
+export const createComment = async (
+  videoId: string,
+  content: string,
+  parentCommentId?: string
+) => {
+  try {
+      console.log("Creating comment with data:", { videoId, content, parentCommentId });
 
-        const response = await commentService.CreateComment(request, {});
-        fetchComments(videoId); // Refresh comments after adding a new one
-    } catch (error) {
-        console.error("Failed to create comment:", error);
-    }
+      const request = new CreateCommentRequest();
+      request.video_id = videoId;
+      request.content = content;
+      if (parentCommentId) request.parent_comment_id = parentCommentId;
+
+      const response = await commentService.CreateComment(request, {});
+      console.log("Comment created successfully:", response);
+
+      // Refresh comments after adding a new one
+      await fetchComments(videoId);
+  } catch (error: unknown) {
+      if (error instanceof Error) {
+          console.error("Error creating comment:", error.message);
+      } else {
+          console.error("Error creating comment:", error);
+      }
+  }
 };
 
-// Update a comment
 export const updateComment = async (commentId: string, content: string) => {
   try {
-    const request = UpdateCommentRequest.fromObject({
-      comment_id: commentId,
-      content,
-    });
+    const request = new UpdateCommentRequest();
+    request.comment_id = commentId;
+    request.content = content;
 
-    const updatedComment = await commentService.UpdateComment(request, {});
+    await commentService.UpdateComment(request, null); 
 
-    $comments.set(
-      $comments.get().map((comment) => 
-        comment.id === updatedComment.id ? updatedComment : comment
-      )
-    );
+    const updatedComments = $comments.get();
+    const commentIndex = updatedComments.findIndex(comment => comment.id === commentId);
+    
+    if (commentIndex !== -1) {
+      updatedComments[commentIndex].content = content;
+      $comments.set(updatedComments);
+    }
   } catch (error) {
-    console.error("Error updating comment:", error);
+    console.error("Failed to update comment:", error);
   }
 };
 
 // Delete a comment
 export const deleteComment = async (commentId: string) => {
   try {
-    const request = DeleteCommentRequest.fromObject({
-      comment_id: commentId,
-    });
+    const request = new DeleteCommentRequest();
+    request.comment_id = commentId;
 
-    await commentService.DeleteComment(request, {});
+    await commentService.DeleteComment(request, null); 
 
-    $comments.set($comments.get().filter((comment) => comment.id !== commentId));
+    // Remove the deleted comment from the store
+    $comments.set($comments.get().filter(comment => comment.id !== commentId));
   } catch (error) {
-    console.error("Error deleting comment:", error);
+    console.error("Failed to delete comment:", error);
   }
 };
-
-// Auto-fetch comments when store is mounted
-onMount($comments, () => {
-  console.log("comments.ts -> onMount()");
-});
