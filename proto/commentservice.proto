@@ -21,6 +21,8 @@ message Comment {
   string user_id = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  string parent_comment_id = 7;
+  repeated Comment replies = 8;
 }
 
 message CreateCommentRequest {
@@ -38,8 +40,9 @@ message GetCommentResponse {
 }
 
 message ListCommentsRequest {
-  int32 page_size = 1;
-  int32 page_number = 2;
+  string video_id = 1;
+  int32 page_size = 2;
+  int32 page_number = 3;
 }
 
 message ListCommentsResponse {
