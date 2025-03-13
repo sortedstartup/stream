@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
@@ -116,6 +119,8 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
 	// Fetch comments and their replies for the given video ID
 	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
+	// Fetch comments and their replies for the given video ID
+	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
 	if err != nil {
 		s.log.Error("Error fetching comments and replies", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to fetch comments: %v", err)
@@ -130,11 +135,10 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			UserID          string    `json:"user_id"`
 			VideoID         string    `json:"video_id"`
 			ParentCommentID string    `json:"parent_comment_id"`
-			CreatedAt       time.Time `json:"created_at"` // Now using time.Time
-			UpdatedAt       time.Time `json:"updated_at"` // Now using time.Time
+			CreatedAt       time.Time `json:"created_at"` 
+			UpdatedAt       time.Time `json:"updated_at"` 
 		}
 
-		// Ensure Replies is a valid and JSON-encoded string
 		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
 			err := json.Unmarshal([]byte(repliesJSON), &replies)
 			if err != nil {
@@ -143,11 +147,9 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			}
 		}
 
-		// Convert time.Time to protobuf timestamps
 		createdAtProto := timestamppb.New(comment.CreatedAt)
 		updatedAtProto := timestamppb.New(comment.UpdatedAt)
 
-		// Convert replies to proto format
 		var protoReplies []*proto.Comment
 		for _, r := range replies {
 			protoReplies = append(protoReplies, &proto.Comment{
@@ -161,8 +163,15 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			})
 		}
 
-		// Append the main comment
 		protoComments = append(protoComments, &proto.Comment{
+			Id:              comment.ID,
+			Content:         comment.Content,
+			VideoId:         comment.VideoID,
+			UserId:          comment.UserID,
+			ParentCommentId: comment.ParentCommentID.String,
+			CreatedAt:       createdAtProto,
+			UpdatedAt:       updatedAtProto,
+			Replies:         protoReplies,
 			Id:              comment.ID,
 			Content:         comment.Content,
 			VideoId:         comment.VideoID,
@@ -174,6 +183,9 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 		})
 	}
 
+	return &proto.ListCommentsResponse{
+		Comments: protoComments,
+	}, nil
 	return &proto.ListCommentsResponse{
 		Comments: protoComments,
 	}, nil
