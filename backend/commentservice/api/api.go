@@ -3,12 +3,15 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
 	"sortedstartup.com/stream/commentservice/db"
@@ -111,42 +114,65 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 }
 
 func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
-
-	authContext, err := interceptors.AuthFromContext(ctx)
+	// Fetch comments and their replies for the given video ID
+	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
 	if err != nil {
-		slog.Error("Error getting auth from context", "err", err)
-		return nil, err
-	}
-	userID := authContext.User.ID
-	pageSize := req.PageSize
-	pageNumber := req.PageNumber
-
-	if pageSize == 0 {
-		pageSize = 10
+		s.log.Error("Error fetching comments and replies", "err", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch comments: %v", err)
 	}
 
-	comments, err := s.dbQueries.GetAllCommentsByUserPaginated(ctx, db.GetAllCommentsByUserPaginatedParams{
-		UserID:     userID,
-		PageSize:   int64(pageSize),
-		PageNumber: int64(pageNumber),
-	})
-	if err != nil {
-		slog.Error("Error getting comments", "err", err)
-		return nil, err
-	}
+	// Convert database model to proto response
+	var protoComments []*proto.Comment
+	for _, comment := range commentsWithReplies {
+		var replies []struct {
+			ID              string    `json:"id"`
+			Content         string    `json:"content"`
+			UserID          string    `json:"user_id"`
+			VideoID         string    `json:"video_id"`
+			ParentCommentID string    `json:"parent_comment_id"`
+			CreatedAt       time.Time `json:"created_at"` 
+			UpdatedAt       time.Time `json:"updated_at"` 
+		}
 
-	protoComments := make([]*proto.Comment, 0, len(comments))
+		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
+			err := json.Unmarshal([]byte(repliesJSON), &replies)
+			if err != nil {
+				s.log.Error("Error unmarshalling replies JSON", "err", err)
+				return nil, status.Errorf(codes.Internal, "failed to parse replies: %v", err)
+			}
+		}
 
-	for _, comment := range comments {
+		createdAtProto := timestamppb.New(comment.CreatedAt)
+		updatedAtProto := timestamppb.New(comment.UpdatedAt)
+
+		var protoReplies []*proto.Comment
+		for _, r := range replies {
+			protoReplies = append(protoReplies, &proto.Comment{
+				Id:              r.ID,
+				Content:         r.Content,
+				UserId:          r.UserID,
+				VideoId:         r.VideoID,
+				ParentCommentId: r.ParentCommentID,
+				CreatedAt:       timestamppb.New(r.CreatedAt),
+				UpdatedAt:       timestamppb.New(r.UpdatedAt),
+			})
+		}
+
 		protoComments = append(protoComments, &proto.Comment{
-			Id:      comment.ID,
-			Content: comment.Content,
-			VideoId: comment.VideoID,
-			UserId:  comment.UserID,
+			Id:              comment.ID,
+			Content:         comment.Content,
+			VideoId:         comment.VideoID,
+			UserId:          comment.UserID,
+			ParentCommentId: comment.ParentCommentID.String,
+			CreatedAt:       createdAtProto,
+			UpdatedAt:       updatedAtProto,
+			Replies:         protoReplies,
 		})
 	}
 
-	return &proto.ListCommentsResponse{Comments: protoComments}, nil
+	return &proto.ListCommentsResponse{
+		Comments: protoComments,
+	}, nil
 }
 
 func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.GetCommentResponse, error) {
