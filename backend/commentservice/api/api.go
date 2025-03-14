@@ -4,16 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
@@ -29,18 +26,9 @@ type CommentAPI struct {
 
 	log       *slog.Logger
 	dbQueries db.Querier
-	dbQueries db.Querier
 
 	//implemented proto server
 	proto.UnimplementedCommentServiceServer
-}
-
-// NewCommentAPITest creates a CommentAPI instance with a mock database for testing.
-func NewCommentAPITest(mockDB db.Querier, logger *slog.Logger) *CommentAPI {
-	return &CommentAPI{
-		log:       logger,
-		dbQueries: mockDB, // Use the sqlc-generated Querier interface
-	}
 }
 
 // NewCommentAPITest creates a CommentAPI instance with a mock database for testing.
@@ -128,8 +116,6 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
 	// Fetch comments and their replies for the given video ID
 	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
-	// Fetch comments and their replies for the given video ID
-	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
 	if err != nil {
 		s.log.Error("Error fetching comments and replies", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to fetch comments: %v", err)
@@ -181,26 +167,14 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			CreatedAt:       createdAtProto,
 			UpdatedAt:       updatedAtProto,
 			Replies:         protoReplies,
-			Id:              comment.ID,
-			Content:         comment.Content,
-			VideoId:         comment.VideoID,
-			UserId:          comment.UserID,
-			ParentCommentId: comment.ParentCommentID.String,
-			CreatedAt:       createdAtProto,
-			UpdatedAt:       updatedAtProto,
-			Replies:         protoReplies,
 		})
 	}
 
 	return &proto.ListCommentsResponse{
 		Comments: protoComments,
 	}, nil
-	return &proto.ListCommentsResponse{
-		Comments: protoComments,
-	}, nil
 }
 
-func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.GetCommentResponse, error) {
 func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.GetCommentResponse, error) {
 	// Get auth context to verify user has access
 	authContext, err := interceptors.AuthFromContext(ctx)
@@ -227,14 +201,6 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
-	// ✅ Return GetCommentResponse instead of just Comment
-	return &proto.GetCommentResponse{
-		Comment: &proto.Comment{
-			Id:      comment.ID,
-			Content: comment.Content,
-			VideoId: comment.VideoID,
-			UserId:  comment.UserID,
-		},
 	// ✅ Return GetCommentResponse instead of just Comment
 	return &proto.GetCommentResponse{
 		Comment: &proto.Comment{
