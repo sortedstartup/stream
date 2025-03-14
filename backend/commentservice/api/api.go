@@ -130,8 +130,8 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			UserID          string    `json:"user_id"`
 			VideoID         string    `json:"video_id"`
 			ParentCommentID string    `json:"parent_comment_id"`
-			CreatedAt       time.Time `json:"created_at"`
-			UpdatedAt       time.Time `json:"updated_at"`
+			CreatedAt       time.Time `json:"created_at"` 
+			UpdatedAt       time.Time `json:"updated_at"` 
 		}
 
 		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
