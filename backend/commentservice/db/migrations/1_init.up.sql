@@ -8,6 +8,10 @@ CREATE TABLE comments (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_video_id ON comments(video_id);
+CREATE INDEX idx_user_id ON comments(user_id);
+CREATE INDEX idx_parent_comment_id ON comments(parent_comment_id);
+
 CREATE TABLE comment_likes (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
