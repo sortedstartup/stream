@@ -4,116 +4,73 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"math/rand"
+	"net/http"
 	"sort"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type Comment struct {
-	ID              string  `json:"id"`
-	Content         string  `json:"content"`
-	VideoID         string  `json:"video_id"`
-	UserID          string  `json:"user_id"`
-	ParentCommentID *string `json:"parent_comment_id"`
-	CreatedAt       string  `json:"created_at"`
-	UpdatedAt       string  `json:"updated_at"`
-}
+// Number of times to run the query
+const numExecutions = 100
+
+// Define Prometheus metrics
+var queryDuration = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "query_execution_time_seconds",
+		Help:    "Time taken to execute queries",
+		Buckets: prometheus.DefBuckets,
+	},
+	[]string{"index"},
+)
 
 func main() {
-	db, err := sql.Open("sqlite3", "./comments.db")
+	// Register Prometheus metrics
+	prometheus.MustRegister(queryDuration)
+
+	// Start HTTP server for Prometheus metrics
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Println("🚀 Prometheus metrics available at :8080/metrics")
+		log.Fatal(http.ListenAndServe(":8080", nil))
+	}()
+
+	// Open SQLite database
+	db, err := sql.Open("sqlite3", "comments.db")
 	if err != nil {
 		log.Fatal("Error opening database:", err)
 	}
 	defer db.Close()
 
-	createTable(db)
+	// Fetch 100 unique video IDs
+	videoIDs := fetchVideoIDs(db, numExecutions)
+	if len(videoIDs) < numExecutions {
+		log.Fatalf("Not enough unique video IDs in the database! Found: %d\n", len(videoIDs))
+	}
 
-	insertComments(db)
+	// Drop indexes for testing without indexes
+	fmt.Println("\n🔴 Dropping indexes (testing without indexes)...")
+	dropIndexes(db)
 
-	videoIDs := getValidVideoIDs(db, 100)
+	// Run performance test without indexes
+	fmt.Println("\n🚀 Running queries WITHOUT indexes...")
+	benchmarkQueryPerformance(db, videoIDs, "without_index")
 
-	executeQueries(db, videoIDs)
+	// Create indexes for testing with indexes
+	fmt.Println("\n🟢 Creating indexes (testing with indexes)...")
+	createIndexes(db)
+
+	// Run performance test with indexes
+	fmt.Println("\n🚀 Running queries WITH indexes...")
+	benchmarkQueryPerformance(db, videoIDs, "with_index")
 }
 
-func createTable(db *sql.DB) {
-	query := `CREATE TABLE IF NOT EXISTS comments (
-		id TEXT PRIMARY KEY,
-		content TEXT NOT NULL,
-		video_id TEXT NOT NULL,
-		user_id TEXT NOT NULL,
-		parent_comment_id TEXT,
-		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-	);`
-	_, err := db.Exec(query)
-	if err != nil {
-		log.Fatal("Error creating table:", err)
-	}
-}
-
-func insertComments(db *sql.DB) {
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM comments").Scan(&count)
-	if err != nil {
-		log.Fatal("Error counting rows:", err)
-	}
-
-	if count > 0 {
-		fmt.Println("Database already has data, skipping insertion.")
-		return
-	}
-
-	fmt.Println("Inserting 1 million comments...")
-
-	tx, err := db.Begin()
-	if err != nil {
-		log.Fatal("Error starting transaction:", err)
-	}
-
-	stmt, err := tx.Prepare("INSERT INTO comments (id, content, video_id, user_id, parent_comment_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-	if err != nil {
-		log.Fatal("Error preparing insert statement:", err)
-	}
-	defer stmt.Close()
-
-	for i := 1; i <= 1000000; i++ {
-		id := fmt.Sprintf("comment-%d", i)
-		content := fmt.Sprintf("This is comment number %d", i)
-		videoID := fmt.Sprintf("video-%d", rand.Intn(10000))
-		userID := fmt.Sprintf("user-%d", rand.Intn(50000))
-		parentCommentID := getParentCommentID(i)
-		timestamp := time.Now().Format(time.RFC3339)
-
-		_, err := stmt.Exec(id, content, videoID, userID, parentCommentID, timestamp, timestamp)
-		if err != nil {
-			log.Fatal("Error inserting comment:", err)
-		}
-
-		if i%100000 == 0 {
-			fmt.Printf("Inserted %d comments...\n", i)
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Fatal("Error committing transaction:", err)
-	}
-
-	fmt.Println("Insertion completed.")
-}
-
-func getParentCommentID(i int) *string {
-	if i%10 == 0 {
-		parentID := fmt.Sprintf("comment-%d", rand.Intn(i))
-		return &parentID
-	}
-	return nil
-}
-
-func getValidVideoIDs(db *sql.DB, limit int) []string {
-	rows, err := db.Query("SELECT DISTINCT video_id FROM comments LIMIT ?", limit)
+// Function to fetch 100 unique video IDs
+func fetchVideoIDs(db *sql.DB, limit int) []string {
+	query := `SELECT DISTINCT video_id FROM comments LIMIT ?`
+	rows, err := db.Query(query, limit)
 	if err != nil {
 		log.Fatal("Error fetching video IDs:", err)
 	}
@@ -127,69 +84,93 @@ func getValidVideoIDs(db *sql.DB, limit int) []string {
 		}
 		videoIDs = append(videoIDs, videoID)
 	}
-
 	return videoIDs
 }
 
-func executeQueries(db *sql.DB, videoIDs []string) {
-	query := `SELECT 
-		c1.id, 
-		c1.content, 
-		c1.video_id, 
-		c1.user_id, 
-		c1.parent_comment_id,
-		c1.created_at,  
-		c1.updated_at,  
-		COALESCE(
-			json_group_array(
-				json_object(
-					'id', c2.id,
-					'content', c2.content,
-					'user_id', c2.user_id,
-					'video_id', c2.video_id,
-					'parent_comment_id', c2.parent_comment_id,
-					'created_at', datetime(c2.created_at, 'unixepoch'), 
-					'updated_at', datetime(c2.updated_at, 'unixepoch')   
-				)
-			) FILTER (WHERE c2.id IS NOT NULL), 
-			'[]'
-		) AS replies
-	FROM comments c1
-	LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
-	WHERE c1.video_id = ?
-	AND c1.parent_comment_id IS NULL
-	GROUP BY c1.id
-	ORDER BY c1.created_at DESC;`
+// Function to drop indexes
+func dropIndexes(db *sql.DB) {
+	_, _ = db.Exec("DROP INDEX IF EXISTS idx_video_id;")
+	_, _ = db.Exec("DROP INDEX IF EXISTS idx_user_id;")
+	_, _ = db.Exec("DROP INDEX IF EXISTS idx_parent_comment;")
+}
 
-	queryTimes := make([]time.Duration, 0)
+// Function to create indexes
+func createIndexes(db *sql.DB) {
+	_, _ = db.Exec("CREATE INDEX idx_video_id ON comments(video_id);")
+	_, _ = db.Exec("CREATE INDEX idx_user_id ON comments(user_id);")
+	_, _ = db.Exec("CREATE INDEX idx_parent_comment ON comments(parent_comment_id);")
+}
 
-	for _, videoID := range videoIDs {
-		startTime := time.Now()
+// Function to benchmark query performance and expose Prometheus metrics
+func benchmarkQueryPerformance(db *sql.DB, videoIDs []string, indexLabel string) {
+	query := `
+		SELECT 
+			c1.id, 
+			c1.content, 
+			c1.video_id, 
+			c1.user_id, 
+			c1.parent_comment_id,
+			c1.created_at,  
+			c1.updated_at,  
+			COALESCE(
+				json_group_array(
+					json_object(
+						'id', c2.id,
+						'content', c2.content,
+						'user_id', c2.user_id,
+						'video_id', c2.video_id,
+						'parent_comment_id', c2.parent_comment_id,
+						'created_at', datetime(c2.created_at, 'unixepoch'), 
+						'updated_at', datetime(c2.updated_at, 'unixepoch')   
+					)
+				) FILTER (WHERE c2.id IS NOT NULL), 
+				'[]'
+			) AS replies
+		FROM comments c1
+		LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
+		WHERE c1.video_id = ?
+		AND c1.parent_comment_id IS NULL
+		GROUP BY c1.id
+		ORDER BY c1.created_at DESC;
+	`
+
+	executionTimes := make([]time.Duration, len(videoIDs))
+
+	for i, videoID := range videoIDs {
+		start := time.Now()
 
 		rows, err := db.Query(query, videoID)
 		if err != nil {
-			log.Fatal("Error executing query:", err)
+			log.Fatal("Error running query:", err)
 		}
+		defer rows.Close()
 
+		// Count rows (simulating real query execution)
+		count := 0
 		for rows.Next() {
-			var id, content, videoID, userID, parentCommentID, createdAt, updatedAt, replies string
-			if err := rows.Scan(&id, &content, &videoID, &userID, &parentCommentID, &createdAt, &updatedAt, &replies); err != nil {
-				log.Fatal("Error scanning row:", err)
-			}
+			count++
 		}
-		rows.Close()
 
-		elapsedTime := time.Since(startTime)
-		queryTimes = append(queryTimes, elapsedTime)
-		fmt.Printf("Query for video_id=%s took %s\n", videoID, elapsedTime)
+		duration := time.Since(start)
+		executionTimes[i] = duration
+		queryDuration.WithLabelValues(indexLabel).Observe(duration.Seconds())
+
+		fmt.Printf("Run %d | Video ID: %s | Time: %v | Rows fetched: %d\n", i+1, videoID, duration, count)
 	}
 
-	sort.Slice(queryTimes, func(i, j int) bool {
-		return queryTimes[i] > queryTimes[j]
+	// Sort execution times
+	sort.Slice(executionTimes, func(i, j int) bool {
+		return executionTimes[i] < executionTimes[j]
 	})
 
-	fmt.Println("\nTop 5 slowest queries:")
-	for i := 0; i < 5 && i < len(queryTimes); i++ {
-		fmt.Printf("Rank %d: %s\n", i+1, queryTimes[i])
+	// Display results
+	fmt.Println("\n🔝 Top 5 Fastest Executions:")
+	for i := 0; i < 5 && i < len(executionTimes); i++ {
+		fmt.Printf("%d. %v\n", i+1, executionTimes[i])
+	}
+
+	fmt.Println("\n🐌 Top 5 Slowest Executions:")
+	for i := len(executionTimes) - 5; i < len(executionTimes) && i >= 0; i++ {
+		fmt.Printf("%d. %v\n", len(executionTimes)-i, executionTimes[i])
 	}
 }
