@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Number of times to run the query
 const numExecutions = 100
 
 // Define Prometheus metrics
