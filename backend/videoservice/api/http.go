@@ -67,6 +67,10 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Retrieve the title and description from the form
+	title := r.FormValue("title")
+	description := r.FormValue("description")
+
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if ext != ".mp4" && ext != ".mov" && ext != ".avi" && ext != ".webm" {
@@ -126,10 +130,11 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Save video details to the database, including title and description
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
-		Title:          uid,
-		Description:    uid,
+		Title:          title,
+		Description:    description,
 		Url:            outputPath,
 		UploadedUserID: userID,
 		CreatedAt:      time.Now(),
