@@ -30,7 +30,8 @@ SELECT
     c1.id, 
     c1.content, 
     c1.video_id, 
-    c1.user_id, 
+    c1.user_id,
+    u1.username AS username, 
     c1.parent_comment_id,
     c1.created_at,  
     c1.updated_at,  
@@ -40,6 +41,7 @@ SELECT
                 'id', c2.id,
                 'content', c2.content,
                 'user_id', c2.user_id,
+                'username', u2.username,
                 'video_id', c2.video_id,
                 'parent_comment_id', c2.parent_comment_id,
                 'created_at', datetime(c2.created_at, 'unixepoch'), 
@@ -49,7 +51,9 @@ SELECT
         '[]'
     ) AS replies
 FROM comments c1
+LEFT JOIN users u1 ON c1.user_id = u1.id
 LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
+LEFT JOIN users u2 ON c2.user_id = u2.id
 WHERE c1.video_id = @video_id 
 AND c1.parent_comment_id IS NULL
 GROUP BY c1.id
