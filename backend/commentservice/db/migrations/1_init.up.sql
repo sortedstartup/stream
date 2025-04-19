@@ -7,6 +7,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
 CREATE TABLE comments (
     id TEXT PRIMARY KEY,
     content TEXT NOT NULL,

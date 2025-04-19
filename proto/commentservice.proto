@@ -14,6 +14,7 @@ service CommentService {
   rpc DeleteComment(DeleteCommentRequest) returns (Empty);
 }
 
+
 message Comment {
   string id = 1;
   string content = 2;

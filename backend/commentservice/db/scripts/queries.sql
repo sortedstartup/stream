@@ -59,6 +59,7 @@ AND c1.parent_comment_id IS NULL
 GROUP BY c1.id
 ORDER BY c1.created_at DESC;
 
+
 -- name: GetAllCommentsByUserPaginated :many
 SELECT * FROM comments 
 WHERE user_id = @user_id

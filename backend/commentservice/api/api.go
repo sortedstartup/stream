@@ -160,6 +160,7 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			})
 		}
 
+		
 		protoComments = append(protoComments, &proto.Comment{
 			Id:              comment.ID,
 			Content:         comment.Content,
