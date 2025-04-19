@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
@@ -109,6 +110,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 			Title:       video.Title,
 			Description: video.Description,
 			Url:         video.Url,
+			CreatedAt:   timestamppb.New(video.CreatedAt),
 		})
 	}
 
@@ -147,5 +149,6 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 		Title:       video.Title,
 		Description: video.Description,
 		Url:         video.Url,
+		CreatedAt:   timestamppb.New(video.CreatedAt),
 	}, nil
 }
