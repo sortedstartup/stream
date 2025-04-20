@@ -128,10 +128,11 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			ID              string    `json:"id"`
 			Content         string    `json:"content"`
 			UserID          string    `json:"user_id"`
+			Username        string    `json:"username"`
 			VideoID         string    `json:"video_id"`
 			ParentCommentID string    `json:"parent_comment_id"`
-			CreatedAt       time.Time `json:"created_at"` 
-			UpdatedAt       time.Time `json:"updated_at"` 
+			CreatedAt       time.Time `json:"created_at"`
+			UpdatedAt       time.Time `json:"updated_at"`
 		}
 
 		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
@@ -151,6 +152,7 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 				Id:              r.ID,
 				Content:         r.Content,
 				UserId:          r.UserID,
+				Username:        r.Username,
 				VideoId:         r.VideoID,
 				ParentCommentId: r.ParentCommentID,
 				CreatedAt:       timestamppb.New(r.CreatedAt),
@@ -158,11 +160,13 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			})
 		}
 
+		
 		protoComments = append(protoComments, &proto.Comment{
 			Id:              comment.ID,
 			Content:         comment.Content,
 			VideoId:         comment.VideoID,
 			UserId:          comment.UserID,
+			Username:        comment.Username.String,
 			ParentCommentId: comment.ParentCommentID.String,
 			CreatedAt:       createdAtProto,
 			UpdatedAt:       updatedAtProto,
@@ -201,7 +205,7 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
-	// ✅ Return GetCommentResponse instead of just Comment
+	// Return GetCommentResponse instead of just Comment
 	return &proto.GetCommentResponse{
 		Comment: &proto.Comment{
 			Id:      comment.ID,

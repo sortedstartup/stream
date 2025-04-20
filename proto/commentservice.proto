@@ -14,15 +14,17 @@ service CommentService {
   rpc DeleteComment(DeleteCommentRequest) returns (Empty);
 }
 
+
 message Comment {
   string id = 1;
   string content = 2;
   string video_id = 3;
   string user_id = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp updated_at = 6;
-  string parent_comment_id = 7;
-  repeated Comment replies = 8;
+  string username = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  string parent_comment_id = 8;
+  repeated Comment replies = 9;
 }
 
 message CreateCommentRequest {

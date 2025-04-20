@@ -66,7 +66,7 @@ const CommentSection: React.FC = () => {
                     <div key={comment.id} className="p-3 bg-base-100 rounded-lg shadow">
                         <p className="font-medium">{comment.content}</p>
                         <div className="text-sm text-gray-500">
-                            By {comment.user_id} • {formatTimestamp(comment.created_at)}
+                            By {comment.username || 'Unknown'} • {formatTimestamp(comment.created_at)}
                         </div>
 
                         {/* Reply Button */}
@@ -103,7 +103,7 @@ const CommentSection: React.FC = () => {
                                     <div key={reply.id} className="text-sm">
                                         <p>{reply.content}</p>
                                         <div className="text-xs text-gray-500">
-                                            By {reply.user_id} • {formatTimestamp(reply.created_at)}
+                                            By {reply.username || 'Unknown'} • {formatTimestamp(reply.created_at)}
                                         </div>
                                     </div>
                                 ))}
