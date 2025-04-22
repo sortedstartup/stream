@@ -1,5 +1,4 @@
-import React from 'react'
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
 
@@ -9,6 +8,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [isUploading, setIsUploading] = useState(false);
   const [currentVideoBlob, setCurrentVideoBlob] = useState(null);
   const [uploadFailed, setUploadFailed] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
   const mediaRecorder = useRef(null);
   const recordedChunks = useRef([]);
   const authToken = useStore($authToken);
@@ -39,7 +42,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         const blob = new Blob(recordedChunks.current, { type: "video/webm" });
         setVideoUrl(URL.createObjectURL(blob));
         setCurrentVideoBlob(blob);
-        uploadVideo(blob);
+        setShowForm(true);
       };
 
       mediaRecorder.current.start();
@@ -68,13 +71,18 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     document.body.removeChild(a);
   };
 
-  const uploadVideo = async (videoBlob) => {
-    if (isUploading) return;
-    
+  const uploadVideo = async () => {
+    if (!title || !description) {
+      alert("Please enter both title and description before uploading.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadFailed(false);
     const formData = new FormData();
-    formData.append("video", videoBlob, "recording.webm");
+    formData.append("video", currentVideoBlob, "recording.webm");
+    formData.append("title", title);
+    formData.append("description", description);
 
     try {
       const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL + "/api/videoservice/upload", {
@@ -99,6 +107,8 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
       onUploadSuccess && onUploadSuccess({ message });
       setUploadFailed(false);
+      setShowForm(false);
+      setVideoUrl(null);
     } catch (error) {
       console.error("Error uploading video:", error);
       onUploadError && onUploadError(error);
@@ -110,7 +120,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   const handleReupload = () => {
     if (currentVideoBlob) {
-      uploadVideo(currentVideoBlob);
+      uploadVideo();
     }
   };
 
@@ -118,19 +128,11 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     <div className="space-y-4">
       <div className="flex justify-center gap-4">
         {!isRecording ? (
-          <button 
-            className="btn btn-primary" 
-            onClick={startRecording}
-            disabled={isUploading}
-          >
+          <button className="btn btn-primary" onClick={startRecording} disabled={isUploading}>
             Start Recording
           </button>
         ) : (
-          <button 
-            className="btn btn-error" 
-            onClick={stopRecording}
-            disabled={isUploading}
-          >
+          <button className="btn btn-error" onClick={stopRecording} disabled={isUploading}>
             Stop Recording
           </button>
         )}
@@ -139,28 +141,47 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       {videoUrl && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Recording Preview:</h3>
-          <video 
-            controls 
-            src={videoUrl} 
-            className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
-          />
-          <div className="flex justify-center gap-4">
-            <button 
-              className="btn btn-secondary"
-              onClick={downloadRecording}
-              disabled={isUploading}
-            >
+          <video controls src={videoUrl} className="w-full max-w-2xl mx-auto rounded-lg shadow-lg" />
+
+          {showForm && (
+            <div className="space-y-2">
+              <label className="block">
+                Title:
+                <input 
+                  type="text" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  placeholder="Enter video title" 
+                  className="input input-bordered w-full mt-1"
+                />
+              </label>
+              <label className="block">
+                Description:
+                <textarea 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  placeholder="Enter video description" 
+                  className="textarea textarea-bordered w-full mt-1"
+                />
+              </label>
+              <button className="btn btn-success w-full" onClick={uploadVideo} disabled={isUploading}>
+                Upload Video
+              </button>
+            </div>
+          )}
+
+          <div className="flex justify-center gap-4 mt-4">
+            <button className="btn btn-secondary" onClick={downloadRecording} disabled={isUploading}>
               Download Video
             </button>
+
             {uploadFailed && !isUploading && (
-              <button 
-                className="btn btn-primary"
-                onClick={handleReupload}
-              >
+              <button className="btn btn-primary" onClick={handleReupload}>
                 Re-upload Video
               </button>
             )}
           </div>
+
           {isUploading && (
             <div className="flex justify-center items-center gap-2">
               <span className="loading loading-spinner loading-md"></span>
