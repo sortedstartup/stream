@@ -11,3 +11,4 @@ sql:
       go:
         package: "db"
         out: "../../db"
+        emit_interface: true

@@ -3,11 +3,15 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/commentservice/config"
 	"sortedstartup.com/stream/commentservice/db"
@@ -21,10 +25,18 @@ type CommentAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries db.Querier
 
 	//implemented proto server
 	proto.UnimplementedCommentServiceServer
+}
+
+// NewCommentAPITest creates a CommentAPI instance with a mock database for testing.
+func NewCommentAPITest(mockDB db.Querier, logger *slog.Logger) *CommentAPI {
+	return &CommentAPI{
+		log:       logger,
+		dbQueries: mockDB, // Use the sqlc-generated Querier interface
+	}
 }
 
 func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, error) {
@@ -68,45 +80,106 @@ func (s *CommentAPI) Init() error {
 	return nil
 }
 
-func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
-
+func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateCommentRequest) (*proto.Comment, error) {
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
-		slog.Error("Error getting auth from context", "err", err)
-		return nil, err
-	}
-	userID := authContext.User.ID
-	pageSize := req.PageSize
-	pageNumber := req.PageNumber
-
-	if pageSize == 0 {
-		pageSize = 10
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
-	comments, err := s.dbQueries.GetAllCommentsByUserPaginated(ctx, db.GetAllCommentsByUserPaginatedParams{
-		UserID:     userID,
-		PageSize:   int64(pageSize),
-		PageNumber: int64(pageNumber),
+	commentID := generateUUID()
+
+	// Check if ParentCommentId is nil
+	var parentCommentID sql.NullString
+	if req.ParentCommentId != nil {
+		parentCommentID = sql.NullString{String: *req.ParentCommentId, Valid: *req.ParentCommentId != ""}
+	}
+
+	err = s.dbQueries.CreateComment(ctx, db.CreateCommentParams{
+		ID:              commentID,
+		Content:         req.Content,
+		VideoID:         req.VideoId,
+		UserID:          authContext.User.ID,
+		ParentCommentID: parentCommentID,
 	})
 	if err != nil {
-		slog.Error("Error getting comments", "err", err)
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to create comment: %v", err)
 	}
 
-	protoComments := make([]*proto.Comment, 0, len(comments))
+	return &proto.Comment{
+		Id:      commentID,
+		Content: req.Content,
+		VideoId: req.VideoId,
+		UserId:  authContext.User.ID,
+	}, nil
+}
 
-	for _, comment := range comments {
+func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRequest) (*proto.ListCommentsResponse, error) {
+	// Fetch comments and their replies for the given video ID
+	commentsWithReplies, err := s.dbQueries.GetComentsAndRepliesForVideoID(ctx, req.VideoId)
+	if err != nil {
+		s.log.Error("Error fetching comments and replies", "err", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch comments: %v", err)
+	}
+
+	// Convert database model to proto response
+	var protoComments []*proto.Comment
+	for _, comment := range commentsWithReplies {
+		var replies []struct {
+			ID              string    `json:"id"`
+			Content         string    `json:"content"`
+			UserID          string    `json:"user_id"`
+			Username        string    `json:"username"`
+			VideoID         string    `json:"video_id"`
+			ParentCommentID string    `json:"parent_comment_id"`
+			CreatedAt       time.Time `json:"created_at"`
+			UpdatedAt       time.Time `json:"updated_at"`
+		}
+
+		if repliesJSON, ok := comment.Replies.(string); ok && repliesJSON != "" {
+			err := json.Unmarshal([]byte(repliesJSON), &replies)
+			if err != nil {
+				s.log.Error("Error unmarshalling replies JSON", "err", err)
+				return nil, status.Errorf(codes.Internal, "failed to parse replies: %v", err)
+			}
+		}
+
+		createdAtProto := timestamppb.New(comment.CreatedAt)
+		updatedAtProto := timestamppb.New(comment.UpdatedAt)
+
+		var protoReplies []*proto.Comment
+		for _, r := range replies {
+			protoReplies = append(protoReplies, &proto.Comment{
+				Id:              r.ID,
+				Content:         r.Content,
+				UserId:          r.UserID,
+				Username:        r.Username,
+				VideoId:         r.VideoID,
+				ParentCommentId: r.ParentCommentID,
+				CreatedAt:       timestamppb.New(r.CreatedAt),
+				UpdatedAt:       timestamppb.New(r.UpdatedAt),
+			})
+		}
+
+		
 		protoComments = append(protoComments, &proto.Comment{
-			Id:      comment.ID,
-			Content: comment.Content,
-			VideoId: comment.VideoID,
+			Id:              comment.ID,
+			Content:         comment.Content,
+			VideoId:         comment.VideoID,
+			UserId:          comment.UserID,
+			Username:        comment.Username.String,
+			ParentCommentId: comment.ParentCommentID.String,
+			CreatedAt:       createdAtProto,
+			UpdatedAt:       updatedAtProto,
+			Replies:         protoReplies,
 		})
 	}
 
-	return &proto.ListCommentsResponse{Comments: protoComments}, nil
+	return &proto.ListCommentsResponse{
+		Comments: protoComments,
+	}, nil
 }
 
-func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.Comment, error) {
+func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentRequest) (*proto.GetCommentResponse, error) {
 	// Get auth context to verify user has access
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -132,10 +205,17 @@ func (s *CommentAPI) GetComment(ctx context.Context, req *proto.GetCommentReques
 		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
-	// Convert to proto message
-	return &proto.Comment{
-		Id:      comment.ID,
-		Content: comment.Content,
-		VideoId: comment.VideoID,
+	// Return GetCommentResponse instead of just Comment
+	return &proto.GetCommentResponse{
+		Comment: &proto.Comment{
+			Id:      comment.ID,
+			Content: comment.Content,
+			VideoId: comment.VideoID,
+			UserId:  comment.UserID,
+		},
 	}, nil
+}
+
+func generateUUID() string {
+	return uuid.New().String()
 }
