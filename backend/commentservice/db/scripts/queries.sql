@@ -34,7 +34,7 @@ SELECT
     c1.content, 
     c1.video_id, 
     c1.user_id,
-    c1.username,  -- Directly fetch the username from comments table
+    c1.username,  
     c1.parent_comment_id,
     c1.created_at,  
     c1.updated_at,  
@@ -44,7 +44,7 @@ SELECT
                 'id', c2.id,
                 'content', c2.content,
                 'user_id', c2.user_id,
-                'username', c2.username,  -- Directly fetch from comments table for replies
+                'username', c2.username,  
                 'video_id', c2.video_id,
                 'parent_comment_id', c2.parent_comment_id,
                 'created_at', datetime(c2.created_at, 'unixepoch'), 
