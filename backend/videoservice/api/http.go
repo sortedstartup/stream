@@ -165,16 +165,16 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// authContext, err := interceptors.AuthFromContext(r.Context())
-	// if err != nil {
-	// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
-	// 	slog.Error("Unauthorized", "err", err)
-	// 	return
-	// }
-	// userID := authContext.User.ID
+	authContext, err := interceptors.AuthFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		slog.Error("Unauthorized", "err", err)
+		return
+	}
+	userID := authContext.User.ID
 
 	// Get video details from database
-	userID := "NYQP5kv9edUjhfhcRZFavMgbOA03"
+	// userID := "Gtx7WLBBj7cmAuBkba7PnGdrfyg2"
 	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
 		ID:     videoID,
 		UserID: userID,
