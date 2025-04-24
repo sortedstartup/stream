@@ -99,6 +99,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:         req.Content,
 		VideoID:         req.VideoId,
 		UserID:          authContext.User.ID,
+		Username:        sql.NullString{String: authContext.User.Name, Valid: true},
 		ParentCommentID: parentCommentID,
 	})
 	if err != nil {
@@ -106,10 +107,11 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 	}
 
 	return &proto.Comment{
-		Id:      commentID,
-		Content: req.Content,
-		VideoId: req.VideoId,
-		UserId:  authContext.User.ID,
+		Id:       commentID,
+		Content:  req.Content,
+		VideoId:  req.VideoId,
+		UserId:   authContext.User.ID,
+		Username: authContext.User.Name,
 	}, nil
 }
 
@@ -160,7 +162,6 @@ func (s *CommentAPI) ListComments(ctx context.Context, req *proto.ListCommentsRe
 			})
 		}
 
-		
 		protoComments = append(protoComments, &proto.Comment{
 			Id:              comment.ID,
 			Content:         comment.Content,
