@@ -1,14 +1,14 @@
 import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $currentUser } from '../auth/store/auth'
-import { Header } from '../components/layout/Header'
+import { Layout } from '../components/layout/Layout'
 
 export const ProfilePage = () => {
   const currentUser = useStore($currentUser)
 
   return (
     <div className="min-h-screen bg-base-200">
-      <Header />
+      <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="bg-base-100 shadow-xl rounded-lg p-6 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Profile</h1>
@@ -48,6 +48,7 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
+      </Layout>
     </div>
   )
 } 
