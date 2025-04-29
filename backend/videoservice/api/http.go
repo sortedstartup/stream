@@ -174,7 +174,6 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	userID := authContext.User.ID
 
 	// Get video details from database
-	// userID := "Gtx7WLBBj7cmAuBkba7PnGdrfyg2"
 	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
 		ID:     videoID,
 		UserID: userID,
