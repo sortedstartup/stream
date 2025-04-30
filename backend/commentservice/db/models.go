@@ -5,14 +5,31 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
 
 type Comment struct {
+	ID              string
+	Content         string
+	VideoID         string
+	UserID          string
+	ParentCommentID sql.NullString
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Username        sql.NullString
+}
+
+type CommentLike struct {
 	ID        string
-	Content   string
-	VideoID   string
 	UserID    string
+	CommentID string
 	CreatedAt time.Time
-	UpdatedAt time.Time
+}
+
+type User struct {
+	ID        string
+	Username  string
+	Email     string
+	CreatedAt sql.NullTime
 }
