@@ -23,8 +23,7 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
-
+	DBQueries db.QueriesInterface
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
 }
@@ -53,7 +52,7 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		config:        config,
 		db:            _db,
 		log:           childLogger,
-		dbQueries:     dbQueries,
+		DBQueries:     dbQueries,
 	}
 
 	ServerMux.Handle("/upload", interceptors.FirebaseHTTPAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
@@ -92,7 +91,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 		pageSize = 10
 	}
 
-	videos, err := s.dbQueries.GetAllVideoUploadedByUserPaginated(ctx, db.GetAllVideoUploadedByUserPaginatedParams{
+	videos, err := s.DBQueries.GetAllVideoUploadedByUserPaginated(ctx, db.GetAllVideoUploadedByUserPaginatedParams{
 		UserID:     userID,
 		PageSize:   int64(pageSize),
 		PageNumber: int64(pageNumber),
@@ -126,7 +125,7 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	}
 
 	// Get video from database
-	video, err := s.dbQueries.GetVideoByID(ctx, db.GetVideoByIDParams{
+	video, err := s.DBQueries.GetVideoByID(ctx, db.GetVideoByIDParams{
 		ID:     req.VideoId,
 		UserID: authContext.User.ID,
 	})

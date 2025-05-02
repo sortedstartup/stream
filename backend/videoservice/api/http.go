@@ -131,7 +131,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save video details to the database, including title and description
-	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
+	err = api.DBQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
 		Title:          title,
 		Description:    description,
@@ -174,7 +174,7 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	userID := authContext.User.ID
 
 	// Get video details from database
-	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
+	video, err := api.DBQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
 		ID:     videoID,
 		UserID: userID,
 	})
