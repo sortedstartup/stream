@@ -7,7 +7,26 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
+
+const checkUserLikedComment = `-- name: CheckUserLikedComment :one
+SELECT COUNT(*) FROM comment_likes 
+WHERE user_id = ?1 AND comment_id = ?2
+`
+
+type CheckUserLikedCommentParams struct {
+	UserID    string
+	CommentID string
+}
+
+func (q *Queries) CheckUserLikedComment(ctx context.Context, arg CheckUserLikedCommentParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkUserLikedComment, arg.UserID, arg.CommentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const createComment = `-- name: CreateComment :exec
 INSERT INTO comments (
@@ -15,6 +34,8 @@ INSERT INTO comments (
     content,
     video_id,
     user_id,
+    username,             
+    parent_comment_id,
     created_at,
     updated_at
 ) VALUES (
@@ -22,16 +43,20 @@ INSERT INTO comments (
     ?2,
     ?3,
     ?4,
+    ?5,           
+    ?6,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 )
 `
 
 type CreateCommentParams struct {
-	ID      string
-	Content string
-	VideoID string
-	UserID  string
+	ID              string
+	Content         string
+	VideoID         string
+	UserID          string
+	Username        sql.NullString
+	ParentCommentID sql.NullString
 }
 
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) error {
@@ -40,6 +65,8 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) er
 		arg.Content,
 		arg.VideoID,
 		arg.UserID,
+		arg.Username,
+		arg.ParentCommentID,
 	)
 	return err
 }
@@ -60,7 +87,7 @@ func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) er
 }
 
 const getAllCommentsByUserPaginated = `-- name: GetAllCommentsByUserPaginated :many
-SELECT id, content, video_id, user_id, created_at, updated_at FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
 WHERE user_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET (?2 * ?3)
@@ -86,8 +113,88 @@ func (q *Queries) GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllC
 			&i.Content,
 			&i.VideoID,
 			&i.UserID,
+			&i.ParentCommentID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getComentsAndRepliesForVideoID = `-- name: GetComentsAndRepliesForVideoID :many
+SELECT 
+    c1.id, 
+    c1.content, 
+    c1.video_id, 
+    c1.user_id,
+    c1.username,  
+    c1.parent_comment_id,
+    c1.created_at,  
+    c1.updated_at,  
+    COALESCE(
+        json_group_array(
+            json_object(
+                'id', c2.id,
+                'content', c2.content,
+                'user_id', c2.user_id,
+                'username', c2.username,  
+                'video_id', c2.video_id,
+                'parent_comment_id', c2.parent_comment_id,
+                'created_at', datetime(c2.created_at, 'unixepoch'), 
+                'updated_at', datetime(c2.updated_at, 'unixepoch')   
+            )
+        ) FILTER (WHERE c2.id IS NOT NULL), 
+        '[]'
+    ) AS replies
+FROM comments c1
+LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
+WHERE c1.video_id = ?1 
+AND c1.parent_comment_id IS NULL
+GROUP BY c1.id
+ORDER BY c1.created_at DESC
+`
+
+type GetComentsAndRepliesForVideoIDRow struct {
+	ID              string
+	Content         string
+	VideoID         string
+	UserID          string
+	Username        sql.NullString
+	ParentCommentID sql.NullString
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Replies         interface{}
+}
+
+func (q *Queries) GetComentsAndRepliesForVideoID(ctx context.Context, videoID string) ([]GetComentsAndRepliesForVideoIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getComentsAndRepliesForVideoID, videoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetComentsAndRepliesForVideoIDRow
+	for rows.Next() {
+		var i GetComentsAndRepliesForVideoIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.VideoID,
+			&i.UserID,
+			&i.Username,
+			&i.ParentCommentID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Replies,
 		); err != nil {
 			return nil, err
 		}
@@ -103,7 +210,7 @@ func (q *Queries) GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllC
 }
 
 const getCommentByID = `-- name: GetCommentByID :one
-SELECT id, content, video_id, user_id, created_at, updated_at FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
 WHERE id = ?1 AND user_id = ?2
 LIMIT 1
 `
@@ -121,8 +228,10 @@ func (q *Queries) GetCommentByID(ctx context.Context, arg GetCommentByIDParams) 
 		&i.Content,
 		&i.VideoID,
 		&i.UserID,
+		&i.ParentCommentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Username,
 	)
 	return i, err
 }
@@ -138,8 +247,20 @@ func (q *Queries) GetCommentCount(ctx context.Context, videoID string) (int64, e
 	return count, err
 }
 
+const getCommentLikesCount = `-- name: GetCommentLikesCount :one
+SELECT COUNT(*) FROM comment_likes 
+WHERE comment_id = ?1
+`
+
+func (q *Queries) GetCommentLikesCount(ctx context.Context, commentID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCommentLikesCount, commentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getCommentsByVideo = `-- name: GetCommentsByVideo :many
-SELECT id, content, video_id, user_id, created_at, updated_at FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
 WHERE video_id = ?1
 ORDER BY created_at DESC
 `
@@ -158,8 +279,10 @@ func (q *Queries) GetCommentsByVideo(ctx context.Context, videoID string) ([]Com
 			&i.Content,
 			&i.VideoID,
 			&i.UserID,
+			&i.ParentCommentID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}
@@ -175,7 +298,7 @@ func (q *Queries) GetCommentsByVideo(ctx context.Context, videoID string) ([]Com
 }
 
 const getCommentsByVideoPaginated = `-- name: GetCommentsByVideoPaginated :many
-SELECT id, content, video_id, user_id, created_at, updated_at FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
 WHERE video_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET (?2 * ?3)
@@ -201,8 +324,10 @@ func (q *Queries) GetCommentsByVideoPaginated(ctx context.Context, arg GetCommen
 			&i.Content,
 			&i.VideoID,
 			&i.UserID,
+			&i.ParentCommentID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}
@@ -215,6 +340,84 @@ func (q *Queries) GetCommentsByVideoPaginated(ctx context.Context, arg GetCommen
 		return nil, err
 	}
 	return items, nil
+}
+
+const getRepliesByCommentID = `-- name: GetRepliesByCommentID :many
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+WHERE parent_comment_id = ?1
+ORDER BY created_at ASC
+`
+
+func (q *Queries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]Comment, error) {
+	rows, err := q.db.QueryContext(ctx, getRepliesByCommentID, commentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Comment
+	for rows.Next() {
+		var i Comment
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.VideoID,
+			&i.UserID,
+			&i.ParentCommentID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const likeComment = `-- name: LikeComment :exec
+INSERT INTO comment_likes (
+    id,
+    user_id,
+    comment_id,
+    created_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    CURRENT_TIMESTAMP
+)
+`
+
+type LikeCommentParams struct {
+	ID        string
+	UserID    string
+	CommentID string
+}
+
+func (q *Queries) LikeComment(ctx context.Context, arg LikeCommentParams) error {
+	_, err := q.db.ExecContext(ctx, likeComment, arg.ID, arg.UserID, arg.CommentID)
+	return err
+}
+
+const unlikeComment = `-- name: UnlikeComment :exec
+DELETE FROM comment_likes 
+WHERE user_id = ?1 AND comment_id = ?2
+`
+
+type UnlikeCommentParams struct {
+	UserID    string
+	CommentID string
+}
+
+func (q *Queries) UnlikeComment(ctx context.Context, arg UnlikeCommentParams) error {
+	_, err := q.db.ExecContext(ctx, unlikeComment, arg.UserID, arg.CommentID)
+	return err
 }
 
 const updateComment = `-- name: UpdateComment :exec
@@ -235,7 +438,7 @@ func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) er
 }
 
 const test = `-- name: test :many
-select id, content, video_id, user_id, created_at, updated_at from comments
+select id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username from comments
 `
 
 func (q *Queries) test(ctx context.Context) ([]Comment, error) {
@@ -252,8 +455,10 @@ func (q *Queries) test(ctx context.Context) ([]Comment, error) {
 			&i.Content,
 			&i.VideoID,
 			&i.UserID,
+			&i.ParentCommentID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}
