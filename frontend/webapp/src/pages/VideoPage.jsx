@@ -41,6 +41,7 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                                 try {
                                     const end = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
                                     mediaSourceRef.current.duration = end;
+                                    setDuration(end);
                                 } catch (err) {
                                     console.error('Error setting duration:', err);
                                 }
@@ -90,8 +91,8 @@ const CustomVideoPlayer = ({ videoUrl }) => {
 
     const formatTime = (time) => {
         if (!isFinite(time)) {
-            const duration = videoRef.current?.duration;
-            if (isFinite(duration)) time = duration;
+            const formatTimeDuration = videoRef.current?.duration;
+            if (isFinite(formatTimeDuration)) time = formatTimeDuration;
             else return '0:00';
         }
         const minutes = Math.floor(time / 60)
