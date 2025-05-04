@@ -37,14 +37,23 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                 .then(async videoBlob => {
                     const sourceBuffer = mediaSourceRef.current.addSourceBuffer('video/webm; codecs="vp8,opus"')
                     sourceBuffer.addEventListener('updateend', () => {
-                        mediaSourceRef.current.endOfStream()
-                        resolve() // Resolve the promise when setup is complete
+                         if (mediaSourceRef.current.readyState === 'open') {
+                                try {
+                                    const end = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
+                                    mediaSourceRef.current.duration = end;
+                                    setDuration(end);
+                                } catch (err) {
+                                    console.error('Error setting duration:', err);
+                                }
+                                mediaSourceRef.current.endOfStream();
+                                resolve(); // Resolve the promise when setup is complete
+                            }
                     })
                     sourceBuffer.appendBuffer(await videoBlob.arrayBuffer())
                 })
                 .catch(error => console.error('Error fetching video:', error))
             })
-        })
+        }) 
     }
 
     const togglePlay = async () => {
@@ -81,6 +90,11 @@ const CustomVideoPlayer = ({ videoUrl }) => {
     }
 
     const formatTime = (time) => {
+        if (!isFinite(time)) {
+            const formatTimeDuration = videoRef.current?.duration;
+            if (isFinite(formatTimeDuration)) time = formatTimeDuration;
+            else return '0:00';
+        }
         const minutes = Math.floor(time / 60)
         const seconds = Math.floor(time % 60)
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
