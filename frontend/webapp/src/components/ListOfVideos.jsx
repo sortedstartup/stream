@@ -8,6 +8,7 @@ const VideoCard = ({ video }) => {
     const navigate = useNavigate()
 
     const getStatusBadge = (status) => {
+        if (!status || status === VideoStatus.STATUS_UNSPECIFIED) return null;
         const statusClasses = {
             [VideoStatus.STATUS_PROCESSING]: "badge badge-warning",
             [VideoStatus.STATUS_READY]: "badge badge-success",
