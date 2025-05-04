@@ -43,7 +43,8 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 		return nil, err
 	}
 
-	dbQueries := db.New(_db)
+	rawQueries := db.New(_db)
+	dbQueries := &db.QueriesWrapper{Queries: rawQueries}
 
 	ServerMux := http.NewServeMux()
 

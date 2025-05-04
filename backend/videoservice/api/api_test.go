@@ -10,7 +10,7 @@ import (
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/videoservice/api"
 	"sortedstartup.com/stream/videoservice/db"
-	mockdb "sortedstartup.com/stream/videoservice/db/mock" // use `mockgen` to generate this
+	mockdb "sortedstartup.com/stream/videoservice/db/mock"
 	"sortedstartup.com/stream/videoservice/proto"
 )
 
@@ -64,7 +64,6 @@ func TestListVideos(t *testing.T) {
 		DBQueries: mockQueries,
 	}
 
-	
 	// Setting up request
 	req := &proto.ListVideosRequest{
 		PageSize:   pageSize,

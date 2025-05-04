@@ -2,7 +2,9 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +12,52 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"sortedstartup.com/stream/videoservice/db"
 )
+
+type MockDB struct{}
+
+func (m *MockDB) CreateVideoUploaded(ctx context.Context, arg db.CreateVideoUploadedParams) (db.Video, error) {
+	// Mock response
+	return db.Video{
+		ID:             arg.ID,
+		Title:          arg.Title,
+		Description:    arg.Description,
+		Url:            arg.Url,
+		UploadedUserID: arg.UploadedUserID,
+		CreatedAt:      arg.CreatedAt,
+		UpdatedAt:      arg.UpdatedAt,
+	}, nil // Return a mock video and nil error
+}
+
+func (m *MockDB) GetVideoByID(ctx context.Context, arg db.GetVideoByIDParams) (db.Video, error) {
+	// Mock response
+	return db.Video{
+		ID:             arg.ID,
+		Title:          "Test Title",
+		Description:    "Test Description",
+		Url:            "http://example.com/video",
+		UploadedUserID: arg.UserID,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}, nil
+}
+
+func (m *MockDB) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg db.GetAllVideoUploadedByUserPaginatedParams) ([]db.Video, error) {
+	// Mock response
+	return []db.Video{
+		{
+			ID:             "vid123",
+			Title:          "Sample Video",
+			Description:    "Sample Desc",
+			Url:            "http://example.com/video",
+			UploadedUserID: arg.UserID,
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+		},
+	}, nil
+}
 
 func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 	t.Log("Start TestUploadHandlerContentLengthExceedsLimit:", time.Now())
@@ -19,7 +66,11 @@ func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 	req.Header.Set("Content-Length", "104857601") // maxUploadSize + 1
 	rec := httptest.NewRecorder()
 
-	handler := http.HandlerFunc(uploadHandler)
+	videoAPI := &VideoAPI{
+		DBQueries: &MockDB{},
+		log:       slog.Default(),
+	}
+	handler := http.HandlerFunc(videoAPI.uploadHandler)
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusRequestEntityTooLarge {
@@ -44,7 +95,11 @@ func TestUploadHandlerNoContentLengthHeader(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec := httptest.NewRecorder()
 
-	handler := http.HandlerFunc(uploadHandler)
+	videoAPI := &VideoAPI{
+		DBQueries: &MockDB{},
+		log:       slog.Default(),
+	}
+	handler := http.HandlerFunc(videoAPI.uploadHandler)
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
@@ -74,7 +129,11 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	rec := httptest.NewRecorder()
-	handler := http.HandlerFunc(uploadHandler)
+	videoAPI := &VideoAPI{
+		DBQueries: &MockDB{},
+		log:       slog.Default(),
+	}
+	handler := http.HandlerFunc(videoAPI.uploadHandler)
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusRequestEntityTooLarge {
