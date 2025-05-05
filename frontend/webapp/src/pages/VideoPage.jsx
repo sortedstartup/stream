@@ -9,7 +9,7 @@ import {Video} from "../proto/videoservice"
 import CommentSection from "../components/CommentSection";
 import { Layout } from '../components/layout/Layout'
 
-const CustomVideoPlayer = ({ videoUrl }) => {
+const CustomVideoPlayer = ({ videoUrl, poster }) => {
     const videoRef = useRef(null)
     const mediaSourceRef = useRef(null)
     const [isPlaying, setIsPlaying] = useState(false)
@@ -105,6 +105,7 @@ const CustomVideoPlayer = ({ videoUrl }) => {
             <video
                 ref={videoRef}
                 className="w-full aspect-video"
+                poster={poster}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
             />
@@ -180,7 +181,10 @@ export const VideoPage = () => {
             <Layout>
                 <div className="container mx-auto px-4 py-8">
                     <h1 className="text-2xl font-bold mb-6">{video.title}</h1>
-                    <CustomVideoPlayer videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`} />
+                    <CustomVideoPlayer 
+                        videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`} 
+                        poster={video.thumbnail_url}
+                    />
                     <div className="mt-6">
                         <p className="text-base-content/70">{video.description}</p>
                         <div className="mt-4 text-sm text-base-content/60">
