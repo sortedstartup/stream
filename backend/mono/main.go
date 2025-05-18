@@ -1,7 +1,9 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -21,6 +23,9 @@ import (
 	commentAPI "sortedstartup.com/stream/commentservice/api"
 	commentProto "sortedstartup.com/stream/commentservice/proto"
 )
+
+//go:embed webapp/dist
+var staticFiles embed.FS
 
 type Monolith struct {
 	Config   *config.MonolithConfig
@@ -113,15 +118,25 @@ func NewMonolith() (*Monolith, error) {
 	// GRPC Web is a http server 1.0 server that wraps a grpc server
 	// Browsers JS clients can only talk to GRPC web for now
 	wrappedGrpc := grpcweb.WrapServer(grpcServer)
+
+	// Create a sub-filesystem for the dist directory
+	distFS, err := fs.Sub(staticFiles, "webapp/dist")
+	if err != nil {
+		log.Error("Could not create sub-filesystem for static files", "err", err)
+		return nil, err
+	}
+
+	// Create a file server for the static files
+	staticFileServer := http.FileServer(http.FS(distFS))
+
 	parentMux := http.NewServeMux()
 	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
-			// EnableCORS(wrappedGrpc).ServeHTTP(w, r)
 			wrappedGrpc.ServeHTTP(w, r)
 			return
 		}
-		// For non-matched requests, serve static UI as fallback
-		//staticUI.ServeHTTP(w, r)
+		// Serve static files for non-gRPC requests
+		staticFileServer.ServeHTTP(w, r)
 	})
 
 	// parentMux.Handle("/test/*", aNewMux())
