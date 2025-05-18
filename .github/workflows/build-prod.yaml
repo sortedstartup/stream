@@ -40,7 +40,7 @@ jobs:
 
       - name: Copy frontend dist to backend
         run: |
-          cp -rf dist ../../backend/webapp
+          cp -rf dist ../../backend/mono/webapp
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -48,7 +48,7 @@ jobs:
           go-version: '1.23'
 
       - name: Build Go binary
-        working-directory: ./backend
+        working-directory: ./backend/mono
         run: go build -o stream-prod-binary
 
       - name: Upload built binary
@@ -56,3 +56,6 @@ jobs:
         with:
           name: stream-prod-binary
           path: ./backend/stream-prod-binary
+      - name: Clean up binary
+        run: |
+          rm ./backend/mono/stream-prod-binary
