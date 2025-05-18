@@ -50,7 +50,7 @@ jobs:
       - name: Build Go binary
         working-directory: ./backend/mono
         # VERSION=$(git describe --tags)
-        run: go build  -o stream-prod-binary
+        run: go build  -o stream-staging-binary
 
       - name: Upload built binary
         uses: actions/upload-artifact@v4
