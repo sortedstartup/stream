@@ -27,6 +27,11 @@ import (
 //go:embed webapp/dist
 var staticFiles embed.FS
 
+var (
+	Version   string
+	BuildTime string
+)
+
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
