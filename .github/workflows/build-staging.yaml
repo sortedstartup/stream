@@ -36,12 +36,11 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build --mode prod
+        run: pnpm build --mode staging
 
       - name: Copy frontend dist to backend
         run: |
-          rm -rf ./backend/webapp
-          cp -r ./frontend/webapp/dist ./backend/webapp
+          cp -rf dist ../../backend/webapp
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -50,10 +49,10 @@ jobs:
 
       - name: Build Go binary
         working-directory: ./backend
-        run: go build -o app-binary
+        run: go build -o stream-staging-binary
 
       - name: Upload built binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: app-binary
-          path: ./backend/app-binary
+          name: stream-staging-binary
+          path: ./backend/stream-staging-binary
