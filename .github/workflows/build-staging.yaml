@@ -49,9 +49,9 @@ jobs:
 
       - name: Build Go binary
         working-directory: ./backend/mono
-        VERSION=$(git describe --tags)
-        run: go build -ldflags "-X main.Version=$VERSION -X main.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S')" -o stream-staging-binary-v${VERSION}-$(date -u '+%Y%m%d_%H%M%S')
-     
+        # VERSION=$(git describe --tags)
+        run: go build  -o stream-prod-binary
+
       - name: Upload built binary
         uses: actions/upload-artifact@v4
         with:
