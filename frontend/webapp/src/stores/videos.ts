@@ -20,7 +20,7 @@ const unaryInterceptor: UnaryInterceptor<any, any> = {
   };
   
 export const videoService = new VideoServiceClient(
-    import.meta.env.VITE_PUBLIC_API_URL,
+    import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, ""),
     {},
     {
         unaryInterceptors: [unaryInterceptor],

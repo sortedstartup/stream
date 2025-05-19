@@ -17,7 +17,7 @@ interface CommentWithReplies extends Comment {
 export const $comments = atom<CommentWithReplies[]>([]);
 
 export const commentService = new CommentServiceClient(
-  import.meta.env.VITE_PUBLIC_API_URL,
+  import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, ""),
   {},
   {
     unaryInterceptors: [
