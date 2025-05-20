@@ -57,7 +57,3 @@ jobs:
         with:
           name: stream-staging-binary
           path: ./backend/mono/stream-staging-binary
-
-      - name: Clean up binary
-        run: |
-          rm ./backend/mono/stream-staging-binary
