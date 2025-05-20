@@ -180,7 +180,7 @@ export const VideoPage = () => {
             <Layout>
                 <div className="container mx-auto px-4 py-8">
                     <h1 className="text-2xl font-bold mb-6">{video.title}</h1>
-                    <CustomVideoPlayer videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL}/api/videoservice/video/${id}`} />
+                    <CustomVideoPlayer videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "")}/api/videoservice/video/${id}`} />
                     <div className="mt-6">
                         <p className="text-base-content/70">{video.description}</p>
                         <div className="mt-4 text-sm text-base-content/60">

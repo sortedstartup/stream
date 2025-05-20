@@ -85,7 +85,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     formData.append("description", description);
 
     try {
-      const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL + "/api/videoservice/upload", {
+      const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "") + "/api/videoservice/upload", {
         method: "POST",
         body: formData,
         headers: {

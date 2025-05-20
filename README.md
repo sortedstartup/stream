@@ -16,3 +16,6 @@ We noticed that the web APIs available in every browser for recording and playin
 # License
 As of now we feel GPL v2 is the right license for us.
 We will review it based on community feedback as we go along.
+
+# Generate binary
+1. `GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=1.0.0 -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')" -o ../../bin/stream-server-linux`

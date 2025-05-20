@@ -1,0 +1,57 @@
+name: Build Go Binary
+
+on:
+  push:
+    tags:
+      - backend-v[0-9]+.[0-9]+.[0-9]+
+jobs:
+  build:
+    name: Build Go Binary with Embedded React Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ./frontend/webapp
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build --mode prod
+
+      - name: Copy frontend dist to backend
+        run: |
+          cp -rf dist ../../backend/mono/webapp
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Build Go binary
+        working-directory: ./backend/mono
+        # VERSION=$(git describe --tags)
+        run: go build  -o stream-prod-binary
+     
+      - name: Upload built binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-prod-binary
+          path: ./backend/mono/stream-prod-binary
