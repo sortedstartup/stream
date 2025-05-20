@@ -3,7 +3,7 @@ name: Build Go Binary
 on:
   push:
     tags:
-      - backend-v[0-9]+.[0-9]+.[0-9]+-rc*
+      - build-v[0-9]+.[0-9]+.[0-9]+-rc*
 jobs:
   build:
     name: Build Go Binary with Embedded React Frontend
