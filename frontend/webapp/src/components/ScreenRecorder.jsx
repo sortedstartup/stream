@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
 
@@ -13,12 +13,51 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [showForm, setShowForm] = useState(false);
 
   const mediaRecorder = useRef(null);
-  const recordedChunks = useRef([]);
   const authToken = useStore($authToken);
+
+  // --- OPFS Helpers ---
+  const fileName = "recording.webm";
+
+  const getRecordingFileHandle = async () => {
+    const root = await navigator.storage.getDirectory();
+    return await root.getFileHandle(fileName, { create: true });
+  };
+
+  const writeChunkToOPFS = async (chunk) => {
+    const fileHandle = await getRecordingFileHandle();
+    const writable = await fileHandle.createWritable({ keepExistingData: true });
+    const currentSize = (await fileHandle.getFile()).size;
+    await writable.write({ type: "write", position: currentSize, data: chunk });
+    await writable.close();
+  };
+
+  const deleteRecordingFromOPFS = async () => {
+    const root = await navigator.storage.getDirectory();
+    await root.removeEntry(fileName);
+  };
+
+  const loadPreviousRecording = async () => {
+    try {
+      const root = await navigator.storage.getDirectory();
+      const handle = await root.getFileHandle(fileName);
+      const file = await handle.getFile();
+      if (file.size > 0) {
+        setCurrentVideoBlob(file);
+        setVideoUrl(URL.createObjectURL(file));
+        setShowForm(true);
+      }
+    } catch (e) {
+      // No existing file
+    }
+  };
+
+  useEffect(() => {
+    loadPreviousRecording();
+  }, []);
 
   const startRecording = async () => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
       });
@@ -32,16 +71,16 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       audioStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
 
       mediaRecorder.current = new MediaRecorder(combinedStream);
-      recordedChunks.current = [];
 
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunks.current.push(event.data);
+      mediaRecorder.current.ondataavailable = async (event) => {
+        if (event.data.size > 0) await writeChunkToOPFS(event.data);
       };
 
-      mediaRecorder.current.onstop = () => {
-        const blob = new Blob(recordedChunks.current, { type: "video/webm" });
-        setVideoUrl(URL.createObjectURL(blob));
-        setCurrentVideoBlob(blob);
+      mediaRecorder.current.onstop = async () => {
+        const handle = await getRecordingFileHandle();
+        const file = await handle.getFile();
+        setCurrentVideoBlob(file);
+        setVideoUrl(URL.createObjectURL(file));
         setShowForm(true);
       };
 
@@ -62,10 +101,9 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   const downloadRecording = () => {
     if (!videoUrl) return;
-
     const a = document.createElement("a");
     a.href = videoUrl;
-    a.download = "recording.webm";
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -80,7 +118,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     setIsUploading(true);
     setUploadFailed(false);
     const formData = new FormData();
-    formData.append("video", currentVideoBlob, "recording.webm");
+    formData.append("video", currentVideoBlob, fileName);
     formData.append("title", title);
     formData.append("description", description);
 
@@ -106,6 +144,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       }
 
       onUploadSuccess && onUploadSuccess({ message });
+      await deleteRecordingFromOPFS();
       setUploadFailed(false);
       setShowForm(false);
       setVideoUrl(null);
@@ -119,7 +158,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   };
 
   const handleReupload = () => {
-    if (currentVideoBlob) {
+     if (currentVideoBlob) {
       uploadVideo();
     }
   };
