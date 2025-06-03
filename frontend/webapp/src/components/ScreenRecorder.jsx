@@ -26,8 +26,12 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   };
 
   const deleteRecordingFromOPFS = async () => {
-    const root = await navigator.storage.getDirectory();
-    await root.removeEntry(fileName);
+    try {
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry(fileName);
+    } catch (_) {
+      // file may not exist; that's fine
+    }
   };
 
   const loadPreviousRecording = async () => {
@@ -51,15 +55,14 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   const startRecording = async () => {
     try {
-      // If there's an old recording, do not overwrite it
       if (currentVideoBlob) {
         setStatusMessage("Please upload or download the current recording before starting a new one.");
         return;
       }
 
-      await deleteRecordingFromOPFS(); // Start fresh
+      await deleteRecordingFromOPFS();
 
-     const screenStream = await navigator.mediaDevices.getDisplayMedia({
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
       });
@@ -159,27 +162,21 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       }
 
       const responseText = await response.text();
-      let message = "Video uploaded successfully!";
-      
-      if (responseText) {
-        const data = JSON.parse(responseText);
-        message = data.message || message;
-      }
-
+      const data = JSON.parse(responseText);
+      const message = data.message || "Video uploaded successfully!";
       setStatusMessage(message);
 
       onUploadSuccess && onUploadSuccess({ message });
 
       await deleteRecordingFromOPFS();
-      setUploadFailed(false);
       setShowForm(false);
       setVideoUrl(null);
       setCurrentVideoBlob(null);
     } catch (error) {
       console.error("Error uploading video:", error);
+      setUploadFailed(true);
       setStatusMessage("Upload failed. Please try again.");
       onUploadError && onUploadError(error);
-      setUploadFailed(true);
     } finally {
       setIsUploading(false);
     }
@@ -252,13 +249,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
               </button>
             )}
           </div>
-          
-           {isUploading && (
-            <div className="flex justify-center items-center gap-2">
-              <span className="loading loading-spinner loading-md"></span>
-              <span>Uploading video...</span>
-            </div>
-          )}
         </div>
       )}
     </div>
