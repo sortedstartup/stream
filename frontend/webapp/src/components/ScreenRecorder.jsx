@@ -11,9 +11,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null);
 
   const mediaRecorder = useRef(null);
-  const recordedChunks = useRef([]);
+  const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
 
   // --- OPFS Helpers ---
@@ -22,14 +23,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const getRecordingFileHandle = async () => {
     const root = await navigator.storage.getDirectory();
     return await root.getFileHandle(fileName, { create: true });
-  };
-
-  const writeChunkToOPFS = async (chunk) => {
-    const fileHandle = await getRecordingFileHandle();
-    const writable = await fileHandle.createWritable({ keepExistingData: true });
-    const currentSize = (await fileHandle.getFile()).size;
-    await writable.write({ type: "write", position: currentSize, data: chunk });
-    await writable.close();
   };
 
   const deleteRecordingFromOPFS = async () => {
@@ -47,8 +40,8 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         setVideoUrl(URL.createObjectURL(file));
         setShowForm(true);
       }
-    } catch (e) {
-      // No existing file
+    } catch (_) {
+      // No previous recording
     }
   };
 
@@ -57,14 +50,16 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   }, []);
 
   const startRecording = async () => {
-    const existingFile = await getRecordingFileHandle().then(fh => fh.getFile()).catch(() => null);
-    if (existingFile && existingFile.size > 0) {
-      const confirmOverwrite = confirm("Previous recording not uploaded. Starting a new recording will overwrite it. Continue?");
-      if (!confirmOverwrite) return;
-      await deleteRecordingFromOPFS(); // Clean up old file
-    }
     try {
-       const screenStream = await navigator.mediaDevices.getDisplayMedia({
+      // If there's an old recording, do not overwrite it
+      if (currentVideoBlob) {
+        setStatusMessage("Please upload or download the current recording before starting a new one.");
+        return;
+      }
+
+      await deleteRecordingFromOPFS(); // Start fresh
+
+     const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
       });
@@ -77,32 +72,37 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       screenStream.getTracks().forEach((track) => combinedStream.addTrack(track));
       audioStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
 
+      const fileHandle = await getRecordingFileHandle();
+      const writable = await fileHandle.createWritable();
+      writableStreamRef.current = writable;
+
       mediaRecorder.current = new MediaRecorder(combinedStream);
 
-      recordedChunks.current = [];
-
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunks.current.push(event.data);
+      mediaRecorder.current.ondataavailable = async (event) => {
+        if (event.data.size > 0 && writableStreamRef.current) {
+          await writableStreamRef.current.write(event.data);
         }
       };
 
       mediaRecorder.current.onstop = async () => {
-      const completeBlob = new Blob(recordedChunks.current, { type: "video/webm" });
-      recordedChunks.current = [];
+        if (writableStreamRef.current) {
+          await writableStreamRef.current.close();
+          writableStreamRef.current = null;
+        }
 
-      await writeChunkToOPFS(completeBlob);
+        const file = await fileHandle.getFile();
+        setCurrentVideoBlob(file);
+        setVideoUrl(URL.createObjectURL(file));
+        setShowForm(true);
+        setStatusMessage(null);
+      };
 
-      setCurrentVideoBlob(completeBlob);
-      setVideoUrl(URL.createObjectURL(completeBlob));
-      setShowForm(true);
-    };
-
-    mediaRecorder.current.start();
-    setIsRecording(true);
-
+      mediaRecorder.current.start();
+      setIsRecording(true);
+      setStatusMessage("Recording started...");
     } catch (error) {
       console.error("Error starting recording:", error);
+      setStatusMessage("Failed to start recording.");
     }
   };
 
@@ -111,6 +111,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       mediaRecorder.current.stop();
       setIsRecording(false);
       mediaRecorder.current.stream.getTracks().forEach((track) => track.stop());
+      setStatusMessage("Recording stopped.");
     }
   };
 
@@ -126,12 +127,19 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   const uploadVideo = async () => {
     if (!title || !description) {
-      alert("Please enter both title and description before uploading.");
+      setStatusMessage("Please enter both title and description before uploading.");
+      return;
+    }
+
+    if (!currentVideoBlob) {
+      setStatusMessage("No video to upload.");
       return;
     }
 
     setIsUploading(true);
     setUploadFailed(false);
+    setStatusMessage("Uploading video...");
+
     const formData = new FormData();
     formData.append("video", currentVideoBlob, fileName);
     formData.append("title", title);
@@ -158,13 +166,18 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         message = data.message || message;
       }
 
+      setStatusMessage(message);
+
       onUploadSuccess && onUploadSuccess({ message });
+
       await deleteRecordingFromOPFS();
       setUploadFailed(false);
       setShowForm(false);
       setVideoUrl(null);
+      setCurrentVideoBlob(null);
     } catch (error) {
       console.error("Error uploading video:", error);
+      setStatusMessage("Upload failed. Please try again.");
       onUploadError && onUploadError(error);
       setUploadFailed(true);
     } finally {
@@ -173,13 +186,17 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   };
 
   const handleReupload = () => {
-     if (currentVideoBlob) {
+    if (currentVideoBlob) {
       uploadVideo();
     }
   };
 
   return (
     <div className="space-y-4">
+      {statusMessage && (
+        <div className="text-sm text-center text-blue-600">{statusMessage}</div>
+      )}
+
       <div className="flex justify-center gap-4">
         {!isRecording ? (
           <button className="btn btn-primary" onClick={startRecording} disabled={isUploading}>
@@ -201,20 +218,20 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
             <div className="space-y-2">
               <label className="block">
                 Title:
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  placeholder="Enter video title" 
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter video title"
                   className="input input-bordered w-full mt-1"
                 />
               </label>
               <label className="block">
                 Description:
-                <textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  placeholder="Enter video description" 
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter video description"
                   className="textarea textarea-bordered w-full mt-1"
                 />
               </label>
@@ -235,8 +252,8 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
               </button>
             )}
           </div>
-
-          {isUploading && (
+          
+           {isUploading && (
             <div className="flex justify-center items-center gap-2">
               <span className="loading loading-spinner loading-md"></span>
               <span>Uploading video...</span>
