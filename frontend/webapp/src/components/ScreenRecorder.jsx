@@ -13,6 +13,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [showForm, setShowForm] = useState(false);
 
   const mediaRecorder = useRef(null);
+  const recordedChunks = useRef([]);
   const authToken = useStore($authToken);
 
   // --- OPFS Helpers ---
@@ -56,6 +57,12 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   }, []);
 
   const startRecording = async () => {
+    const existingFile = await getRecordingFileHandle().then(fh => fh.getFile()).catch(() => null);
+    if (existingFile && existingFile.size > 0) {
+      const confirmOverwrite = confirm("Previous recording not uploaded. Starting a new recording will overwrite it. Continue?");
+      if (!confirmOverwrite) return;
+      await deleteRecordingFromOPFS(); // Clean up old file
+    }
     try {
        const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
@@ -72,20 +79,28 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
       mediaRecorder.current = new MediaRecorder(combinedStream);
 
-      mediaRecorder.current.ondataavailable = async (event) => {
-        if (event.data.size > 0) await writeChunkToOPFS(event.data);
+      recordedChunks.current = [];
+
+      mediaRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.current.push(event.data);
+        }
       };
 
       mediaRecorder.current.onstop = async () => {
-        const handle = await getRecordingFileHandle();
-        const file = await handle.getFile();
-        setCurrentVideoBlob(file);
-        setVideoUrl(URL.createObjectURL(file));
-        setShowForm(true);
-      };
+      const completeBlob = new Blob(recordedChunks.current, { type: "video/webm" });
+      recordedChunks.current = [];
 
-      mediaRecorder.current.start();
-      setIsRecording(true);
+      await writeChunkToOPFS(completeBlob);
+
+      setCurrentVideoBlob(completeBlob);
+      setVideoUrl(URL.createObjectURL(completeBlob));
+      setShowForm(true);
+    };
+
+    mediaRecorder.current.start();
+    setIsRecording(true);
+
     } catch (error) {
       console.error("Error starting recording:", error);
     }
