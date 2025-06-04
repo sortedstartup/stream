@@ -191,18 +191,13 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   return (
     <div className="space-y-4">
       {statusMessage && (
-        <div className={`alert shadow-lg ${
-          uploadFailed ? "alert-error" :
-          isUploading ? "alert-info" :
-          "alert-success"
-        }`}>
+        <div className="alert alert-error shadow-lg">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m0-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z" />
           </svg>
           <span>{statusMessage}</span>
         </div>
       )}
-
 
       <div className="flex justify-center gap-4">
         {!isRecording ? (
