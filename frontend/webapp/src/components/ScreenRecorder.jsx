@@ -57,7 +57,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const startRecording = async () => {
     try {
       if (currentVideoBlob) {
-        setStatusType("error");
         setStatusMessage("Please upload or download the current recording before starting a new one.");
         return;
       }
@@ -143,7 +142,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
     setIsUploading(true);
     setUploadFailed(false);
-    setStatusType("info");
     setStatusMessage("Uploading video...");
 
     const formData = new FormData();
@@ -167,7 +165,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       const responseText = await response.text();
       const data = JSON.parse(responseText);
       const message = data.message || "Video uploaded successfully!";
-      setStatusType("success");
       setStatusMessage(message);
 
       onUploadSuccess && onUploadSuccess({ message });
@@ -179,7 +176,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     } catch (error) {
       console.error("Error uploading video:", error);
       setUploadFailed(true);
-      setStatusType("error");
       setStatusMessage("Upload failed. Please try again.");
       onUploadError && onUploadError(error);
     } finally {
@@ -195,10 +191,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   return (
     <div className="space-y-4">
-      {statusMessage && (
-        <div className={`alert shadow-lg alert-${statusType}`}>
+      {statusMessage === "Please upload or download the current recording before starting a new one." && (
+        <div className="alert alert-error shadow-lg">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636L5.636 18.364M5.636 5.636l12.728 12.728" />
           </svg>
           <span>{statusMessage}</span>
         </div>
