@@ -12,13 +12,20 @@ export const HomePage = () => {
                     <p className="mt-2 text-base-content/70">Record, save, and manage your screen recordings easily</p>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-4 flex-wrap">
                     <button onClick={() => navigate('/record')} className="btn btn-primary btn-lg gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                             <circle cx="12" cy="12" r="3" fill="currentColor"/>
                         </svg>
                         Start Recording
+                    </button>
+
+                    <button onClick={() => navigate('/upload')} className="btn btn-secondary btn-lg gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v6m0-6l-3 3m3-3l3 3m0-6h2a2 2 0 012 2v2m-4-4H8m8 0a2 2 0 00-2-2H8a2 2 0 00-2 2" />
+                        </svg>
+                        Upload Video
                     </button>
                 </div>
 
