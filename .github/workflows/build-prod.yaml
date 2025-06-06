@@ -9,11 +9,14 @@ jobs:
     name: Build Go Binary with Embedded React Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ENV_NAME: production
     defaults:
       run:
         working-directory: ./frontend/webapp
     permissions:
       contents: read
+      packages: write
       deployments: write
 
     steps:
@@ -33,8 +36,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
-        run: pnpm build --mode prod
+      - name: Build frontend
+        run: pnpm build --mode ${{ env.ENV_NAME }}
 
       - name: Copy frontend dist to backend
         run: |
@@ -48,10 +51,23 @@ jobs:
       - name: Build Go binary
         working-directory: ./backend/mono
         # VERSION=$(git describe --tags)
-        run: go build  -o stream-prod-binary
+        run: go build  -o stream-${{ env.ENV_NAME }}-binary
      
-      - name: Upload built binary
-        uses: actions/upload-artifact@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          name: stream-prod-binary
-          path: ./backend/mono/stream-prod-binary
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          tags: ghcr.io/${{ github.repository }}/sortedstream:binary-${{ env.ENV_NAME }}-latest
+          push: true
+          build-args: |
+            ENV_NAME=${{ env.ENV_NAME }}
+
+
