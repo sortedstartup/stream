@@ -42,6 +42,13 @@ func NewFirebase() (*Firebase, error) {
 			slog.Error("error initializing firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", err)
 			return nil, err
 		}
+
+		auth, err = app.Auth(context.Background())
+		if err != nil {
+			slog.Error("failed to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", err)
+			return nil, err
+		}
+
 	}
 
 	// return nil
