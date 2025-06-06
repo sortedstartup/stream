@@ -57,8 +57,8 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
-          context: ./backend/mono
-          file: ../../deploy/Dockerfile
+          context: .
+          file: ./deploy/Dockerfile
           tags: ghcr.io/sortedstartup/stream-${{ env.ENV_NAME }}:latest
           push: true
           build-args: |

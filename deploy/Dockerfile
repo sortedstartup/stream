@@ -4,7 +4,7 @@ FROM gcr.io/distroless/base
 ARG ENV_NAME=staging
 
 # Copy the binary generated for the given environment
-COPY stream-${ENV_NAME}-binary /app
+COPY ./backend/mono/stream-${ENV_NAME}-binary /app
 
 # Set entrypoint
 WORKDIR /
