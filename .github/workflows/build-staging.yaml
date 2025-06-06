@@ -55,12 +55,16 @@ jobs:
         # VERSION=$(git describe --tags)
         run: go build  -o stream-${{ env.ENV_NAME }}-binary
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
           context: .
           file: ./deploy/Dockerfile
           tags: ghcr.io/${{ github.repository }}/sortedstream:binary-${{ env.ENV_NAME }}-latest
