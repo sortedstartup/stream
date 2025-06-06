@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - build-v[0-9]+.[0-9]+.[0-9]+
+    branches:
+      - feature/deploy-into-fly
 jobs:
   build:
     name: Build Go Binary with Embedded React Frontend
@@ -55,3 +57,16 @@ jobs:
         with:
           name: stream-prod-binary
           path: ./backend/mono/stream-prod-binary
+        id: artifact_url
+        run: echo "::set-output name=artifact_url::$(curl -s -X POST -H "Content-Type: application/json" -d '{"name": "stream-prod-binary", "path": "./backend/mono/stream-prod-binary"}' https://api.github.com/repos/sortedstartup/stream/releases | jq -r '.assets[0].url')"
+
+      - name: Upload docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          tags: stream:latest
+          args:
+            ARTIFACT_URL: ${{ steps.artifact_url.outputs.artifact_url }}
+
+

@@ -19,3 +19,29 @@ We will review it based on community feedback as we go along.
 
 # Generate binary
 1. `GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=1.0.0 -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S')" -o ../../bin/stream-server-linux`
+
+
+# Deploy in fly.io
+
+## Setup fly.io
+1. In your local terminal run ```fly launch``` command and follow the instructions to launch your app.
+2. Once you have launched your app, a fly.toml file will be created.
+3. Add the following to the fly.toml file:
+```
+[mounts]
+  source = "sortedstream_data"
+  destination = "/data"
+```
+4. create a new volume in fly.io
+```
+fly volumes create sortedstream_data -r <region> --size 10
+```
+6. We have added sample fly.toml file in deploy folder.
+```
+
+# Deploy in fly.io
+1. In .github/workflows folder, we do have build yaml files, which will build the binary, upload artifact into github and also generate docker image and push to github container registry.
+2. You just have to run ```fly deploy``` command to deploy the app.
+
+
+
