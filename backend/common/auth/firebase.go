@@ -17,45 +17,59 @@ type Firebase struct {
 }
 
 func NewFirebase() (*Firebase, error) {
+	// Try default credentials first
+	app, auth, err := initializeFirebaseApp()
+	if err == nil {
+		return &Firebase{App: app, Auth: auth}, nil
+	}
 
-	//TODO: move it to firebase init
-	app, err := firebase.NewApp(context.Background(), nil)
+	slog.Error("failed to initialize firebase app using default credentials", "err", err)
+
+	// Fallback to base64 encoded credentials
+	app, auth, err = initializeFirebaseWithBase64Creds()
 	if err != nil {
-		//TODO: return right kind of error
-		slog.Error("error initializing firebase app", "err", err)
+		slog.Error("failed to initialize firebase app using base64 credentials", "err", err)
 		return nil, err
 	}
 
-	auth, err := app.Auth(context.Background())
+	return &Firebase{App: app, Auth: auth}, nil
+}
+
+// initializeFirebaseApp initializes Firebase using default credentials
+func initializeFirebaseApp() (*firebase.App, *auth.Client, error) {
+	app, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		slog.Error("failed to initialize firebase app using [GOOGLE_APPLICATION_CREDENTIALS]", "err", err)
-		slog.Info("trying to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]")
-		// read creds from env variable
-		creds, decodingError := base64.StdEncoding.DecodeString(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64"))
-		if decodingError != nil {
-			slog.Error("error decoding base64 firebase credentials from env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", decodingError)
-			return nil, decodingError
-		}
-
-		app, err = firebase.NewApp(context.Background(), nil, option.WithCredentialsJSON(creds))
-		if err != nil {
-			slog.Error("error initializing firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", err)
-			return nil, err
-		}
-
-		auth, err = app.Auth(context.Background())
-		if err != nil {
-			slog.Error("failed to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", err)
-			return nil, err
-		}
-
+		return nil, nil, err
 	}
 
-	// return nil
-	return &Firebase{
-		App:  app,
-		Auth: auth,
-	}, nil
+	authClient, err := app.Auth(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return app, authClient, nil
+}
+
+// initializeFirebaseWithBase64Creds initializes Firebase using base64 encoded credentials
+func initializeFirebaseWithBase64Creds() (*firebase.App, *auth.Client, error) {
+	slog.Info("trying to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]")
+
+	creds, err := base64.StdEncoding.DecodeString(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsJSON(creds))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authClient, err := app.Auth(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return app, authClient, nil
 }
 
 // VerifyIDToken verifies the token and returns the user
