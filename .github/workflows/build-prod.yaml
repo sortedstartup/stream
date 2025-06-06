@@ -58,6 +58,9 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           context: .
           file: ./deploy/Dockerfile
           tags: ghcr.io/sortedstartup/stream-${{ env.ENV_NAME }}:latest
