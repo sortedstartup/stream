@@ -11,6 +11,8 @@ jobs:
     name: Build Go Binary with Embedded React Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ENV_NAME: prod
     defaults:
       run:
         working-directory: ./frontend/webapp
@@ -35,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
-        run: pnpm build --mode prod
+      - name: Build frontend
+        run: pnpm build --mode ${{ env.ENV_NAME }}
 
       - name: Copy frontend dist to backend
         run: |
@@ -50,23 +52,16 @@ jobs:
       - name: Build Go binary
         working-directory: ./backend/mono
         # VERSION=$(git describe --tags)
-        run: go build  -o stream-prod-binary
+        run: go build  -o stream-${{ env.ENV_NAME }}-binary
      
-      - name: Upload built binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: stream-prod-binary
-          path: ./backend/mono/stream-prod-binary
-        id: artifact_url
-        run: echo "::set-output name=artifact_url::$(curl -s -X POST -H "Content-Type: application/json" -d '{"name": "stream-prod-binary", "path": "./backend/mono/stream-prod-binary"}' https://api.github.com/repos/sortedstartup/stream/releases | jq -r '.assets[0].url')"
-
-      - name: Upload docker image
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./deploy/Dockerfile
-          tags: stream:latest
+          context: ./backend/mono
+          file: ../../deploy/Dockerfile
+          tags: ghcr.io/sortedstartup/stream-${{ env.ENV_NAME }}:latest
+          push: true
           args:
-            ARTIFACT_URL: ${{ steps.artifact_url.outputs.artifact_url }}
+            ENV_NAME: ${{ env.ENV_NAME }}
 
 
