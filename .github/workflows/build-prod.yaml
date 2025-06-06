@@ -63,7 +63,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           context: .
           file: ./deploy/Dockerfile
-          tags: ghcr.io/sortedstartup/stream-${{ env.ENV_NAME }}:latest
+          tags: ghcr.io/${{ github.repository }}/sortedstream:binary-${{ env.ENV_NAME }}-latest
           push: true
           build-args: |
             ENV_NAME=${{ env.ENV_NAME }}
