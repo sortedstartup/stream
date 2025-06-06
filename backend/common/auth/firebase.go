@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
 	"log/slog"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
+	"google.golang.org/api/option"
 )
 
 type Firebase struct {
@@ -25,9 +28,20 @@ func NewFirebase() (*Firebase, error) {
 
 	auth, err := app.Auth(context.Background())
 	if err != nil {
-		slog.Error("error initializing firebase auth", "err", err)
-		//TODO: return right kind of error
-		return nil, err
+		slog.Error("failed to initialize firebase app using [GOOGLE_APPLICATION_CREDENTIALS]", "err", err)
+		slog.Info("trying to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]")
+		// read creds from env variable
+		creds, decodingError := base64.StdEncoding.DecodeString(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64"))
+		if decodingError != nil {
+			slog.Error("error decoding base64 firebase credentials from env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", decodingError)
+			return nil, decodingError
+		}
+
+		app, err = firebase.NewApp(context.Background(), nil, option.WithCredentialsJSON(creds))
+		if err != nil {
+			slog.Error("error initializing firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]", "err", err)
+			return nil, err
+		}
 	}
 
 	// return nil
