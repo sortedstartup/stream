@@ -61,7 +61,7 @@ jobs:
           file: ../../deploy/Dockerfile
           tags: ghcr.io/sortedstartup/stream-${{ env.ENV_NAME }}:latest
           push: true
-          args:
-            ENV_NAME: ${{ env.ENV_NAME }}
+          build-args: |
+            ENV_NAME=${{ env.ENV_NAME }}
 
 
