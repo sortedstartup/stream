@@ -9,6 +9,7 @@ import { LoginPage } from './auth/pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import ProtectedRoute from './auth/components/ProtectedRoute'
 import { VideoPage } from './pages/VideoPage'
+import { UploadPage } from './pages/UploadPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/record" element={<ProtectedRoute><RecordPage /></ProtectedRoute>} />
         <Route path="/videos" element={<ProtectedRoute><VideosPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={
           <ProtectedRoute>
