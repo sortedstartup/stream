@@ -151,6 +151,22 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
 }
 
+func getMimeTypeFromExtension(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mov":
+		return "video/quicktime"
+	case ".avi":
+		return "video/x-msvideo"
+	default:
+		return "application/octet-stream" // fallback
+	}
+}
+
 func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	// Only allow GET requests
 	if r.Method != http.MethodGet {
@@ -209,7 +225,8 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set appropriate headers
-	w.Header().Set("Content-Type", "video/webm")
+	contentType := getMimeTypeFromExtension(video.Url)
+	w.Header().Set("Content-Type", contentType)
 	rangeHeader := r.Header.Get("Range")
 	if rangeHeader == "" {
 		// No range header – serve full file
