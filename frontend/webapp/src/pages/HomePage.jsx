@@ -9,16 +9,23 @@ export const HomePage = () => {
             <div className="space-y-8">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold">Welcome to Stream</h1>
-                    <p className="mt-2 text-base-content/70">Record, save, and manage your screen recordings easily</p>
+                    <p className="mt-2 text-base-content/70">Record, upload, and manage your videos easily</p>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-4">
                     <button onClick={() => navigate('/record')} className="btn btn-primary btn-lg gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="12" cy="12" r="10" strokeWidth="2"/>
                             <circle cx="12" cy="12" r="3" fill="currentColor"/>
                         </svg>
                         Start Recording
+                    </button>
+                    
+                    <button onClick={() => navigate('/upload')} className="btn btn-secondary btn-lg gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Upload Video
                     </button>
                 </div>
 
@@ -37,13 +44,13 @@ export const HomePage = () => {
 
                     <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
                         <div className="card-body">
-                            <div className="text-primary mb-4">
+                            <div className="text-secondary mb-4">
                                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                             </div>
-                            <h3 className="card-title">Easy Sharing</h3>
-                            <p className="text-base-content/70">Share your recordings instantly with a generated link or download them for offline use.</p>
+                            <h3 className="card-title">Upload Videos</h3>
+                            <p className="text-base-content/70">Upload existing videos from your device. Supports multiple formats up to 500MB.</p>
                         </div>
                     </div>
 
@@ -54,8 +61,8 @@ export const HomePage = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                 </svg>
                             </div>
-                            <h3 className="card-title">Organize Library</h3>
-                            <p className="text-base-content/70">Keep your recordings organized with custom folders and tags for easy access.</p>
+                            <h3 className="card-title">Organize with Spaces</h3>
+                            <p className="text-base-content/70">Create spaces to organize your videos by project, topic, or team. Easy collaboration and management.</p>
                         </div>
                     </div>
 
@@ -63,11 +70,11 @@ export const HomePage = () => {
                         <div className="card-body">
                             <div className="text-primary mb-4">
                                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                             </div>
-                            <h3 className="card-title">Basic Editing</h3>
-                            <p className="text-base-content/70">Trim your recordings, add basic annotations, and customize playback settings.</p>
+                            <h3 className="card-title">Easy Sharing</h3>
+                            <p className="text-base-content/70">Share your videos instantly with a generated link or organize them in spaces for team access.</p>
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import { $spaceVideos, fetchSpace, fetchVideosInSpace } from '../stores/spaces'
 import { VideoStatus, Visibility } from '../proto/videoservice'
 import { AddVideosToSpaceModal } from '../components/AddVideosToSpaceModal'
 import { RecordToSpaceModal } from '../components/RecordToSpaceModal'
+import UploadToSpaceModal from '../components/UploadToSpaceModal'
 
 const VideoCard = ({ video }) => {
     const navigate = useNavigate()
@@ -84,6 +85,7 @@ export const SpaceDetailPage = () => {
     const [error, setError] = useState(null)
     const [isAddVideosModalOpen, setIsAddVideosModalOpen] = useState(false)
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false)
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
 
     const videos = spaceVideos[spaceId] || []
@@ -120,6 +122,12 @@ export const SpaceDetailPage = () => {
         // Refresh the videos in the space
         fetchVideosInSpace(spaceId)
         console.log('New video recorded and added to space:', result.videoId)
+    }
+
+    const handleVideoUploaded = (result) => {
+        // Refresh the videos in the space
+        fetchVideosInSpace(spaceId)
+        console.log('New video uploaded and added to space:', result.videoId)
     }
 
     if (loading) {
@@ -208,6 +216,20 @@ export const SpaceDetailPage = () => {
                                     <li>
                                         <button 
                                             onClick={() => {
+                                                setIsUploadModalOpen(true)
+                                                setShowDropdown(false)
+                                            }}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            Upload Video File
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button 
+                                            onClick={() => {
                                                 setIsAddVideosModalOpen(true)
                                                 setShowDropdown(false)
                                             }}
@@ -254,6 +276,12 @@ export const SpaceDetailPage = () => {
                                 Record Video
                             </button>
                             <button 
+                                className="btn btn-secondary"
+                                onClick={() => setIsUploadModalOpen(true)}
+                            >
+                                Upload Video
+                            </button>
+                            <button 
                                 className="btn btn-outline"
                                 onClick={() => setIsAddVideosModalOpen(true)}
                             >
@@ -279,6 +307,14 @@ export const SpaceDetailPage = () => {
                 spaceId={spaceId}
                 spaceName={space?.name}
                 onVideoRecorded={handleVideoRecorded}
+            />
+
+            <UploadToSpaceModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                spaceId={spaceId}
+                spaceName={space?.name}
+                onUploadSuccess={handleVideoUploaded}
             />
 
             {/* Close dropdown when clicking outside */}
