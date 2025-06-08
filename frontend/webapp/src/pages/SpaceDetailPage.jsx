@@ -4,9 +4,11 @@ import { useStore } from '@nanostores/react'
 import { Layout } from "../components/layout/Layout"
 import { $spaceVideos, fetchSpace, fetchVideosInSpace } from '../stores/spaces'
 import { VideoStatus, Visibility } from '../proto/videoservice'
+import { $authToken } from "../auth/store/auth"
 import { AddVideosToSpaceModal } from '../components/AddVideosToSpaceModal'
 import { RecordToSpaceModal } from '../components/RecordToSpaceModal'
 import UploadToSpaceModal from '../components/UploadToSpaceModal'
+import SpaceSharingModal from '../components/SpaceSharingModal'
 
 const VideoCard = ({ video }) => {
     const navigate = useNavigate()
@@ -80,15 +82,21 @@ export const SpaceDetailPage = () => {
     const { spaceId } = useParams()
     const navigate = useNavigate()
     const spaceVideos = useStore($spaceVideos)
+    const authToken = useStore($authToken)
     const [space, setSpace] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [isAddVideosModalOpen, setIsAddVideosModalOpen] = useState(false)
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false)
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+    const [isSharingModalOpen, setIsSharingModalOpen] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
 
     const videos = spaceVideos[spaceId] || []
+    
+    // Extract current user ID from auth token
+    const currentUserId = authToken ? JSON.parse(atob(authToken.split('.')[1])).user_id : null
+    const isSpaceOwner = space && currentUserId && space.user_id === currentUserId
 
     useEffect(() => {
         const loadSpaceData = async () => {
@@ -184,6 +192,18 @@ export const SpaceDetailPage = () => {
                     </div>
                     
                     <div className="flex gap-2 relative">
+                        {isSpaceOwner && (
+                            <button 
+                                className="btn btn-outline"
+                                onClick={() => setIsSharingModalOpen(true)}
+                            >
+                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                                </svg>
+                                Share
+                            </button>
+                        )}
+                        
                         <div className="dropdown dropdown-end">
                             <button 
                                 className="btn btn-primary"
@@ -315,6 +335,14 @@ export const SpaceDetailPage = () => {
                 spaceId={spaceId}
                 spaceName={space?.name}
                 onUploadSuccess={handleVideoUploaded}
+            />
+
+            <SpaceSharingModal
+                isOpen={isSharingModalOpen}
+                onClose={() => setIsSharingModalOpen(false)}
+                spaceId={spaceId}
+                spaceName={space?.name}
+                spaceOwnerId={space?.user_id}
             />
 
             {/* Close dropdown when clicking outside */}

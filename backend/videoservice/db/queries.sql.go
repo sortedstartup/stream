@@ -11,6 +11,43 @@ import (
 	"time"
 )
 
+const addUserToSpace = `-- name: AddUserToSpace :exec
+
+INSERT INTO user_spaces (
+    user_id,
+    space_id,
+    access_level,
+    created_at,
+    updated_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5
+)
+`
+
+type AddUserToSpaceParams struct {
+	UserID      string
+	SpaceID     string
+	AccessLevel string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// Space sharing queries
+func (q *Queries) AddUserToSpace(ctx context.Context, arg AddUserToSpaceParams) error {
+	_, err := q.db.ExecContext(ctx, addUserToSpace,
+		arg.UserID,
+		arg.SpaceID,
+		arg.AccessLevel,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const addVideoToSpace = `-- name: AddVideoToSpace :exec
 INSERT INTO video_spaces (
     video_id,
@@ -40,6 +77,24 @@ func (q *Queries) AddVideoToSpace(ctx context.Context, arg AddVideoToSpaceParams
 		arg.UpdatedAt,
 	)
 	return err
+}
+
+const checkUserSpaceAccess = `-- name: CheckUserSpaceAccess :one
+SELECT us.access_level FROM user_spaces us
+WHERE us.user_id = ?1 AND us.space_id = ?2
+LIMIT 1
+`
+
+type CheckUserSpaceAccessParams struct {
+	UserID  string
+	SpaceID string
+}
+
+func (q *Queries) CheckUserSpaceAccess(ctx context.Context, arg CheckUserSpaceAccessParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, checkUserSpaceAccess, arg.UserID, arg.SpaceID)
+	var access_level string
+	err := row.Scan(&access_level)
+	return access_level, err
 }
 
 const createSpace = `-- name: CreateSpace :exec
@@ -126,6 +181,37 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 	return err
 }
 
+const getAllUsers = `-- name: GetAllUsers :many
+
+SELECT DISTINCT uploaded_user_id as user_id FROM videos
+WHERE uploaded_user_id != ?1
+ORDER BY uploaded_user_id
+`
+
+// User queries for sharing
+func (q *Queries) GetAllUsers(ctx context.Context, excludeUserID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUsers, excludeUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllVideoUploadedByUser = `-- name: GetAllVideoUploadedByUser :many
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos WHERE uploaded_user_id = ?1 ORDER BY created_at DESC
 `
@@ -205,39 +291,14 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 	return items, nil
 }
 
-const getSpaceByID = `-- name: GetSpaceByID :one
-SELECT id, name, description, user_id, created_at, updated_at FROM spaces 
-WHERE id = ?1 AND user_id = ?2
-LIMIT 1
-`
-
-type GetSpaceByIDParams struct {
-	ID     string
-	UserID string
-}
-
-func (q *Queries) GetSpaceByID(ctx context.Context, arg GetSpaceByIDParams) (Space, error) {
-	row := q.db.QueryRowContext(ctx, getSpaceByID, arg.ID, arg.UserID)
-	var i Space
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getSpacesByUser = `-- name: GetSpacesByUser :many
+const getOwnedSpacesByUser = `-- name: GetOwnedSpacesByUser :many
 SELECT id, name, description, user_id, created_at, updated_at FROM spaces 
 WHERE user_id = ?1 
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetSpacesByUser(ctx context.Context, userID string) ([]Space, error) {
-	rows, err := q.db.QueryContext(ctx, getSpacesByUser, userID)
+func (q *Queries) GetOwnedSpacesByUser(ctx context.Context, userID string) ([]Space, error) {
+	rows, err := q.db.QueryContext(ctx, getOwnedSpacesByUser, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +327,214 @@ func (q *Queries) GetSpacesByUser(ctx context.Context, userID string) ([]Space, 
 	return items, nil
 }
 
+const getSharedSpacesByUser = `-- name: GetSharedSpacesByUser :many
+SELECT s.id, s.name, s.description, s.user_id, s.created_at, s.updated_at, us.access_level FROM spaces s
+INNER JOIN user_spaces us ON s.id = us.space_id
+WHERE us.user_id = ?1
+ORDER BY s.created_at DESC
+`
+
+type GetSharedSpacesByUserRow struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	UserID      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	AccessLevel string
+}
+
+func (q *Queries) GetSharedSpacesByUser(ctx context.Context, userID string) ([]GetSharedSpacesByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSharedSpacesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSharedSpacesByUserRow
+	for rows.Next() {
+		var i GetSharedSpacesByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.AccessLevel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSpaceByID = `-- name: GetSpaceByID :one
+SELECT id, name, description, user_id, created_at, updated_at FROM spaces 
+WHERE id = ?1 AND user_id = ?2
+LIMIT 1
+`
+
+type GetSpaceByIDParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) GetSpaceByID(ctx context.Context, arg GetSpaceByIDParams) (Space, error) {
+	row := q.db.QueryRowContext(ctx, getSpaceByID, arg.ID, arg.UserID)
+	var i Space
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSpaceByIDWithAccess = `-- name: GetSpaceByIDWithAccess :one
+SELECT s.id, s.name, s.description, s.user_id, s.created_at, s.updated_at, 
+    CASE 
+        WHEN s.user_id = ?1 THEN 'owner'
+        ELSE us.access_level
+    END as access_level
+FROM spaces s
+LEFT JOIN user_spaces us ON s.id = us.space_id AND us.user_id = ?1
+WHERE s.id = ?2 AND (s.user_id = ?1 OR us.user_id = ?1)
+LIMIT 1
+`
+
+type GetSpaceByIDWithAccessParams struct {
+	UserID  string
+	SpaceID string
+}
+
+type GetSpaceByIDWithAccessRow struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	UserID      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	AccessLevel interface{}
+}
+
+func (q *Queries) GetSpaceByIDWithAccess(ctx context.Context, arg GetSpaceByIDWithAccessParams) (GetSpaceByIDWithAccessRow, error) {
+	row := q.db.QueryRowContext(ctx, getSpaceByIDWithAccess, arg.UserID, arg.SpaceID)
+	var i GetSpaceByIDWithAccessRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AccessLevel,
+	)
+	return i, err
+}
+
+const getSpaceMembers = `-- name: GetSpaceMembers :many
+SELECT us.user_id, us.access_level, us.created_at, us.updated_at
+FROM user_spaces us
+WHERE us.space_id = ?1
+ORDER BY us.created_at ASC
+`
+
+type GetSpaceMembersRow struct {
+	UserID      string
+	AccessLevel string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func (q *Queries) GetSpaceMembers(ctx context.Context, spaceID string) ([]GetSpaceMembersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpaceMembers, spaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpaceMembersRow
+	for rows.Next() {
+		var i GetSpaceMembersRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.AccessLevel,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSpacesByUser = `-- name: GetSpacesByUser :many
+SELECT s.id, s.name, s.description, s.user_id, s.created_at, s.updated_at, 'owner' as access_level FROM spaces s
+WHERE s.user_id = ?1 
+UNION ALL
+SELECT s.id, s.name, s.description, s.user_id, s.created_at, s.updated_at, us.access_level FROM spaces s
+INNER JOIN user_spaces us ON s.id = us.space_id
+WHERE us.user_id = ?1
+ORDER BY created_at DESC
+`
+
+type GetSpacesByUserRow struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	UserID      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	AccessLevel string
+}
+
+func (q *Queries) GetSpacesByUser(ctx context.Context, userID string) ([]GetSpacesByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSpacesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpacesByUserRow
+	for rows.Next() {
+		var i GetSpacesByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.AccessLevel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVideoByID = `-- name: GetVideoByID :one
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
 WHERE id = ?1 AND uploaded_user_id = ?2
@@ -279,6 +548,42 @@ type GetVideoByIDParams struct {
 
 func (q *Queries) GetVideoByID(ctx context.Context, arg GetVideoByIDParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, getVideoByID, arg.ID, arg.UserID)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UploadedUserID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getVideoByIDWithAccess = `-- name: GetVideoByIDWithAccess :one
+SELECT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at FROM videos v
+WHERE v.id = ?1 
+    AND (
+        v.uploaded_user_id = ?2  -- User owns the video
+        OR EXISTS (  -- Or user has access through a shared space
+            SELECT 1 FROM video_spaces vs
+            INNER JOIN spaces s ON vs.space_id = s.id
+            LEFT JOIN user_spaces us ON s.id = us.space_id
+            WHERE vs.video_id = v.id
+                AND (s.user_id = ?2 OR us.user_id = ?2)
+        )
+    )
+LIMIT 1
+`
+
+type GetVideoByIDWithAccessParams struct {
+	VideoID string
+	UserID  string
+}
+
+func (q *Queries) GetVideoByIDWithAccess(ctx context.Context, arg GetVideoByIDWithAccessParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByIDWithAccess, arg.VideoID, arg.UserID)
 	var i Video
 	err := row.Scan(
 		&i.ID,
@@ -335,6 +640,84 @@ func (q *Queries) GetVideosInSpace(ctx context.Context, arg GetVideosInSpacePara
 	return items, nil
 }
 
+const getVideosInSpaceWithAccess = `-- name: GetVideosInSpaceWithAccess :many
+SELECT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at FROM videos v
+INNER JOIN video_spaces vs ON v.id = vs.video_id
+INNER JOIN spaces s ON vs.space_id = s.id
+LEFT JOIN user_spaces us ON s.id = us.space_id AND us.user_id = ?1
+WHERE vs.space_id = ?2 
+    AND (s.user_id = ?1 OR us.user_id = ?1)
+ORDER BY v.created_at DESC
+`
+
+type GetVideosInSpaceWithAccessParams struct {
+	UserID  string
+	SpaceID string
+}
+
+func (q *Queries) GetVideosInSpaceWithAccess(ctx context.Context, arg GetVideosInSpaceWithAccessParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getVideosInSpaceWithAccess, arg.UserID, arg.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const isSpaceOwner = `-- name: IsSpaceOwner :one
+SELECT COUNT(*) as is_owner FROM spaces
+WHERE id = ?1 AND user_id = ?2
+`
+
+type IsSpaceOwnerParams struct {
+	SpaceID string
+	UserID  string
+}
+
+func (q *Queries) IsSpaceOwner(ctx context.Context, arg IsSpaceOwnerParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isSpaceOwner, arg.SpaceID, arg.UserID)
+	var is_owner int64
+	err := row.Scan(&is_owner)
+	return is_owner, err
+}
+
+const removeUserFromSpace = `-- name: RemoveUserFromSpace :exec
+DELETE FROM user_spaces 
+WHERE user_id = ?1 AND space_id = ?2
+`
+
+type RemoveUserFromSpaceParams struct {
+	UserID  string
+	SpaceID string
+}
+
+func (q *Queries) RemoveUserFromSpace(ctx context.Context, arg RemoveUserFromSpaceParams) error {
+	_, err := q.db.ExecContext(ctx, removeUserFromSpace, arg.UserID, arg.SpaceID)
+	return err
+}
+
 const removeVideoFromSpace = `-- name: RemoveVideoFromSpace :exec
 DELETE FROM video_spaces 
 WHERE video_id = ?1 AND space_id = ?2
@@ -347,5 +730,28 @@ type RemoveVideoFromSpaceParams struct {
 
 func (q *Queries) RemoveVideoFromSpace(ctx context.Context, arg RemoveVideoFromSpaceParams) error {
 	_, err := q.db.ExecContext(ctx, removeVideoFromSpace, arg.VideoID, arg.SpaceID)
+	return err
+}
+
+const updateUserSpaceAccess = `-- name: UpdateUserSpaceAccess :exec
+UPDATE user_spaces 
+SET access_level = ?1, updated_at = ?2
+WHERE user_id = ?3 AND space_id = ?4
+`
+
+type UpdateUserSpaceAccessParams struct {
+	AccessLevel string
+	UpdatedAt   time.Time
+	UserID      string
+	SpaceID     string
+}
+
+func (q *Queries) UpdateUserSpaceAccess(ctx context.Context, arg UpdateUserSpaceAccessParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserSpaceAccess,
+		arg.AccessLevel,
+		arg.UpdatedAt,
+		arg.UserID,
+		arg.SpaceID,
+	)
 	return err
 }

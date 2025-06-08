@@ -214,10 +214,10 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := authContext.User.ID
 
-	// Get video details from database
-	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
-		ID:     videoID,
-		UserID: userID,
+	// Get video details from database with access control (includes shared spaces)
+	video, err := api.dbQueries.GetVideoByIDWithAccess(r.Context(), db.GetVideoByIDWithAccessParams{
+		VideoID: videoID,
+		UserID:  userID,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {

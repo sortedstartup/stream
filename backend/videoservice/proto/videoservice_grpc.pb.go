@@ -19,18 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VideoService_CreateVideo_FullMethodName          = "/videoservice.VideoService/CreateVideo"
-	VideoService_GetVideo_FullMethodName             = "/videoservice.VideoService/GetVideo"
-	VideoService_ListVideos_FullMethodName           = "/videoservice.VideoService/ListVideos"
-	VideoService_UpdateVideo_FullMethodName          = "/videoservice.VideoService/UpdateVideo"
-	VideoService_DeleteVideo_FullMethodName          = "/videoservice.VideoService/DeleteVideo"
-	VideoService_ShareVideo_FullMethodName           = "/videoservice.VideoService/ShareVideo"
-	VideoService_CreateSpace_FullMethodName          = "/videoservice.VideoService/CreateSpace"
-	VideoService_ListSpaces_FullMethodName           = "/videoservice.VideoService/ListSpaces"
-	VideoService_GetSpace_FullMethodName             = "/videoservice.VideoService/GetSpace"
-	VideoService_ListVideosInSpace_FullMethodName    = "/videoservice.VideoService/ListVideosInSpace"
-	VideoService_AddVideoToSpace_FullMethodName      = "/videoservice.VideoService/AddVideoToSpace"
-	VideoService_RemoveVideoFromSpace_FullMethodName = "/videoservice.VideoService/RemoveVideoFromSpace"
+	VideoService_CreateVideo_FullMethodName           = "/videoservice.VideoService/CreateVideo"
+	VideoService_GetVideo_FullMethodName              = "/videoservice.VideoService/GetVideo"
+	VideoService_ListVideos_FullMethodName            = "/videoservice.VideoService/ListVideos"
+	VideoService_UpdateVideo_FullMethodName           = "/videoservice.VideoService/UpdateVideo"
+	VideoService_DeleteVideo_FullMethodName           = "/videoservice.VideoService/DeleteVideo"
+	VideoService_ShareVideo_FullMethodName            = "/videoservice.VideoService/ShareVideo"
+	VideoService_CreateSpace_FullMethodName           = "/videoservice.VideoService/CreateSpace"
+	VideoService_ListSpaces_FullMethodName            = "/videoservice.VideoService/ListSpaces"
+	VideoService_GetSpace_FullMethodName              = "/videoservice.VideoService/GetSpace"
+	VideoService_ListVideosInSpace_FullMethodName     = "/videoservice.VideoService/ListVideosInSpace"
+	VideoService_AddVideoToSpace_FullMethodName       = "/videoservice.VideoService/AddVideoToSpace"
+	VideoService_RemoveVideoFromSpace_FullMethodName  = "/videoservice.VideoService/RemoveVideoFromSpace"
+	VideoService_AddUserToSpace_FullMethodName        = "/videoservice.VideoService/AddUserToSpace"
+	VideoService_RemoveUserFromSpace_FullMethodName   = "/videoservice.VideoService/RemoveUserFromSpace"
+	VideoService_ListSpaceMembers_FullMethodName      = "/videoservice.VideoService/ListSpaceMembers"
+	VideoService_ListUsers_FullMethodName             = "/videoservice.VideoService/ListUsers"
+	VideoService_UpdateUserSpaceAccess_FullMethodName = "/videoservice.VideoService/UpdateUserSpaceAccess"
 )
 
 // VideoServiceClient is the client API for VideoService service.
@@ -52,6 +57,12 @@ type VideoServiceClient interface {
 	ListVideosInSpace(ctx context.Context, in *ListVideosInSpaceRequest, opts ...grpc.CallOption) (*ListVideosResponse, error)
 	AddVideoToSpace(ctx context.Context, in *AddVideoToSpaceRequest, opts ...grpc.CallOption) (*Empty, error)
 	RemoveVideoFromSpace(ctx context.Context, in *RemoveVideoFromSpaceRequest, opts ...grpc.CallOption) (*Empty, error)
+	// Space sharing operations
+	AddUserToSpace(ctx context.Context, in *AddUserToSpaceRequest, opts ...grpc.CallOption) (*Empty, error)
+	RemoveUserFromSpace(ctx context.Context, in *RemoveUserFromSpaceRequest, opts ...grpc.CallOption) (*Empty, error)
+	ListSpaceMembers(ctx context.Context, in *ListSpaceMembersRequest, opts ...grpc.CallOption) (*ListSpaceMembersResponse, error)
+	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
+	UpdateUserSpaceAccess(ctx context.Context, in *UpdateUserSpaceAccessRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type videoServiceClient struct {
@@ -182,6 +193,56 @@ func (c *videoServiceClient) RemoveVideoFromSpace(ctx context.Context, in *Remov
 	return out, nil
 }
 
+func (c *videoServiceClient) AddUserToSpace(ctx context.Context, in *AddUserToSpaceRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VideoService_AddUserToSpace_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) RemoveUserFromSpace(ctx context.Context, in *RemoveUserFromSpaceRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VideoService_RemoveUserFromSpace_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) ListSpaceMembers(ctx context.Context, in *ListSpaceMembersRequest, opts ...grpc.CallOption) (*ListSpaceMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSpaceMembersResponse)
+	err := c.cc.Invoke(ctx, VideoService_ListSpaceMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUsersResponse)
+	err := c.cc.Invoke(ctx, VideoService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) UpdateUserSpaceAccess(ctx context.Context, in *UpdateUserSpaceAccessRequest, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, VideoService_UpdateUserSpaceAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VideoServiceServer is the server API for VideoService service.
 // All implementations must embed UnimplementedVideoServiceServer
 // for forward compatibility.
@@ -201,6 +262,12 @@ type VideoServiceServer interface {
 	ListVideosInSpace(context.Context, *ListVideosInSpaceRequest) (*ListVideosResponse, error)
 	AddVideoToSpace(context.Context, *AddVideoToSpaceRequest) (*Empty, error)
 	RemoveVideoFromSpace(context.Context, *RemoveVideoFromSpaceRequest) (*Empty, error)
+	// Space sharing operations
+	AddUserToSpace(context.Context, *AddUserToSpaceRequest) (*Empty, error)
+	RemoveUserFromSpace(context.Context, *RemoveUserFromSpaceRequest) (*Empty, error)
+	ListSpaceMembers(context.Context, *ListSpaceMembersRequest) (*ListSpaceMembersResponse, error)
+	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
+	UpdateUserSpaceAccess(context.Context, *UpdateUserSpaceAccessRequest) (*Empty, error)
 	mustEmbedUnimplementedVideoServiceServer()
 }
 
@@ -246,6 +313,21 @@ func (UnimplementedVideoServiceServer) AddVideoToSpace(context.Context, *AddVide
 }
 func (UnimplementedVideoServiceServer) RemoveVideoFromSpace(context.Context, *RemoveVideoFromSpaceRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveVideoFromSpace not implemented")
+}
+func (UnimplementedVideoServiceServer) AddUserToSpace(context.Context, *AddUserToSpaceRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddUserToSpace not implemented")
+}
+func (UnimplementedVideoServiceServer) RemoveUserFromSpace(context.Context, *RemoveUserFromSpaceRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveUserFromSpace not implemented")
+}
+func (UnimplementedVideoServiceServer) ListSpaceMembers(context.Context, *ListSpaceMembersRequest) (*ListSpaceMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSpaceMembers not implemented")
+}
+func (UnimplementedVideoServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUsers not implemented")
+}
+func (UnimplementedVideoServiceServer) UpdateUserSpaceAccess(context.Context, *UpdateUserSpaceAccessRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserSpaceAccess not implemented")
 }
 func (UnimplementedVideoServiceServer) mustEmbedUnimplementedVideoServiceServer() {}
 func (UnimplementedVideoServiceServer) testEmbeddedByValue()                      {}
@@ -484,6 +566,96 @@ func _VideoService_RemoveVideoFromSpace_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VideoService_AddUserToSpace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddUserToSpaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).AddUserToSpace(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_AddUserToSpace_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).AddUserToSpace(ctx, req.(*AddUserToSpaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_RemoveUserFromSpace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveUserFromSpaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).RemoveUserFromSpace(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_RemoveUserFromSpace_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).RemoveUserFromSpace(ctx, req.(*RemoveUserFromSpaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_ListSpaceMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSpaceMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).ListSpaceMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_ListSpaceMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).ListSpaceMembers(ctx, req.(*ListSpaceMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).ListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_ListUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_UpdateUserSpaceAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserSpaceAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).UpdateUserSpaceAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_UpdateUserSpaceAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).UpdateUserSpaceAccess(ctx, req.(*UpdateUserSpaceAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VideoService_ServiceDesc is the grpc.ServiceDesc for VideoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -538,6 +710,26 @@ var VideoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveVideoFromSpace",
 			Handler:    _VideoService_RemoveVideoFromSpace_Handler,
+		},
+		{
+			MethodName: "AddUserToSpace",
+			Handler:    _VideoService_AddUserToSpace_Handler,
+		},
+		{
+			MethodName: "RemoveUserFromSpace",
+			Handler:    _VideoService_RemoveUserFromSpace_Handler,
+		},
+		{
+			MethodName: "ListSpaceMembers",
+			Handler:    _VideoService_ListSpaceMembers_Handler,
+		},
+		{
+			MethodName: "ListUsers",
+			Handler:    _VideoService_ListUsers_Handler,
+		},
+		{
+			MethodName: "UpdateUserSpaceAccess",
+			Handler:    _VideoService_UpdateUserSpaceAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

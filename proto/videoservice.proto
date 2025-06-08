@@ -24,6 +24,13 @@ service VideoService {
   rpc ListVideosInSpace(ListVideosInSpaceRequest) returns (ListVideosResponse);
   rpc AddVideoToSpace(AddVideoToSpaceRequest) returns (Empty);
   rpc RemoveVideoFromSpace(RemoveVideoFromSpaceRequest) returns (Empty);
+
+  // Space sharing operations
+  rpc AddUserToSpace(AddUserToSpaceRequest) returns (Empty);
+  rpc RemoveUserFromSpace(RemoveUserFromSpaceRequest) returns (Empty);
+  rpc ListSpaceMembers(ListSpaceMembersRequest) returns (ListSpaceMembersResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc UpdateUserSpaceAccess(UpdateUserSpaceAccessRequest) returns (Empty);
 }
 
 message Video {
@@ -45,6 +52,7 @@ message Space {
   string user_id = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  string access_level = 7; // 'owner', 'admin', 'edit', 'view'
 }
 
 enum VideoStatus {
@@ -58,6 +66,13 @@ enum Visibility {
   VISIBILITY_PRIVATE = 0;
   VISIBILITY_SHARED = 1;
   VISIBILITY_PUBLIC = 2;
+}
+
+enum AccessLevel {
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  ACCESS_LEVEL_VIEW = 1;
+  ACCESS_LEVEL_EDIT = 2;
+  ACCESS_LEVEL_ADMIN = 3;
 }
 
 message CreateVideoRequest {
@@ -136,3 +151,48 @@ message RemoveVideoFromSpaceRequest {
 }
 
 message Empty {}
+
+// Space sharing messages
+message AddUserToSpaceRequest {
+  string space_id = 1;
+  string user_id = 2;
+  AccessLevel access_level = 3;
+}
+
+message RemoveUserFromSpaceRequest {
+  string space_id = 1;
+  string user_id = 2;
+}
+
+message ListSpaceMembersRequest {
+  string space_id = 1;
+}
+
+message SpaceMember {
+  string user_id = 1;
+  AccessLevel access_level = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message ListSpaceMembersResponse {
+  repeated SpaceMember members = 1;
+}
+
+message ListUsersRequest {
+  // user id is implicit
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+message UpdateUserSpaceAccessRequest {
+  string space_id = 1;
+  string user_id = 2;
+  AccessLevel access_level = 3;
+}

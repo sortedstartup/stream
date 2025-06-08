@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react'
 import { Layout } from "../components/layout/Layout"
 import { $spaces, createSpace } from '../stores/spaces'
 import { useNavigate } from 'react-router'
+import { $authToken } from "../auth/store/auth"
 
 const CreateSpaceModal = ({ isOpen, onClose, onCreateSpace }) => {
     const [name, setName] = useState('')
@@ -80,8 +81,10 @@ const CreateSpaceModal = ({ isOpen, onClose, onCreateSpace }) => {
     )
 }
 
-const SpaceCard = ({ space }) => {
+const SpaceCard = ({ space, currentUserId }) => {
     const navigate = useNavigate()
+    const isOwner = space.user_id === currentUserId
+    const isShared = !isOwner
 
     return (
         <div 
@@ -90,15 +93,26 @@ const SpaceCard = ({ space }) => {
         >
             <div className="card-body">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
+                    <div className={`w-12 h-12 ${isShared ? 'bg-secondary/20' : 'bg-primary/20'} rounded-lg flex items-center justify-center`}>
+                        {isShared ? (
+                            <svg className="w-6 h-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        )}
                     </div>
-                    <div>
-                        <h3 className="card-title text-lg">{space.name}</h3>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                            <h3 className="card-title text-lg">{space.name}</h3>
+                            {isShared && (
+                                <span className="badge badge-secondary badge-sm">Shared</span>
+                            )}
+                        </div>
                         <p className="text-sm text-base-content/60">
-                            Created {new Date(space.created_at?.seconds * 1000).toLocaleDateString()}
+                            {isShared ? 'Shared with you' : 'Created'} {new Date(space.created_at?.seconds * 1000).toLocaleDateString()}
                         </p>
                     </div>
                 </div>
@@ -121,7 +135,11 @@ const SpaceCard = ({ space }) => {
 
 export const SpacesPage = () => {
     const spaces = useStore($spaces)
+    const authToken = useStore($authToken)
     const [isModalOpen, setIsModalOpen] = useState(false)
+
+    // Extract user ID from auth token (Firebase UID)
+    const currentUserId = authToken ? JSON.parse(atob(authToken.split('.')[1])).user_id : null
 
     const handleCreateSpace = async (name, description) => {
         await createSpace(name, description)
@@ -149,7 +167,7 @@ export const SpacesPage = () => {
                 {spaces.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {spaces.map((space) => (
-                            <SpaceCard key={space.id} space={space} />
+                            <SpaceCard key={space.id} space={space} currentUserId={currentUserId} />
                         ))}
                     </div>
                 ) : (
