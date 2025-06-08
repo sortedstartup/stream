@@ -16,6 +16,14 @@ service VideoService {
 
   // Sharing
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
+
+  // Space operations
+  rpc CreateSpace(CreateSpaceRequest) returns (Space);
+  rpc ListSpaces(ListSpacesRequest) returns (ListSpacesResponse);
+  rpc GetSpace(GetSpaceRequest) returns (Space);
+  rpc ListVideosInSpace(ListVideosInSpaceRequest) returns (ListVideosResponse);
+  rpc AddVideoToSpace(AddVideoToSpaceRequest) returns (Empty);
+  rpc RemoveVideoFromSpace(RemoveVideoFromSpaceRequest) returns (Empty);
 }
 
 message Video {
@@ -28,6 +36,15 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+}
+
+message Space {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string user_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 enum VideoStatus {
@@ -84,6 +101,38 @@ message ShareVideoRequest {
 message ShareLink {
   string id = 1;
   string url = 2;
+}
+
+// Space-related messages
+message CreateSpaceRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message ListSpacesRequest {
+  // user id is implicit
+}
+
+message ListSpacesResponse {
+  repeated Space spaces = 1;
+}
+
+message GetSpaceRequest {
+  string space_id = 1;
+}
+
+message ListVideosInSpaceRequest {
+  string space_id = 1;
+}
+
+message AddVideoToSpaceRequest {
+  string video_id = 1;
+  string space_id = 2;
+}
+
+message RemoveVideoFromSpaceRequest {
+  string video_id = 1;
+  string space_id = 2;
 }
 
 message Empty {}

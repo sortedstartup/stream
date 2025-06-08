@@ -273,6 +273,194 @@ export class Video extends pb_1.Message {
         return Video.deserialize(bytes);
     }
 }
+export class Space extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        name?: string;
+        description?: string;
+        user_id?: string;
+        created_at?: dependency_1.Timestamp;
+        updated_at?: dependency_1.Timestamp;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+            if ("updated_at" in data && data.updated_at != undefined) {
+                this.updated_at = data.updated_at;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 5, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 5) != null;
+    }
+    get updated_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 6) as dependency_1.Timestamp;
+    }
+    set updated_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 6, value);
+    }
+    get has_updated_at() {
+        return pb_1.Message.getField(this, 6) != null;
+    }
+    static fromObject(data: {
+        id?: string;
+        name?: string;
+        description?: string;
+        user_id?: string;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+    }): Space {
+        const message = new Space({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        if (data.updated_at != null) {
+            message.updated_at = dependency_1.Timestamp.fromObject(data.updated_at);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            name?: string;
+            description?: string;
+            user_id?: string;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        if (this.updated_at != null) {
+            data.updated_at = this.updated_at.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.name.length)
+            writer.writeString(2, this.name);
+        if (this.description.length)
+            writer.writeString(3, this.description);
+        if (this.user_id.length)
+            writer.writeString(4, this.user_id);
+        if (this.has_created_at)
+            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
+        if (this.has_updated_at)
+            writer.writeMessage(6, this.updated_at, () => this.updated_at.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Space {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Space();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.name = reader.readString();
+                    break;
+                case 3:
+                    message.description = reader.readString();
+                    break;
+                case 4:
+                    message.user_id = reader.readString();
+                    break;
+                case 5:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 6:
+                    reader.readMessage(message.updated_at, () => message.updated_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): Space {
+        return Space.deserialize(bytes);
+    }
+}
 export class CreateVideoRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
@@ -1016,6 +1204,517 @@ export class ShareLink extends pb_1.Message {
         return ShareLink.deserialize(bytes);
     }
 }
+export class CreateSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        name?: string;
+        description?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+        }
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        name?: string;
+        description?: string;
+    }): CreateSpaceRequest {
+        const message = new CreateSpaceRequest({});
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            name?: string;
+            description?: string;
+        } = {};
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.name.length)
+            writer.writeString(1, this.name);
+        if (this.description.length)
+            writer.writeString(2, this.description);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.name = reader.readString();
+                    break;
+                case 2:
+                    message.description = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CreateSpaceRequest {
+        return CreateSpaceRequest.deserialize(bytes);
+    }
+}
+export class ListSpacesRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {}) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") { }
+    }
+    static fromObject(data: {}): ListSpacesRequest {
+        const message = new ListSpacesRequest({});
+        return message;
+    }
+    toObject() {
+        const data: {} = {};
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpacesRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpacesRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpacesRequest {
+        return ListSpacesRequest.deserialize(bytes);
+    }
+}
+export class ListSpacesResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        spaces?: Space[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("spaces" in data && data.spaces != undefined) {
+                this.spaces = data.spaces;
+            }
+        }
+    }
+    get spaces() {
+        return pb_1.Message.getRepeatedWrapperField(this, Space, 1) as Space[];
+    }
+    set spaces(value: Space[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 1, value);
+    }
+    static fromObject(data: {
+        spaces?: ReturnType<typeof Space.prototype.toObject>[];
+    }): ListSpacesResponse {
+        const message = new ListSpacesResponse({});
+        if (data.spaces != null) {
+            message.spaces = data.spaces.map(item => Space.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            spaces?: ReturnType<typeof Space.prototype.toObject>[];
+        } = {};
+        if (this.spaces != null) {
+            data.spaces = this.spaces.map((item: Space) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.spaces.length)
+            writer.writeRepeatedMessage(1, this.spaces, (item: Space) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpacesResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpacesResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.spaces, () => pb_1.Message.addToRepeatedWrapperField(message, 1, Space.deserialize(reader), Space));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpacesResponse {
+        return ListSpacesResponse.deserialize(bytes);
+    }
+}
+export class GetSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+    }): GetSpaceRequest {
+        const message = new GetSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetSpaceRequest {
+        return GetSpaceRequest.deserialize(bytes);
+    }
+}
+export class ListVideosInSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+    }): ListVideosInSpaceRequest {
+        const message = new ListVideosInSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListVideosInSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListVideosInSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListVideosInSpaceRequest {
+        return ListVideosInSpaceRequest.deserialize(bytes);
+    }
+}
+export class AddVideoToSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+        space_id?: string;
+    }): AddVideoToSpaceRequest {
+        const message = new AddVideoToSpaceRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+            space_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (this.space_id.length)
+            writer.writeString(2, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddVideoToSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddVideoToSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                case 2:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddVideoToSpaceRequest {
+        return AddVideoToSpaceRequest.deserialize(bytes);
+    }
+}
+export class RemoveVideoFromSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+        space_id?: string;
+    }): RemoveVideoFromSpaceRequest {
+        const message = new RemoveVideoFromSpaceRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+            space_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (this.space_id.length)
+            writer.writeString(2, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveVideoFromSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveVideoFromSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                case 2:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveVideoFromSpaceRequest {
+        return RemoveVideoFromSpaceRequest.deserialize(bytes);
+    }
+}
 export class Empty extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {}) {
@@ -1111,6 +1810,60 @@ export abstract class UnimplementedVideoServiceService {
             requestDeserialize: (bytes: Buffer) => ShareVideoRequest.deserialize(new Uint8Array(bytes)),
             responseSerialize: (message: ShareLink) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => ShareLink.deserialize(new Uint8Array(bytes))
+        },
+        CreateSpace: {
+            path: "/videoservice.VideoService/CreateSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CreateSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Space) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Space.deserialize(new Uint8Array(bytes))
+        },
+        ListSpaces: {
+            path: "/videoservice.VideoService/ListSpaces",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListSpacesRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListSpacesRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListSpacesResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListSpacesResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetSpace: {
+            path: "/videoservice.VideoService/GetSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Space) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Space.deserialize(new Uint8Array(bytes))
+        },
+        ListVideosInSpace: {
+            path: "/videoservice.VideoService/ListVideosInSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListVideosInSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListVideosInSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListVideosResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListVideosResponse.deserialize(new Uint8Array(bytes))
+        },
+        AddVideoToSpace: {
+            path: "/videoservice.VideoService/AddVideoToSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: AddVideoToSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => AddVideoToSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+        },
+        RemoveVideoFromSpace: {
+            path: "/videoservice.VideoService/RemoveVideoFromSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: RemoveVideoFromSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => RemoveVideoFromSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
@@ -1120,6 +1873,12 @@ export abstract class UnimplementedVideoServiceService {
     abstract UpdateVideo(call: grpc_1.ServerUnaryCall<UpdateVideoRequest, Video>, callback: grpc_1.sendUnaryData<Video>): void;
     abstract DeleteVideo(call: grpc_1.ServerUnaryCall<DeleteVideoRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
     abstract ShareVideo(call: grpc_1.ServerUnaryCall<ShareVideoRequest, ShareLink>, callback: grpc_1.sendUnaryData<ShareLink>): void;
+    abstract CreateSpace(call: grpc_1.ServerUnaryCall<CreateSpaceRequest, Space>, callback: grpc_1.sendUnaryData<Space>): void;
+    abstract ListSpaces(call: grpc_1.ServerUnaryCall<ListSpacesRequest, ListSpacesResponse>, callback: grpc_1.sendUnaryData<ListSpacesResponse>): void;
+    abstract GetSpace(call: grpc_1.ServerUnaryCall<GetSpaceRequest, Space>, callback: grpc_1.sendUnaryData<Space>): void;
+    abstract ListVideosInSpace(call: grpc_1.ServerUnaryCall<ListVideosInSpaceRequest, ListVideosResponse>, callback: grpc_1.sendUnaryData<ListVideosResponse>): void;
+    abstract AddVideoToSpace(call: grpc_1.ServerUnaryCall<AddVideoToSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract RemoveVideoFromSpace(call: grpc_1.ServerUnaryCall<RemoveVideoFromSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
 }
 export class VideoServiceClient {
     private _address: string;
@@ -1154,5 +1913,29 @@ export class VideoServiceClient {
     private static ShareVideo = new grpc_web_1.MethodDescriptor<ShareVideoRequest, ShareLink>("/videoservice.VideoService/ShareVideo", grpc_web_1.MethodType.UNARY, ShareVideoRequest, ShareLink, (message: ShareVideoRequest) => message.serialize(), ShareLink.deserialize);
     ShareVideo(message: ShareVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<ShareVideoRequest, ShareLink>(this._address + "/videoservice.VideoService/ShareVideo", message, metadata || {}, VideoServiceClient.ShareVideo);
+    }
+    private static CreateSpace = new grpc_web_1.MethodDescriptor<CreateSpaceRequest, Space>("/videoservice.VideoService/CreateSpace", grpc_web_1.MethodType.UNARY, CreateSpaceRequest, Space, (message: CreateSpaceRequest) => message.serialize(), Space.deserialize);
+    CreateSpace(message: CreateSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CreateSpaceRequest, Space>(this._address + "/videoservice.VideoService/CreateSpace", message, metadata || {}, VideoServiceClient.CreateSpace);
+    }
+    private static ListSpaces = new grpc_web_1.MethodDescriptor<ListSpacesRequest, ListSpacesResponse>("/videoservice.VideoService/ListSpaces", grpc_web_1.MethodType.UNARY, ListSpacesRequest, ListSpacesResponse, (message: ListSpacesRequest) => message.serialize(), ListSpacesResponse.deserialize);
+    ListSpaces(message: ListSpacesRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListSpacesRequest, ListSpacesResponse>(this._address + "/videoservice.VideoService/ListSpaces", message, metadata || {}, VideoServiceClient.ListSpaces);
+    }
+    private static GetSpace = new grpc_web_1.MethodDescriptor<GetSpaceRequest, Space>("/videoservice.VideoService/GetSpace", grpc_web_1.MethodType.UNARY, GetSpaceRequest, Space, (message: GetSpaceRequest) => message.serialize(), Space.deserialize);
+    GetSpace(message: GetSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetSpaceRequest, Space>(this._address + "/videoservice.VideoService/GetSpace", message, metadata || {}, VideoServiceClient.GetSpace);
+    }
+    private static ListVideosInSpace = new grpc_web_1.MethodDescriptor<ListVideosInSpaceRequest, ListVideosResponse>("/videoservice.VideoService/ListVideosInSpace", grpc_web_1.MethodType.UNARY, ListVideosInSpaceRequest, ListVideosResponse, (message: ListVideosInSpaceRequest) => message.serialize(), ListVideosResponse.deserialize);
+    ListVideosInSpace(message: ListVideosInSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListVideosInSpaceRequest, ListVideosResponse>(this._address + "/videoservice.VideoService/ListVideosInSpace", message, metadata || {}, VideoServiceClient.ListVideosInSpace);
+    }
+    private static AddVideoToSpace = new grpc_web_1.MethodDescriptor<AddVideoToSpaceRequest, Empty>("/videoservice.VideoService/AddVideoToSpace", grpc_web_1.MethodType.UNARY, AddVideoToSpaceRequest, Empty, (message: AddVideoToSpaceRequest) => message.serialize(), Empty.deserialize);
+    AddVideoToSpace(message: AddVideoToSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<AddVideoToSpaceRequest, Empty>(this._address + "/videoservice.VideoService/AddVideoToSpace", message, metadata || {}, VideoServiceClient.AddVideoToSpace);
+    }
+    private static RemoveVideoFromSpace = new grpc_web_1.MethodDescriptor<RemoveVideoFromSpaceRequest, Empty>("/videoservice.VideoService/RemoveVideoFromSpace", grpc_web_1.MethodType.UNARY, RemoveVideoFromSpaceRequest, Empty, (message: RemoveVideoFromSpaceRequest) => message.serialize(), Empty.deserialize);
+    RemoveVideoFromSpace(message: RemoveVideoFromSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<RemoveVideoFromSpaceRequest, Empty>(this._address + "/videoservice.VideoService/RemoveVideoFromSpace", message, metadata || {}, VideoServiceClient.RemoveVideoFromSpace);
     }
 }

@@ -7,8 +7,81 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
+
+const addVideoToSpace = `-- name: AddVideoToSpace :exec
+INSERT INTO video_spaces (
+    video_id,
+    space_id,
+    created_at,
+    updated_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4
+)
+`
+
+type AddVideoToSpaceParams struct {
+	VideoID   string
+	SpaceID   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) AddVideoToSpace(ctx context.Context, arg AddVideoToSpaceParams) error {
+	_, err := q.db.ExecContext(ctx, addVideoToSpace,
+		arg.VideoID,
+		arg.SpaceID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const createSpace = `-- name: CreateSpace :exec
+
+INSERT INTO spaces (
+    id,
+    name,
+    description,
+    user_id,
+    created_at,
+    updated_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6
+)
+`
+
+type CreateSpaceParams struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	UserID      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// Space related queries
+func (q *Queries) CreateSpace(ctx context.Context, arg CreateSpaceParams) error {
+	_, err := q.db.ExecContext(ctx, createSpace,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.UserID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
 
 const createVideoUploaded = `-- name: CreateVideoUploaded :exec
 INSERT INTO videos (
@@ -132,6 +205,67 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 	return items, nil
 }
 
+const getSpaceByID = `-- name: GetSpaceByID :one
+SELECT id, name, description, user_id, created_at, updated_at FROM spaces 
+WHERE id = ?1 AND user_id = ?2
+LIMIT 1
+`
+
+type GetSpaceByIDParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) GetSpaceByID(ctx context.Context, arg GetSpaceByIDParams) (Space, error) {
+	row := q.db.QueryRowContext(ctx, getSpaceByID, arg.ID, arg.UserID)
+	var i Space
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSpacesByUser = `-- name: GetSpacesByUser :many
+SELECT id, name, description, user_id, created_at, updated_at FROM spaces 
+WHERE user_id = ?1 
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetSpacesByUser(ctx context.Context, userID string) ([]Space, error) {
+	rows, err := q.db.QueryContext(ctx, getSpacesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Space
+	for rows.Next() {
+		var i Space
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVideoByID = `-- name: GetVideoByID :one
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
 WHERE id = ?1 AND uploaded_user_id = ?2
@@ -156,4 +290,62 @@ func (q *Queries) GetVideoByID(ctx context.Context, arg GetVideoByIDParams) (Vid
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getVideosInSpace = `-- name: GetVideosInSpace :many
+SELECT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at FROM videos v
+INNER JOIN video_spaces vs ON v.id = vs.video_id
+WHERE vs.space_id = ?1 AND v.uploaded_user_id = ?2
+ORDER BY v.created_at DESC
+`
+
+type GetVideosInSpaceParams struct {
+	SpaceID string
+	UserID  string
+}
+
+func (q *Queries) GetVideosInSpace(ctx context.Context, arg GetVideosInSpaceParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getVideosInSpace, arg.SpaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const removeVideoFromSpace = `-- name: RemoveVideoFromSpace :exec
+DELETE FROM video_spaces 
+WHERE video_id = ?1 AND space_id = ?2
+`
+
+type RemoveVideoFromSpaceParams struct {
+	VideoID string
+	SpaceID string
+}
+
+func (q *Queries) RemoveVideoFromSpace(ctx context.Context, arg RemoveVideoFromSpaceParams) error {
+	_, err := q.db.ExecContext(ctx, removeVideoFromSpace, arg.VideoID, arg.SpaceID)
+	return err
 }
