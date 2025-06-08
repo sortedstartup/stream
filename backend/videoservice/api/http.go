@@ -230,13 +230,10 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open the video file
-	// videoPath := filepath.Join(api.config.Storage.Path, video.ID)
-	// file, err := os.Open(videoPath)
-
 	file, err := os.Open(video.Url) // Use the URL field from the database
 	if err != nil {
-		api.log.Error("Failed to open video file", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		api.log.Error("Failed to open video file", "error", err, "path", video.Url)
+		http.Error(w, "Video file not found", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
@@ -249,14 +246,95 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set appropriate headers
-	w.Header().Set("Content-Type", "video/webm") // Adjust content type based on your video format
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	// Determine content type based on file extension
+	ext := strings.ToLower(filepath.Ext(video.Url))
+	contentType := getVideoContentType(ext)
 
-	// Stream the file to the response
-	// TODO: make it efficient and streaming
+	// Set appropriate headers
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	w.Header().Set("Accept-Ranges", "bytes") // Enable range requests for video seeking
+
+	// Handle range requests for video seeking
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader != "" {
+		api.handleRangeRequest(w, r, file, fileInfo.Size(), contentType)
+		return
+	}
+
+	// Stream the full file to the response
 	if _, err := io.Copy(w, file); err != nil {
 		api.log.Error("Failed to stream video file", "error", err)
 		// Can't send error response here as we've already started writing the response
+	}
+}
+
+// getVideoContentType returns the appropriate MIME type for video files
+func getVideoContentType(ext string) string {
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mov":
+		return "video/quicktime"
+	case ".avi":
+		return "video/x-msvideo"
+	case ".mkv":
+		return "video/x-matroska"
+	case ".flv":
+		return "video/x-flv"
+	case ".wmv":
+		return "video/x-ms-wmv"
+	case ".m4v":
+		return "video/x-m4v"
+	case ".3gp":
+		return "video/3gpp"
+	case ".ogv":
+		return "video/ogg"
+	default:
+		return "video/mp4" // Default fallback
+	}
+}
+
+// handleRangeRequest handles HTTP range requests for video seeking
+func (api *VideoAPI) handleRangeRequest(w http.ResponseWriter, r *http.Request, file *os.File, fileSize int64, contentType string) {
+	rangeHeader := r.Header.Get("Range")
+
+	// Parse range header (simple implementation for "bytes=start-end")
+	var start, end int64
+	if _, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end); err != nil {
+		// Try parsing "bytes=start-" format
+		if _, err := fmt.Sscanf(rangeHeader, "bytes=%d-", &start); err != nil {
+			http.Error(w, "Invalid range", http.StatusRequestedRangeNotSatisfiable)
+			return
+		}
+		end = fileSize - 1
+	}
+
+	// Validate range
+	if start >= fileSize || end >= fileSize || start > end {
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", fileSize))
+		http.Error(w, "Requested range not satisfiable", http.StatusRequestedRangeNotSatisfiable)
+		return
+	}
+
+	// Seek to start position
+	if _, err := file.Seek(start, 0); err != nil {
+		api.log.Error("Failed to seek file", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set headers for partial content
+	contentLength := end - start + 1
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", contentLength))
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(http.StatusPartialContent)
+
+	// Stream the requested range
+	if _, err := io.CopyN(w, file, contentLength); err != nil {
+		api.log.Error("Failed to stream video range", "error", err)
 	}
 }

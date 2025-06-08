@@ -182,6 +182,7 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
                     )}
                 </div>
             </div>
+            <div className="modal-backdrop" onClick={onClose} />
         </div>
     )
 } 
