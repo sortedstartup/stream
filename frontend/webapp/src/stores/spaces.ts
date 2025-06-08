@@ -125,4 +125,9 @@ export const removeVideoFromSpace = async (videoId: string, spaceId: string) => 
         console.error("Error removing video from space:", error)
         throw error
     }
+}
+
+// Helper function to refresh space videos (useful for external calls)
+export const refreshSpaceVideos = async (spaceId: string) => {
+    return await fetchVideosInSpace(spaceId)
 } 

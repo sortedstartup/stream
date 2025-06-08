@@ -2,15 +2,19 @@ import React from 'react'
 import { Layout } from "../components/layout/Layout";
 import ScreenRecorder from "../components/ScreenRecorder";
 import { useState } from "react";
+import { fetchVideos } from '../stores/videos';
 
 export const RecordPage = () => {
   const [uploadStatus, setUploadStatus] = useState({ type: null, message: null });
 
-  const handleUploadSuccess = () => {
+  const handleUploadSuccess = (result) => {
     setUploadStatus({
       type: 'success',
       message: 'Video uploaded successfully!'
     });
+    
+    // Refresh the videos list
+    fetchVideos();
   };
 
   const handleUploadError = (error) => {

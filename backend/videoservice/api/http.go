@@ -67,9 +67,10 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Retrieve the title and description from the form
+	// Retrieve the title, description, and optional space_id from the form
 	title := r.FormValue("title")
 	description := r.FormValue("description")
+	spaceID := r.FormValue("space_id") // Optional parameter
 
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
@@ -131,14 +132,15 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save video details to the database, including title and description
+	now := time.Now()
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
 		Title:          title,
 		Description:    description,
 		Url:            outputPath,
 		UploadedUserID: userID,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	})
 	if err != nil {
 		slog.Error("Failed to add video to the database", "err", err)
@@ -146,9 +148,39 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If space_id is provided, add the video to that space
+	if spaceID != "" {
+		// First verify the user owns the space
+		_, err = api.dbQueries.GetSpaceByID(r.Context(), db.GetSpaceByIDParams{
+			ID:     spaceID,
+			UserID: userID,
+		})
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// Space doesn't exist or user doesn't own it - log warning but don't fail upload
+				slog.Warn("Space not found or user doesn't own it, skipping space assignment", "space_id", spaceID, "user_id", userID)
+			} else {
+				slog.Warn("Error verifying space ownership, skipping space assignment", "err", err, "space_id", spaceID)
+			}
+		} else {
+			// Add video to space
+			err = api.dbQueries.AddVideoToSpace(r.Context(), db.AddVideoToSpaceParams{
+				VideoID:   uid,
+				SpaceID:   spaceID,
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+			if err != nil {
+				slog.Warn("Failed to add video to space, but upload was successful", "err", err, "video_id", uid, "space_id", spaceID)
+			} else {
+				slog.Info("Video successfully added to space", "video_id", uid, "space_id", spaceID)
+			}
+		}
+	}
+
 	// Respond with success
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
+	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s", "video_id": "%s"}`, fileName, uid)))
 }
 
 func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
