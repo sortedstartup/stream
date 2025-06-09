@@ -18,9 +18,23 @@ import (
 )
 
 const (
-	uploadDir     = "uploads" // Directory to store uploaded files
 	maxUploadSize = 100 << 20 // Maximum file size limit: 100 MB
 )
+
+func (api *VideoAPI) getVideoDir() string {
+	uploadDir := ""
+	if strings.TrimSpace(api.config.FileStoreDir) == "" {
+		// get absolute path for current working dir and store in current working dir
+		cwdDir, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		uploadDir = cwdDir
+	} else {
+		uploadDir = api.config.FileStoreDir
+	}
+	return uploadDir
+}
 
 // uploadHandler handles file uploads
 func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +98,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := uid + ext
 
 	// Resolve absolute path for the uploads directory
-	absUploadDir, err := filepath.Abs(uploadDir)
+
+	absUploadDir, err := filepath.Abs(api.getVideoDir())
 	if err != nil {
 		http.Error(w, "Failed to resolve upload directory", http.StatusInternalServerError)
 		slog.Error("Failed to resolve upload directory", "err", err)
@@ -135,7 +150,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		ID:             uid,
 		Title:          title,
 		Description:    description,
-		Url:            outputPath,
+		Url:            fileName,
 		UploadedUserID: userID,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
@@ -189,10 +204,11 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open the video file
-	// videoPath := filepath.Join(api.config.Storage.Path, video.ID)
-	// file, err := os.Open(videoPath)
+	// get file name from the video url
+	videoFileName := filepath.Base(video.Url)
+	absVideoPath := filepath.Join(api.getVideoDir(), videoFileName)
 
-	file, err := os.Open(video.Url) // Use the URL field from the database
+	file, err := os.Open(absVideoPath) // Use the URL field from the database
 	if err != nil {
 		api.log.Error("Failed to open video file", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
