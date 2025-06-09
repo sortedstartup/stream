@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Settings, Users, Video, Circle } from 'react-feather'
+import { Home, Settings, Users, Video, Circle, Folder, Upload } from 'react-feather'
 import { Link } from 'react-router'
 
 export const Sidebar = ({ className }) => {
@@ -35,11 +35,27 @@ export const Sidebar = ({ className }) => {
         </Link>
 
         <Link 
+          to="/upload"
+          className="flex flex-col items-center p-2 hover:bg-base-300 rounded-lg"
+        >
+          <Upload size={20} className="text-blue-500" />
+          <span className="text-xs">Upload</span>
+        </Link>
+
+        <Link 
           to="/videos"
           className="flex flex-col items-center p-2 hover:bg-base-300 rounded-lg"
         >
           <Video size={20} />
           <span className="text-xs">Videos</span>
+        </Link>
+
+        <Link 
+          to="/spaces"
+          className="flex flex-col items-center p-2 hover:bg-base-300 rounded-lg"
+        >
+          <Folder size={20} />
+          <span className="text-xs">Spaces</span>
         </Link>
 
         <Link 

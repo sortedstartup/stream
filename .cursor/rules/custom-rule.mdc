@@ -1,0 +1,171 @@
+---
+description: 
+globs: backend/**,frontend/**
+alwaysApply: false
+---
+Tech stack: Go, React, sqlite
+Reporsitory structure
+|-- backend # all Go and DB related files live here
+|   |-- Dockerfile
+|   |-- commentservice # Each service has this type of folder structure
+|   |   |-- api
+|   |   |   |-- api.go
+|   |   |   `-- api_test.go
+|   |   |-- autogenerate.go
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- db
+|   |   |   |-- db.go
+|   |   |   |-- migrate.go
+|   |   |   |-- migrations
+|   |   |   |   |-- 1_init.up.sql
+|   |   |   |   `-- 2_add_username_in_comments_table.up.sql
+|   |   |   |-- models.go
+|   |   |   |-- querier.go
+|   |   |   |-- queries.sql.go
+|   |   |   `-- scripts
+|   |   |       |-- queries.sql
+|   |   |       `-- sqlc.yaml
+|   |   |-- go.mod
+|   |   `-- proto
+|   |       |-- commentservice.pb.go
+|   |       `-- commentservice_grpc.pb.go
+|   |-- common # Common files in Backend goes here
+|   |   |-- auth
+|   |   |   |-- auth.go
+|   |   |   `-- firebase.go
+|   |   |-- constants
+|   |   |   `-- constants.go
+|   |   |-- go.mod
+|   |   |-- go.sum
+|   |   |-- interceptors
+|   |   |   |-- auth.go
+|   |   |   `-- panic_recovery.go
+|   |   `-- validation
+|   |       |-- email_validation.go
+|   |       |-- email_validation_test.go
+|   |       `-- string_validations.go
+|   |-- db.sqlite
+|   |-- go.mod
+|   |-- go.sum
+|   |-- go.work
+|   |-- go.work.sum
+|   |-- mono # This is folder we use to start go app "go run ./mono "
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- db.sqlite
+|   |   |-- go.mod
+|   |   |-- go.sum
+|   |   |-- main.go
+|   |   |-- version
+|   |   |   |-- version.githash
+|   |   |   |-- version.go
+|   |   |   `-- version.number
+|   |   `-- webapp
+|   |       `-- dist
+|   |           `-- README.md
+|   `-- videoservice
+|       |-- api
+|       |   |-- api.go
+|       |   |-- http.go
+|       |   `-- http_test.go
+|       |-- autogenerate.go
+|       |-- config
+|       |   `-- config.go
+|       |-- db
+|       |   |-- db.go
+|       |   |-- migrate.go
+|       |   |-- migrations
+|       |   |   |-- 1_init.up.sql
+|       |   |   `-- 2_add_uploaded_user.up.sql
+|       |   |-- models.go
+|       |   |-- queries.sql.go
+|       |   `-- scripts
+|       |       |-- queries.sql
+|       |       `-- sqlc.yaml
+|       |-- go.mod
+|       |-- go.sum
+|       `-- proto
+|           |-- videoservice.pb.go
+|           `-- videoservice_grpc.pb.go
+|-- frontend # This folder is for frontend application
+|   `-- webapp
+|       |-- README.md
+|       |-- dist
+|       |   |-- assets
+|       |   |   |-- index-CvPl-NUa.js
+|       |   |   `-- index-hPH7Cqbi.css
+|       |   |-- index.html
+|       |   `-- vite.svg
+|       |-- eslint.config.js
+|       |-- index.html
+|       |-- package.json
+|       |-- pnpm-lock.yaml # using pnpm
+|       |-- public
+|       |   `-- vite.svg
+|       |-- src
+|       |   |-- App.css
+|       |   |-- App.jsx
+|       |   |-- assets
+|       |   |   `-- react.svg
+|       |   |-- auth
+|       |   |   |-- components
+|       |   |   |   `-- ProtectedRoute.jsx
+|       |   |   |-- pages
+|       |   |   |   `-- LoginPage.jsx
+|       |   |   |-- providers
+|       |   |   |   `-- firebase-auth.ts
+|       |   |   `-- store
+|       |   |       `-- auth.ts
+|       |   |-- components
+|       |   |   |-- CommentSection.tsx
+|       |   |   |-- ListOfVideos.jsx
+|       |   |   |-- ScreenRecorder.jsx
+|       |   |   `-- layout
+|       |   |       |-- Footer.jsx
+|       |   |       |-- Header.jsx
+|       |   |       |-- Layout.jsx
+|       |   |       `-- Sidebar.jsx
+|       |   |-- index.css
+|       |   |-- main.jsx
+|       |   |-- pages
+|       |   |   |-- HomePage.jsx
+|       |   |   |-- Library.jsx
+|       |   |   |-- ProfilePage.jsx
+|       |   |   |-- RecordPage.jsx
+|       |   |   |-- SettingsPage.jsx
+|       |   |   |-- TeamPage.jsx
+|       |   |   |-- VideoPage.jsx
+|       |   |   `-- VideosPage.jsx
+|       |   |-- proto
+|       |   |   |-- commentservice.ts
+|       |   |   |-- google
+|       |   |   |   `-- protobuf
+|       |   |   |       `-- timestamp.ts
+|       |   |   `-- videoservice.ts
+|       |   |-- stores
+|       |   |   |-- comments.ts
+|       |   |   `-- videos.ts
+|       |   |-- version
+|       |   |   |-- get-git-hash.cjs
+|       |   |   |-- version.number
+|       |   |   `-- versionInfo.ts
+|       |   `-- vite-env.d.ts
+|       |-- tailwind.config.js
+|       |-- tsconfig.json
+|       |-- tsconfig.node.json
+|       `-- vite.config.js
+`-- proto
+    |-- commentservice.proto
+    `-- videoservice.proto
+
+
+-> Every time when we make change in go backend, we run `go generate` to auto generate code. You tell when to run this generate. I will manualy run it. 
+
+
+
+
+
+
+
+

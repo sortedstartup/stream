@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
 
-export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
+export default function ScreenRecorder({ onUploadSuccess, onUploadError, spaceId = null }) {
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -148,6 +148,11 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     formData.append("video", currentVideoBlob, fileName);
     formData.append("title", title);
     formData.append("description", description);
+    
+    // Add space_id if provided
+    if (spaceId) {
+      formData.append("space_id", spaceId);
+    }
 
     try {
       const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "") + "/api/videoservice/upload", {
@@ -167,12 +172,18 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       const message = data.message || "Video uploaded successfully!";
       setStatusMessage(message);
 
-      onUploadSuccess && onUploadSuccess({ message });
+      onUploadSuccess && onUploadSuccess({ 
+        message, 
+        videoId: data.video_id,
+        assignedToSpace: !!spaceId
+      });
 
       await deleteRecordingFromOPFS();
       setShowForm(false);
       setVideoUrl(null);
       setCurrentVideoBlob(null);
+      setTitle("");
+      setDescription("");
     } catch (error) {
       console.error("Error uploading video:", error);
       setUploadFailed(true);
@@ -191,6 +202,15 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   return (
     <div className="space-y-4">
+      {spaceId && (
+        <div className="alert alert-info">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Recording will be automatically added to this space when uploaded.</span>
+        </div>
+      )}
+
       {statusMessage === "Please upload or download the current recording before starting a new one." && (
         <div className="alert alert-error shadow-lg">
           <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -239,7 +259,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
                 />
               </label>
               <button className="btn btn-success w-full" onClick={uploadVideo} disabled={isUploading}>
-                Upload Video
+                {spaceId ? "Upload to Space" : "Upload Video"}
               </button>
             </div>
           )}

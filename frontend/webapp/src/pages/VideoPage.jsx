@@ -11,61 +11,65 @@ import { Layout } from '../components/layout/Layout'
 
 const CustomVideoPlayer = ({ videoUrl }) => {
     const videoRef = useRef(null)
-    const mediaSourceRef = useRef(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
+    const [videoSrc, setVideoSrc] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(null)
     const authToken = useStore($authToken)
 
-    const setupMediaSource = () => {
-        return new Promise((resolve) => {
-            // Create new MediaSource instance
-            mediaSourceRef.current = new MediaSource()
-            const mediaUrl = URL.createObjectURL(mediaSourceRef.current)
-            videoRef.current.src = mediaUrl
-
-            mediaSourceRef.current.addEventListener('sourceopen', () => {
-                // Fetch video with authentication
-                // console.log(Auth)
-                fetch(videoUrl, {
+    useEffect(() => {
+        // Create an authenticated video source using a blob URL
+        const setupVideo = async () => {
+            try {
+                setIsLoading(true)
+                setError(null)
+                
+                const response = await fetch(videoUrl, {
                     headers: {
                         'authorization': `${authToken}`,
                     }
                 })
-                .then(response => response.blob())
-                .then(async videoBlob => {
-                    const sourceBuffer = mediaSourceRef.current.addSourceBuffer('video/webm; codecs="vp8,opus"')
-                    sourceBuffer.addEventListener('updateend', () => {
-                         if (mediaSourceRef.current.readyState === 'open') {
-                                try {
-                                    const end = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
-                                    mediaSourceRef.current.duration = end;
-                                    setDuration(end);
-                                } catch (err) {
-                                    console.error('Error setting duration:', err);
-                                }
-                                mediaSourceRef.current.endOfStream();
-                                resolve(); // Resolve the promise when setup is complete
-                            }
-                    })
-                    sourceBuffer.appendBuffer(await videoBlob.arrayBuffer())
-                })
-                .catch(error => console.error('Error fetching video:', error))
-            })
-        }) 
-    }
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load video: ${response.status}`)
+                }
+                
+                const videoBlob = await response.blob()
+                const videoBlobUrl = URL.createObjectURL(videoBlob)
+                setVideoSrc(videoBlobUrl)
+            } catch (err) {
+                console.error('Error loading video:', err)
+                setError(err.message)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        setupVideo()
+
+        // Cleanup blob URL when component unmounts
+        return () => {
+            if (videoSrc) {
+                URL.revokeObjectURL(videoSrc)
+            }
+        }
+    }, [videoUrl, authToken])
 
     const togglePlay = async () => {
-        if (videoRef.current.paused) {
-            if (!mediaSourceRef.current) {
-                await setupMediaSource() // Wait for MediaSource setup to complete
+        try {
+            if (videoRef.current.paused) {
+                await videoRef.current.play()
+                setIsPlaying(true)
+            } else {
+                videoRef.current.pause()
+                setIsPlaying(false)
             }
-            await videoRef.current.play()
-            setIsPlaying(true)
-        } else {
-            videoRef.current.pause()
-            setIsPlaying(false)
+        } catch (err) {
+            console.error('Error playing video:', err)
+            setError('Failed to play video')
         }
     }
 
@@ -91,22 +95,52 @@ const CustomVideoPlayer = ({ videoUrl }) => {
 
     const formatTime = (time) => {
         if (!isFinite(time)) {
-            const formatTimeDuration = videoRef.current?.duration;
-            if (isFinite(formatTimeDuration)) time = formatTimeDuration;
-            else return '0:00';
+            return '0:00'
         }
         const minutes = Math.floor(time / 60)
         const seconds = Math.floor(time % 60)
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
     }
 
+    if (isLoading) {
+        return (
+            <div className="w-full max-w-4xl mx-auto bg-base-200 rounded-lg overflow-hidden">
+                <div className="w-full aspect-video flex items-center justify-center">
+                    <span className="loading loading-spinner loading-lg"></span>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="w-full max-w-4xl mx-auto bg-base-200 rounded-lg overflow-hidden">
+                <div className="w-full aspect-video flex items-center justify-center bg-error/10">
+                    <div className="text-center">
+                        <svg className="w-12 h-12 text-error mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-error">Error loading video</p>
+                        <p className="text-sm text-error/70">{error}</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="w-full max-w-4xl mx-auto bg-base-200 rounded-lg overflow-hidden">
             <video
                 ref={videoRef}
+                src={videoSrc}
                 className="w-full aspect-video"
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
+                onError={(e) => {
+                    console.error('Video error:', e)
+                    setError('Video playback error')
+                }}
+                controls={false} // We'll use custom controls
             />
             
             <div className="p-4 space-y-2">
@@ -125,6 +159,7 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                     <button
                         onClick={togglePlay}
                         className="btn btn-primary"
+                        disabled={!videoSrc}
                     >
                         {isPlaying ? (
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -5,8 +5,33 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
+
+type Space struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	UserID      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type User struct {
+	ID        string
+	Username  string
+	Email     string
+	CreatedAt sql.NullTime
+}
+
+type UserSpace struct {
+	UserID      string
+	SpaceID     string
+	AccessLevel string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
 
 type Video struct {
 	ID             string
@@ -16,4 +41,11 @@ type Video struct {
 	CreatedAt      time.Time
 	UploadedUserID string
 	UpdatedAt      time.Time
+}
+
+type VideoSpace struct {
+	VideoID   string
+	SpaceID   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

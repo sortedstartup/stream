@@ -19,6 +19,12 @@ export enum Visibility {
     VISIBILITY_SHARED = 1,
     VISIBILITY_PUBLIC = 2
 }
+export enum AccessLevel {
+    ACCESS_LEVEL_UNSPECIFIED = 0,
+    ACCESS_LEVEL_VIEW = 1,
+    ACCESS_LEVEL_EDIT = 2,
+    ACCESS_LEVEL_ADMIN = 3
+}
 export class Video extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
@@ -271,6 +277,217 @@ export class Video extends pb_1.Message {
     }
     static deserializeBinary(bytes: Uint8Array): Video {
         return Video.deserialize(bytes);
+    }
+}
+export class Space extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        name?: string;
+        description?: string;
+        user_id?: string;
+        created_at?: dependency_1.Timestamp;
+        updated_at?: dependency_1.Timestamp;
+        access_level?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+            if ("updated_at" in data && data.updated_at != undefined) {
+                this.updated_at = data.updated_at;
+            }
+            if ("access_level" in data && data.access_level != undefined) {
+                this.access_level = data.access_level;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 5, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 5) != null;
+    }
+    get updated_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 6) as dependency_1.Timestamp;
+    }
+    set updated_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 6, value);
+    }
+    get has_updated_at() {
+        return pb_1.Message.getField(this, 6) != null;
+    }
+    get access_level() {
+        return pb_1.Message.getFieldWithDefault(this, 7, "") as string;
+    }
+    set access_level(value: string) {
+        pb_1.Message.setField(this, 7, value);
+    }
+    static fromObject(data: {
+        id?: string;
+        name?: string;
+        description?: string;
+        user_id?: string;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        access_level?: string;
+    }): Space {
+        const message = new Space({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        if (data.updated_at != null) {
+            message.updated_at = dependency_1.Timestamp.fromObject(data.updated_at);
+        }
+        if (data.access_level != null) {
+            message.access_level = data.access_level;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            name?: string;
+            description?: string;
+            user_id?: string;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            access_level?: string;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        if (this.updated_at != null) {
+            data.updated_at = this.updated_at.toObject();
+        }
+        if (this.access_level != null) {
+            data.access_level = this.access_level;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.name.length)
+            writer.writeString(2, this.name);
+        if (this.description.length)
+            writer.writeString(3, this.description);
+        if (this.user_id.length)
+            writer.writeString(4, this.user_id);
+        if (this.has_created_at)
+            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
+        if (this.has_updated_at)
+            writer.writeMessage(6, this.updated_at, () => this.updated_at.serialize(writer));
+        if (this.access_level.length)
+            writer.writeString(7, this.access_level);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Space {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Space();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.name = reader.readString();
+                    break;
+                case 3:
+                    message.description = reader.readString();
+                    break;
+                case 4:
+                    message.user_id = reader.readString();
+                    break;
+                case 5:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 6:
+                    reader.readMessage(message.updated_at, () => message.updated_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 7:
+                    message.access_level = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): Space {
+        return Space.deserialize(bytes);
     }
 }
 export class CreateVideoRequest extends pb_1.Message {
@@ -1016,6 +1233,517 @@ export class ShareLink extends pb_1.Message {
         return ShareLink.deserialize(bytes);
     }
 }
+export class CreateSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        name?: string;
+        description?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+        }
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        name?: string;
+        description?: string;
+    }): CreateSpaceRequest {
+        const message = new CreateSpaceRequest({});
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            name?: string;
+            description?: string;
+        } = {};
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.name.length)
+            writer.writeString(1, this.name);
+        if (this.description.length)
+            writer.writeString(2, this.description);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.name = reader.readString();
+                    break;
+                case 2:
+                    message.description = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CreateSpaceRequest {
+        return CreateSpaceRequest.deserialize(bytes);
+    }
+}
+export class ListSpacesRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {}) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") { }
+    }
+    static fromObject(data: {}): ListSpacesRequest {
+        const message = new ListSpacesRequest({});
+        return message;
+    }
+    toObject() {
+        const data: {} = {};
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpacesRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpacesRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpacesRequest {
+        return ListSpacesRequest.deserialize(bytes);
+    }
+}
+export class ListSpacesResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        spaces?: Space[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("spaces" in data && data.spaces != undefined) {
+                this.spaces = data.spaces;
+            }
+        }
+    }
+    get spaces() {
+        return pb_1.Message.getRepeatedWrapperField(this, Space, 1) as Space[];
+    }
+    set spaces(value: Space[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 1, value);
+    }
+    static fromObject(data: {
+        spaces?: ReturnType<typeof Space.prototype.toObject>[];
+    }): ListSpacesResponse {
+        const message = new ListSpacesResponse({});
+        if (data.spaces != null) {
+            message.spaces = data.spaces.map(item => Space.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            spaces?: ReturnType<typeof Space.prototype.toObject>[];
+        } = {};
+        if (this.spaces != null) {
+            data.spaces = this.spaces.map((item: Space) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.spaces.length)
+            writer.writeRepeatedMessage(1, this.spaces, (item: Space) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpacesResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpacesResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.spaces, () => pb_1.Message.addToRepeatedWrapperField(message, 1, Space.deserialize(reader), Space));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpacesResponse {
+        return ListSpacesResponse.deserialize(bytes);
+    }
+}
+export class GetSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+    }): GetSpaceRequest {
+        const message = new GetSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetSpaceRequest {
+        return GetSpaceRequest.deserialize(bytes);
+    }
+}
+export class ListVideosInSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+    }): ListVideosInSpaceRequest {
+        const message = new ListVideosInSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListVideosInSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListVideosInSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListVideosInSpaceRequest {
+        return ListVideosInSpaceRequest.deserialize(bytes);
+    }
+}
+export class AddVideoToSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+        space_id?: string;
+    }): AddVideoToSpaceRequest {
+        const message = new AddVideoToSpaceRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+            space_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (this.space_id.length)
+            writer.writeString(2, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddVideoToSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddVideoToSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                case 2:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddVideoToSpaceRequest {
+        return AddVideoToSpaceRequest.deserialize(bytes);
+    }
+}
+export class RemoveVideoFromSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+        space_id?: string;
+    }): RemoveVideoFromSpaceRequest {
+        const message = new RemoveVideoFromSpaceRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+            space_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (this.space_id.length)
+            writer.writeString(2, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveVideoFromSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveVideoFromSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                case 2:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveVideoFromSpaceRequest {
+        return RemoveVideoFromSpaceRequest.deserialize(bytes);
+    }
+}
 export class Empty extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {}) {
@@ -1054,6 +1782,815 @@ export class Empty extends pb_1.Message {
     }
     static deserializeBinary(bytes: Uint8Array): Empty {
         return Empty.deserialize(bytes);
+    }
+}
+export class AddUserToSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+        user_id?: string;
+        access_level?: AccessLevel;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("access_level" in data && data.access_level != undefined) {
+                this.access_level = data.access_level;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get access_level() {
+        return pb_1.Message.getFieldWithDefault(this, 3, AccessLevel.ACCESS_LEVEL_UNSPECIFIED) as AccessLevel;
+    }
+    set access_level(value: AccessLevel) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+        user_id?: string;
+        access_level?: AccessLevel;
+    }): AddUserToSpaceRequest {
+        const message = new AddUserToSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.access_level != null) {
+            message.access_level = data.access_level;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+            user_id?: string;
+            access_level?: AccessLevel;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.access_level != null) {
+            data.access_level = this.access_level;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (this.user_id.length)
+            writer.writeString(2, this.user_id);
+        if (this.access_level != AccessLevel.ACCESS_LEVEL_UNSPECIFIED)
+            writer.writeEnum(3, this.access_level);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddUserToSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddUserToSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                case 2:
+                    message.user_id = reader.readString();
+                    break;
+                case 3:
+                    message.access_level = reader.readEnum();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddUserToSpaceRequest {
+        return AddUserToSpaceRequest.deserialize(bytes);
+    }
+}
+export class RemoveUserFromSpaceRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+        user_id?: string;
+    }): RemoveUserFromSpaceRequest {
+        const message = new RemoveUserFromSpaceRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+            user_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (this.user_id.length)
+            writer.writeString(2, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveUserFromSpaceRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveUserFromSpaceRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                case 2:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveUserFromSpaceRequest {
+        return RemoveUserFromSpaceRequest.deserialize(bytes);
+    }
+}
+export class ListSpaceMembersRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+    }): ListSpaceMembersRequest {
+        const message = new ListSpaceMembersRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpaceMembersRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpaceMembersRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpaceMembersRequest {
+        return ListSpaceMembersRequest.deserialize(bytes);
+    }
+}
+export class SpaceMember extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+        access_level?: AccessLevel;
+        created_at?: dependency_1.Timestamp;
+        email?: string;
+        username?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("access_level" in data && data.access_level != undefined) {
+                this.access_level = data.access_level;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+            if ("email" in data && data.email != undefined) {
+                this.email = data.email;
+            }
+            if ("username" in data && data.username != undefined) {
+                this.username = data.username;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get access_level() {
+        return pb_1.Message.getFieldWithDefault(this, 2, AccessLevel.ACCESS_LEVEL_UNSPECIFIED) as AccessLevel;
+    }
+    set access_level(value: AccessLevel) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 3) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    get email() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set email(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get username() {
+        return pb_1.Message.getFieldWithDefault(this, 5, "") as string;
+    }
+    set username(value: string) {
+        pb_1.Message.setField(this, 5, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+        access_level?: AccessLevel;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        email?: string;
+        username?: string;
+    }): SpaceMember {
+        const message = new SpaceMember({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.access_level != null) {
+            message.access_level = data.access_level;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        if (data.email != null) {
+            message.email = data.email;
+        }
+        if (data.username != null) {
+            message.username = data.username;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+            access_level?: AccessLevel;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            email?: string;
+            username?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.access_level != null) {
+            data.access_level = this.access_level;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        if (this.email != null) {
+            data.email = this.email;
+        }
+        if (this.username != null) {
+            data.username = this.username;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (this.access_level != AccessLevel.ACCESS_LEVEL_UNSPECIFIED)
+            writer.writeEnum(2, this.access_level);
+        if (this.has_created_at)
+            writer.writeMessage(3, this.created_at, () => this.created_at.serialize(writer));
+        if (this.email.length)
+            writer.writeString(4, this.email);
+        if (this.username.length)
+            writer.writeString(5, this.username);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): SpaceMember {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new SpaceMember();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                case 2:
+                    message.access_level = reader.readEnum();
+                    break;
+                case 3:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 4:
+                    message.email = reader.readString();
+                    break;
+                case 5:
+                    message.username = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): SpaceMember {
+        return SpaceMember.deserialize(bytes);
+    }
+}
+export class ListSpaceMembersResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        members?: SpaceMember[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("members" in data && data.members != undefined) {
+                this.members = data.members;
+            }
+        }
+    }
+    get members() {
+        return pb_1.Message.getRepeatedWrapperField(this, SpaceMember, 1) as SpaceMember[];
+    }
+    set members(value: SpaceMember[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 1, value);
+    }
+    static fromObject(data: {
+        members?: ReturnType<typeof SpaceMember.prototype.toObject>[];
+    }): ListSpaceMembersResponse {
+        const message = new ListSpaceMembersResponse({});
+        if (data.members != null) {
+            message.members = data.members.map(item => SpaceMember.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            members?: ReturnType<typeof SpaceMember.prototype.toObject>[];
+        } = {};
+        if (this.members != null) {
+            data.members = this.members.map((item: SpaceMember) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.members.length)
+            writer.writeRepeatedMessage(1, this.members, (item: SpaceMember) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListSpaceMembersResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListSpaceMembersResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.members, () => pb_1.Message.addToRepeatedWrapperField(message, 1, SpaceMember.deserialize(reader), SpaceMember));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListSpaceMembersResponse {
+        return ListSpaceMembersResponse.deserialize(bytes);
+    }
+}
+export class ListUsersRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {}) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") { }
+    }
+    static fromObject(data: {}): ListUsersRequest {
+        const message = new ListUsersRequest({});
+        return message;
+    }
+    toObject() {
+        const data: {} = {};
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListUsersRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListUsersRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListUsersRequest {
+        return ListUsersRequest.deserialize(bytes);
+    }
+}
+export class User extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        email?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("email" in data && data.email != undefined) {
+                this.email = data.email;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get email() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set email(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        id?: string;
+        email?: string;
+    }): User {
+        const message = new User({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.email != null) {
+            message.email = data.email;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            email?: string;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.email != null) {
+            data.email = this.email;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.email.length)
+            writer.writeString(2, this.email);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): User {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new User();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.email = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): User {
+        return User.deserialize(bytes);
+    }
+}
+export class ListUsersResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        users?: User[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("users" in data && data.users != undefined) {
+                this.users = data.users;
+            }
+        }
+    }
+    get users() {
+        return pb_1.Message.getRepeatedWrapperField(this, User, 1) as User[];
+    }
+    set users(value: User[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 1, value);
+    }
+    static fromObject(data: {
+        users?: ReturnType<typeof User.prototype.toObject>[];
+    }): ListUsersResponse {
+        const message = new ListUsersResponse({});
+        if (data.users != null) {
+            message.users = data.users.map(item => User.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            users?: ReturnType<typeof User.prototype.toObject>[];
+        } = {};
+        if (this.users != null) {
+            data.users = this.users.map((item: User) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.users.length)
+            writer.writeRepeatedMessage(1, this.users, (item: User) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ListUsersResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ListUsersResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.users, () => pb_1.Message.addToRepeatedWrapperField(message, 1, User.deserialize(reader), User));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ListUsersResponse {
+        return ListUsersResponse.deserialize(bytes);
+    }
+}
+export class UpdateUserSpaceAccessRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        space_id?: string;
+        user_id?: string;
+        access_level?: AccessLevel;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("space_id" in data && data.space_id != undefined) {
+                this.space_id = data.space_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("access_level" in data && data.access_level != undefined) {
+                this.access_level = data.access_level;
+            }
+        }
+    }
+    get space_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set space_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get access_level() {
+        return pb_1.Message.getFieldWithDefault(this, 3, AccessLevel.ACCESS_LEVEL_UNSPECIFIED) as AccessLevel;
+    }
+    set access_level(value: AccessLevel) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        space_id?: string;
+        user_id?: string;
+        access_level?: AccessLevel;
+    }): UpdateUserSpaceAccessRequest {
+        const message = new UpdateUserSpaceAccessRequest({});
+        if (data.space_id != null) {
+            message.space_id = data.space_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.access_level != null) {
+            message.access_level = data.access_level;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            space_id?: string;
+            user_id?: string;
+            access_level?: AccessLevel;
+        } = {};
+        if (this.space_id != null) {
+            data.space_id = this.space_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.access_level != null) {
+            data.access_level = this.access_level;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.space_id.length)
+            writer.writeString(1, this.space_id);
+        if (this.user_id.length)
+            writer.writeString(2, this.user_id);
+        if (this.access_level != AccessLevel.ACCESS_LEVEL_UNSPECIFIED)
+            writer.writeEnum(3, this.access_level);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserSpaceAccessRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserSpaceAccessRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.space_id = reader.readString();
+                    break;
+                case 2:
+                    message.user_id = reader.readString();
+                    break;
+                case 3:
+                    message.access_level = reader.readEnum();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateUserSpaceAccessRequest {
+        return UpdateUserSpaceAccessRequest.deserialize(bytes);
     }
 }
 export abstract class UnimplementedVideoServiceService {
@@ -1111,6 +2648,105 @@ export abstract class UnimplementedVideoServiceService {
             requestDeserialize: (bytes: Buffer) => ShareVideoRequest.deserialize(new Uint8Array(bytes)),
             responseSerialize: (message: ShareLink) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => ShareLink.deserialize(new Uint8Array(bytes))
+        },
+        CreateSpace: {
+            path: "/videoservice.VideoService/CreateSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CreateSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Space) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Space.deserialize(new Uint8Array(bytes))
+        },
+        ListSpaces: {
+            path: "/videoservice.VideoService/ListSpaces",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListSpacesRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListSpacesRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListSpacesResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListSpacesResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetSpace: {
+            path: "/videoservice.VideoService/GetSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Space) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Space.deserialize(new Uint8Array(bytes))
+        },
+        ListVideosInSpace: {
+            path: "/videoservice.VideoService/ListVideosInSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListVideosInSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListVideosInSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListVideosResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListVideosResponse.deserialize(new Uint8Array(bytes))
+        },
+        AddVideoToSpace: {
+            path: "/videoservice.VideoService/AddVideoToSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: AddVideoToSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => AddVideoToSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+        },
+        RemoveVideoFromSpace: {
+            path: "/videoservice.VideoService/RemoveVideoFromSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: RemoveVideoFromSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => RemoveVideoFromSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+        },
+        AddUserToSpace: {
+            path: "/videoservice.VideoService/AddUserToSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: AddUserToSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => AddUserToSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+        },
+        RemoveUserFromSpace: {
+            path: "/videoservice.VideoService/RemoveUserFromSpace",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: RemoveUserFromSpaceRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => RemoveUserFromSpaceRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+        },
+        ListSpaceMembers: {
+            path: "/videoservice.VideoService/ListSpaceMembers",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListSpaceMembersRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListSpaceMembersRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListSpaceMembersResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListSpaceMembersResponse.deserialize(new Uint8Array(bytes))
+        },
+        ListUsers: {
+            path: "/videoservice.VideoService/ListUsers",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: ListUsersRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => ListUsersRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: ListUsersResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => ListUsersResponse.deserialize(new Uint8Array(bytes))
+        },
+        UpdateUserSpaceAccess: {
+            path: "/videoservice.VideoService/UpdateUserSpaceAccess",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: UpdateUserSpaceAccessRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => UpdateUserSpaceAccessRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
@@ -1120,6 +2756,17 @@ export abstract class UnimplementedVideoServiceService {
     abstract UpdateVideo(call: grpc_1.ServerUnaryCall<UpdateVideoRequest, Video>, callback: grpc_1.sendUnaryData<Video>): void;
     abstract DeleteVideo(call: grpc_1.ServerUnaryCall<DeleteVideoRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
     abstract ShareVideo(call: grpc_1.ServerUnaryCall<ShareVideoRequest, ShareLink>, callback: grpc_1.sendUnaryData<ShareLink>): void;
+    abstract CreateSpace(call: grpc_1.ServerUnaryCall<CreateSpaceRequest, Space>, callback: grpc_1.sendUnaryData<Space>): void;
+    abstract ListSpaces(call: grpc_1.ServerUnaryCall<ListSpacesRequest, ListSpacesResponse>, callback: grpc_1.sendUnaryData<ListSpacesResponse>): void;
+    abstract GetSpace(call: grpc_1.ServerUnaryCall<GetSpaceRequest, Space>, callback: grpc_1.sendUnaryData<Space>): void;
+    abstract ListVideosInSpace(call: grpc_1.ServerUnaryCall<ListVideosInSpaceRequest, ListVideosResponse>, callback: grpc_1.sendUnaryData<ListVideosResponse>): void;
+    abstract AddVideoToSpace(call: grpc_1.ServerUnaryCall<AddVideoToSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract RemoveVideoFromSpace(call: grpc_1.ServerUnaryCall<RemoveVideoFromSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract AddUserToSpace(call: grpc_1.ServerUnaryCall<AddUserToSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract RemoveUserFromSpace(call: grpc_1.ServerUnaryCall<RemoveUserFromSpaceRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract ListSpaceMembers(call: grpc_1.ServerUnaryCall<ListSpaceMembersRequest, ListSpaceMembersResponse>, callback: grpc_1.sendUnaryData<ListSpaceMembersResponse>): void;
+    abstract ListUsers(call: grpc_1.ServerUnaryCall<ListUsersRequest, ListUsersResponse>, callback: grpc_1.sendUnaryData<ListUsersResponse>): void;
+    abstract UpdateUserSpaceAccess(call: grpc_1.ServerUnaryCall<UpdateUserSpaceAccessRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
 }
 export class VideoServiceClient {
     private _address: string;
@@ -1154,5 +2801,49 @@ export class VideoServiceClient {
     private static ShareVideo = new grpc_web_1.MethodDescriptor<ShareVideoRequest, ShareLink>("/videoservice.VideoService/ShareVideo", grpc_web_1.MethodType.UNARY, ShareVideoRequest, ShareLink, (message: ShareVideoRequest) => message.serialize(), ShareLink.deserialize);
     ShareVideo(message: ShareVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<ShareVideoRequest, ShareLink>(this._address + "/videoservice.VideoService/ShareVideo", message, metadata || {}, VideoServiceClient.ShareVideo);
+    }
+    private static CreateSpace = new grpc_web_1.MethodDescriptor<CreateSpaceRequest, Space>("/videoservice.VideoService/CreateSpace", grpc_web_1.MethodType.UNARY, CreateSpaceRequest, Space, (message: CreateSpaceRequest) => message.serialize(), Space.deserialize);
+    CreateSpace(message: CreateSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CreateSpaceRequest, Space>(this._address + "/videoservice.VideoService/CreateSpace", message, metadata || {}, VideoServiceClient.CreateSpace);
+    }
+    private static ListSpaces = new grpc_web_1.MethodDescriptor<ListSpacesRequest, ListSpacesResponse>("/videoservice.VideoService/ListSpaces", grpc_web_1.MethodType.UNARY, ListSpacesRequest, ListSpacesResponse, (message: ListSpacesRequest) => message.serialize(), ListSpacesResponse.deserialize);
+    ListSpaces(message: ListSpacesRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListSpacesRequest, ListSpacesResponse>(this._address + "/videoservice.VideoService/ListSpaces", message, metadata || {}, VideoServiceClient.ListSpaces);
+    }
+    private static GetSpace = new grpc_web_1.MethodDescriptor<GetSpaceRequest, Space>("/videoservice.VideoService/GetSpace", grpc_web_1.MethodType.UNARY, GetSpaceRequest, Space, (message: GetSpaceRequest) => message.serialize(), Space.deserialize);
+    GetSpace(message: GetSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetSpaceRequest, Space>(this._address + "/videoservice.VideoService/GetSpace", message, metadata || {}, VideoServiceClient.GetSpace);
+    }
+    private static ListVideosInSpace = new grpc_web_1.MethodDescriptor<ListVideosInSpaceRequest, ListVideosResponse>("/videoservice.VideoService/ListVideosInSpace", grpc_web_1.MethodType.UNARY, ListVideosInSpaceRequest, ListVideosResponse, (message: ListVideosInSpaceRequest) => message.serialize(), ListVideosResponse.deserialize);
+    ListVideosInSpace(message: ListVideosInSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListVideosInSpaceRequest, ListVideosResponse>(this._address + "/videoservice.VideoService/ListVideosInSpace", message, metadata || {}, VideoServiceClient.ListVideosInSpace);
+    }
+    private static AddVideoToSpace = new grpc_web_1.MethodDescriptor<AddVideoToSpaceRequest, Empty>("/videoservice.VideoService/AddVideoToSpace", grpc_web_1.MethodType.UNARY, AddVideoToSpaceRequest, Empty, (message: AddVideoToSpaceRequest) => message.serialize(), Empty.deserialize);
+    AddVideoToSpace(message: AddVideoToSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<AddVideoToSpaceRequest, Empty>(this._address + "/videoservice.VideoService/AddVideoToSpace", message, metadata || {}, VideoServiceClient.AddVideoToSpace);
+    }
+    private static RemoveVideoFromSpace = new grpc_web_1.MethodDescriptor<RemoveVideoFromSpaceRequest, Empty>("/videoservice.VideoService/RemoveVideoFromSpace", grpc_web_1.MethodType.UNARY, RemoveVideoFromSpaceRequest, Empty, (message: RemoveVideoFromSpaceRequest) => message.serialize(), Empty.deserialize);
+    RemoveVideoFromSpace(message: RemoveVideoFromSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<RemoveVideoFromSpaceRequest, Empty>(this._address + "/videoservice.VideoService/RemoveVideoFromSpace", message, metadata || {}, VideoServiceClient.RemoveVideoFromSpace);
+    }
+    private static AddUserToSpace = new grpc_web_1.MethodDescriptor<AddUserToSpaceRequest, Empty>("/videoservice.VideoService/AddUserToSpace", grpc_web_1.MethodType.UNARY, AddUserToSpaceRequest, Empty, (message: AddUserToSpaceRequest) => message.serialize(), Empty.deserialize);
+    AddUserToSpace(message: AddUserToSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<AddUserToSpaceRequest, Empty>(this._address + "/videoservice.VideoService/AddUserToSpace", message, metadata || {}, VideoServiceClient.AddUserToSpace);
+    }
+    private static RemoveUserFromSpace = new grpc_web_1.MethodDescriptor<RemoveUserFromSpaceRequest, Empty>("/videoservice.VideoService/RemoveUserFromSpace", grpc_web_1.MethodType.UNARY, RemoveUserFromSpaceRequest, Empty, (message: RemoveUserFromSpaceRequest) => message.serialize(), Empty.deserialize);
+    RemoveUserFromSpace(message: RemoveUserFromSpaceRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<RemoveUserFromSpaceRequest, Empty>(this._address + "/videoservice.VideoService/RemoveUserFromSpace", message, metadata || {}, VideoServiceClient.RemoveUserFromSpace);
+    }
+    private static ListSpaceMembers = new grpc_web_1.MethodDescriptor<ListSpaceMembersRequest, ListSpaceMembersResponse>("/videoservice.VideoService/ListSpaceMembers", grpc_web_1.MethodType.UNARY, ListSpaceMembersRequest, ListSpaceMembersResponse, (message: ListSpaceMembersRequest) => message.serialize(), ListSpaceMembersResponse.deserialize);
+    ListSpaceMembers(message: ListSpaceMembersRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListSpaceMembersRequest, ListSpaceMembersResponse>(this._address + "/videoservice.VideoService/ListSpaceMembers", message, metadata || {}, VideoServiceClient.ListSpaceMembers);
+    }
+    private static ListUsers = new grpc_web_1.MethodDescriptor<ListUsersRequest, ListUsersResponse>("/videoservice.VideoService/ListUsers", grpc_web_1.MethodType.UNARY, ListUsersRequest, ListUsersResponse, (message: ListUsersRequest) => message.serialize(), ListUsersResponse.deserialize);
+    ListUsers(message: ListUsersRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<ListUsersRequest, ListUsersResponse>(this._address + "/videoservice.VideoService/ListUsers", message, metadata || {}, VideoServiceClient.ListUsers);
+    }
+    private static UpdateUserSpaceAccess = new grpc_web_1.MethodDescriptor<UpdateUserSpaceAccessRequest, Empty>("/videoservice.VideoService/UpdateUserSpaceAccess", grpc_web_1.MethodType.UNARY, UpdateUserSpaceAccessRequest, Empty, (message: UpdateUserSpaceAccessRequest) => message.serialize(), Empty.deserialize);
+    UpdateUserSpaceAccess(message: UpdateUserSpaceAccessRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<UpdateUserSpaceAccessRequest, Empty>(this._address + "/videoservice.VideoService/UpdateUserSpaceAccess", message, metadata || {}, VideoServiceClient.UpdateUserSpaceAccess);
     }
 }
