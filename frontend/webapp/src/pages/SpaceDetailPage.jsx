@@ -97,6 +97,12 @@ export const SpaceDetailPage = () => {
     // Extract current user ID from auth token
     const currentUserId = authToken ? JSON.parse(atob(authToken.split('.')[1])).user_id : null
     const isSpaceOwner = space && currentUserId && space.user_id === currentUserId
+    
+    // Check if user can edit (has edit, admin, or owner permissions)
+    const canEditSpace = space && (
+        isSpaceOwner ||
+        (space.access_level && ['edit', 'admin'].includes(space.access_level.toLowerCase()))
+    )
 
     useEffect(() => {
         const loadSpaceData = async () => {
@@ -204,19 +210,20 @@ export const SpaceDetailPage = () => {
                             </button>
                         )}
                         
-                        <div className="dropdown dropdown-end">
-                            <button 
-                                className="btn btn-primary"
-                                onClick={() => setShowDropdown(!showDropdown)}
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add Videos
-                                <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
+                        {canEditSpace && (
+                            <div className="dropdown dropdown-end">
+                                <button 
+                                    className="btn btn-primary"
+                                    onClick={() => setShowDropdown(!showDropdown)}
+                                >
+                                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Videos
+                                    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
                             {showDropdown && (
                                 <ul className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mt-1">
                                     <li>
@@ -264,6 +271,7 @@ export const SpaceDetailPage = () => {
                                 </ul>
                             )}
                         </div>
+                        )}
                     </div>
                 </div>
 
@@ -287,27 +295,31 @@ export const SpaceDetailPage = () => {
                             </svg>
                         </div>
                         <h3 className="text-xl font-semibold mb-2">No videos in this space</h3>
-                        <p className="text-base-content/70 mb-6">Add some videos to get started</p>
-                        <div className="flex gap-2 justify-center">
-                            <button 
-                                className="btn btn-primary"
-                                onClick={() => setIsRecordModalOpen(true)}
-                            >
-                                Record Video
-                            </button>
-                            <button 
-                                className="btn btn-secondary"
-                                onClick={() => setIsUploadModalOpen(true)}
-                            >
-                                Upload Video
-                            </button>
-                            <button 
-                                className="btn btn-outline"
-                                onClick={() => setIsAddVideosModalOpen(true)}
-                            >
-                                Add Existing Videos
-                            </button>
-                        </div>
+                        <p className="text-base-content/70 mb-6">
+                            {canEditSpace ? 'Add some videos to get started' : 'This space is empty'}
+                        </p>
+                        {canEditSpace && (
+                            <div className="flex gap-2 justify-center">
+                                <button 
+                                    className="btn btn-primary"
+                                    onClick={() => setIsRecordModalOpen(true)}
+                                >
+                                    Record Video
+                                </button>
+                                <button 
+                                    className="btn btn-secondary"
+                                    onClick={() => setIsUploadModalOpen(true)}
+                                >
+                                    Upload Video
+                                </button>
+                                <button 
+                                    className="btn btn-outline"
+                                    onClick={() => setIsAddVideosModalOpen(true)}
+                                >
+                                    Add Existing Videos
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

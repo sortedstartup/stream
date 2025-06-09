@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
 import { $videos, fetchVideos } from '../stores/videos'
-import { addVideoToSpace } from '../stores/spaces'
+import { addVideoToSpace, $spaceVideos } from '../stores/spaces'
 
 const VideoSelectCard = ({ video, isSelected, onToggle }) => {
     return (
@@ -53,9 +53,15 @@ const VideoSelectCard = ({ video, isSelected, onToggle }) => {
 
 export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onVideosAdded }) => {
     const videos = useStore($videos)
+    const spaceVideos = useStore($spaceVideos)
     const [selectedVideoIds, setSelectedVideoIds] = useState(new Set())
     const [isLoading, setIsLoading] = useState(false)
     const [isAddingVideos, setIsAddingVideos] = useState(false)
+    
+    // Filter out videos that are already in the space
+    const currentSpaceVideos = spaceVideos[spaceId] || []
+    const currentSpaceVideoIds = new Set(currentSpaceVideos.map(v => v.id))
+    const availableVideos = videos.filter(video => !currentSpaceVideoIds.has(video.id))
 
     useEffect(() => {
         if (isOpen) {
@@ -76,10 +82,10 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
     }
 
     const handleSelectAll = () => {
-        if (selectedVideoIds.size === videos.length) {
+        if (selectedVideoIds.size === availableVideos.length) {
             setSelectedVideoIds(new Set())
         } else {
-            setSelectedVideoIds(new Set(videos.map(v => v.id)))
+            setSelectedVideoIds(new Set(availableVideos.map(v => v.id)))
         }
     }
 
@@ -112,7 +118,7 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
                     Add Videos to "{spaceName}"
                 </h3>
                 
-                {videos.length > 0 ? (
+                {availableVideos.length > 0 ? (
                     <>
                         {/* Controls */}
                         <div className="flex justify-between items-center mb-4">
@@ -122,17 +128,17 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
                                     className="btn btn-sm btn-outline"
                                     onClick={handleSelectAll}
                                 >
-                                    {selectedVideoIds.size === videos.length ? 'Deselect All' : 'Select All'}
+                                    {selectedVideoIds.size === availableVideos.length ? 'Deselect All' : 'Select All'}
                                 </button>
                                 <span className="text-sm text-base-content/70">
-                                    {selectedVideoIds.size} of {videos.length} selected
+                                    {selectedVideoIds.size} of {availableVideos.length} selected
                                 </span>
                             </div>
                         </div>
 
                         {/* Videos Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6 max-h-96 overflow-y-auto">
-                            {videos.map((video) => (
+                            {availableVideos.map((video) => (
                                 <VideoSelectCard
                                     key={video.id}
                                     video={video}
@@ -150,7 +156,12 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
                             </svg>
                         </div>
                         <h3 className="text-lg font-semibold mb-2">No videos available</h3>
-                        <p className="text-base-content/70">Record or upload some videos first</p>
+                        <p className="text-base-content/70">
+                            {videos.length === 0 
+                                ? 'Record or upload some videos first' 
+                                : 'All your videos are already in this space'
+                            }
+                        </p>
                     </div>
                 )}
 
@@ -163,7 +174,7 @@ export const AddVideosToSpaceModal = ({ isOpen, onClose, spaceId, spaceName, onV
                     >
                         Cancel
                     </button>
-                    {videos.length > 0 && (
+                    {availableVideos.length > 0 && (
                         <button
                             type="button"
                             className="btn btn-primary"
