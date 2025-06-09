@@ -51,6 +51,7 @@ func New() (MonolithConfig, error) {
 
 	viper.SetDefault("videoService.db.driver", "sqlite")
 	viper.SetDefault("videoService.db.url", "db.sqlite")
+	viper.SetDefault("videoService.fileStoreDir", "")
 
 	viper.SetDefault("commentService.db.driver", "sqlite")
 	viper.SetDefault("commentService.db.url", "db.sqlite")
