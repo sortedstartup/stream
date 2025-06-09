@@ -18,6 +18,13 @@ type Space struct {
 	UpdatedAt   time.Time
 }
 
+type User struct {
+	ID        string
+	Username  string
+	Email     string
+	CreatedAt sql.NullTime
+}
+
 type UserSpace struct {
 	UserID      string
 	SpaceID     string

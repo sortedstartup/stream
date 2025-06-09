@@ -195,19 +195,23 @@ const SpaceSharingModal = ({ isOpen, onClose, spaceId, spaceName, spaceOwnerId }
                     ) : (
                         <div className="space-y-3">
                             {members.map(member => {
-                                const user = users.find(u => u.id === member.user_id)
+                                const displayEmail = member.email || member.user_id
+                                const displayName = member.username || member.email || member.user_id
                                 return (
                                     <div key={member.user_id} className="flex items-center justify-between p-3 bg-base-100 rounded-lg">
                                         <div className="flex items-center gap-3">
                                             <div className="avatar placeholder">
                                                 <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
                                                     <span className="text-sm">
-                                                        {user?.email?.charAt(0).toUpperCase() || '?'}
+                                                        {displayEmail.charAt(0).toUpperCase()}
                                                     </span>
                                                 </div>
                                             </div>
                                             <div>
-                                                <p className="font-medium">{user?.email || member.user_id}</p>
+                                                <p className="font-medium">{displayEmail}</p>
+                                                {member.username && (
+                                                    <p className="text-xs text-base-content/50">@{member.username}</p>
+                                                )}
                                                 <p className="text-sm text-base-content/60">
                                                     Added {new Date(member.created_at?.seconds * 1000).toLocaleDateString()}
                                                 </p>

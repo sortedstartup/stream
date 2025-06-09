@@ -502,10 +502,22 @@ func (s *VideoAPI) ListSpaceMembers(ctx context.Context, req *proto.ListSpaceMem
 			accessLevel = proto.AccessLevel_ACCESS_LEVEL_VIEW
 		}
 
+		// Handle nullable email and username fields
+		email := ""
+		username := ""
+		if member.Email.Valid {
+			email = member.Email.String
+		}
+		if member.Username.Valid {
+			username = member.Username.String
+		}
+
 		protoMembers = append(protoMembers, &proto.SpaceMember{
 			UserId:      member.UserID,
 			AccessLevel: accessLevel,
 			CreatedAt:   timestamppb.New(member.CreatedAt),
+			Email:       email,
+			Username:    username,
 		})
 	}
 
@@ -520,17 +532,17 @@ func (s *VideoAPI) ListUsers(ctx context.Context, req *proto.ListUsersRequest) (
 	}
 
 	// Get all users who have uploaded videos (excluding current user)
-	userIDs, err := s.dbQueries.GetAllUsers(ctx, authContext.User.ID)
+	users, err := s.dbQueries.GetAllUsers(ctx, authContext.User.ID)
 	if err != nil {
 		s.log.Error("Error getting users", "err", err)
 		return nil, status.Error(codes.Internal, "failed to get users")
 	}
 
-	protoUsers := make([]*proto.User, 0, len(userIDs))
-	for _, userID := range userIDs {
+	protoUsers := make([]*proto.User, 0, len(users))
+	for _, user := range users {
 		protoUsers = append(protoUsers, &proto.User{
-			Id:    userID,
-			Email: userID, // Using user ID as email for now (Firebase UID might be email)
+			Id:    user.ID,
+			Email: user.Email,
 		})
 	}
 

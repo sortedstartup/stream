@@ -97,6 +97,31 @@ func (q *Queries) CheckUserSpaceAccess(ctx context.Context, arg CheckUserSpaceAc
 	return access_level, err
 }
 
+const createOrUpdateUser = `-- name: CreateOrUpdateUser :exec
+INSERT INTO users (id, email, username, created_at)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT(id) DO UPDATE SET
+    email = excluded.email,
+    username = excluded.username
+`
+
+type CreateOrUpdateUserParams struct {
+	ID        string
+	Email     string
+	Username  string
+	CreatedAt sql.NullTime
+}
+
+func (q *Queries) CreateOrUpdateUser(ctx context.Context, arg CreateOrUpdateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createOrUpdateUser,
+		arg.ID,
+		arg.Email,
+		arg.Username,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createSpace = `-- name: CreateSpace :exec
 
 INSERT INTO spaces (
@@ -183,25 +208,32 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 
 const getAllUsers = `-- name: GetAllUsers :many
 
-SELECT DISTINCT uploaded_user_id as user_id FROM videos
-WHERE uploaded_user_id != ?1
-ORDER BY uploaded_user_id
+SELECT DISTINCT u.id, u.email, u.username FROM users u
+INNER JOIN videos v ON u.id = v.uploaded_user_id
+WHERE u.id != ?1
+ORDER BY u.email
 `
 
+type GetAllUsersRow struct {
+	ID       string
+	Email    string
+	Username string
+}
+
 // User queries for sharing
-func (q *Queries) GetAllUsers(ctx context.Context, excludeUserID string) ([]string, error) {
+func (q *Queries) GetAllUsers(ctx context.Context, excludeUserID string) ([]GetAllUsersRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAllUsers, excludeUserID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []GetAllUsersRow
 	for rows.Next() {
-		var user_id string
-		if err := rows.Scan(&user_id); err != nil {
+		var i GetAllUsersRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.Username); err != nil {
 			return nil, err
 		}
-		items = append(items, user_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -443,8 +475,9 @@ func (q *Queries) GetSpaceByIDWithAccess(ctx context.Context, arg GetSpaceByIDWi
 }
 
 const getSpaceMembers = `-- name: GetSpaceMembers :many
-SELECT us.user_id, us.access_level, us.created_at, us.updated_at
+SELECT us.user_id, us.access_level, us.created_at, us.updated_at, u.email, u.username
 FROM user_spaces us
+LEFT JOIN users u ON us.user_id = u.id
 WHERE us.space_id = ?1
 ORDER BY us.created_at ASC
 `
@@ -454,6 +487,8 @@ type GetSpaceMembersRow struct {
 	AccessLevel string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Email       sql.NullString
+	Username    sql.NullString
 }
 
 func (q *Queries) GetSpaceMembers(ctx context.Context, spaceID string) ([]GetSpaceMembersRow, error) {
@@ -470,6 +505,8 @@ func (q *Queries) GetSpaceMembers(ctx context.Context, spaceID string) ([]GetSpa
 			&i.AccessLevel,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Email,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}

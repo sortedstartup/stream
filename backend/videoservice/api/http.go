@@ -140,8 +140,20 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save video details to the database, including title and description
+	// Create or update user record in the database
 	now := time.Now()
+	err = api.dbQueries.CreateOrUpdateUser(r.Context(), db.CreateOrUpdateUserParams{
+		ID:        userID,
+		Email:     authContext.User.Email,
+		Username:  authContext.User.Name,
+		CreatedAt: sql.NullTime{Time: now, Valid: true},
+	})
+	if err != nil {
+		slog.Warn("Failed to create/update user record", "err", err, "user_id", userID)
+		// Don't fail the upload if user creation fails
+	}
+
+	// Save video details to the database, including title and description
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
 		Title:          title,

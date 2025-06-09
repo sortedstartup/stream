@@ -2060,6 +2060,8 @@ export class SpaceMember extends pb_1.Message {
         user_id?: string;
         access_level?: AccessLevel;
         created_at?: dependency_1.Timestamp;
+        email?: string;
+        username?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -2072,6 +2074,12 @@ export class SpaceMember extends pb_1.Message {
             }
             if ("created_at" in data && data.created_at != undefined) {
                 this.created_at = data.created_at;
+            }
+            if ("email" in data && data.email != undefined) {
+                this.email = data.email;
+            }
+            if ("username" in data && data.username != undefined) {
+                this.username = data.username;
             }
         }
     }
@@ -2096,10 +2104,24 @@ export class SpaceMember extends pb_1.Message {
     get has_created_at() {
         return pb_1.Message.getField(this, 3) != null;
     }
+    get email() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set email(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get username() {
+        return pb_1.Message.getFieldWithDefault(this, 5, "") as string;
+    }
+    set username(value: string) {
+        pb_1.Message.setField(this, 5, value);
+    }
     static fromObject(data: {
         user_id?: string;
         access_level?: AccessLevel;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        email?: string;
+        username?: string;
     }): SpaceMember {
         const message = new SpaceMember({});
         if (data.user_id != null) {
@@ -2111,6 +2133,12 @@ export class SpaceMember extends pb_1.Message {
         if (data.created_at != null) {
             message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
         }
+        if (data.email != null) {
+            message.email = data.email;
+        }
+        if (data.username != null) {
+            message.username = data.username;
+        }
         return message;
     }
     toObject() {
@@ -2118,6 +2146,8 @@ export class SpaceMember extends pb_1.Message {
             user_id?: string;
             access_level?: AccessLevel;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            email?: string;
+            username?: string;
         } = {};
         if (this.user_id != null) {
             data.user_id = this.user_id;
@@ -2127,6 +2157,12 @@ export class SpaceMember extends pb_1.Message {
         }
         if (this.created_at != null) {
             data.created_at = this.created_at.toObject();
+        }
+        if (this.email != null) {
+            data.email = this.email;
+        }
+        if (this.username != null) {
+            data.username = this.username;
         }
         return data;
     }
@@ -2140,6 +2176,10 @@ export class SpaceMember extends pb_1.Message {
             writer.writeEnum(2, this.access_level);
         if (this.has_created_at)
             writer.writeMessage(3, this.created_at, () => this.created_at.serialize(writer));
+        if (this.email.length)
+            writer.writeString(4, this.email);
+        if (this.username.length)
+            writer.writeString(5, this.username);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -2157,6 +2197,12 @@ export class SpaceMember extends pb_1.Message {
                     break;
                 case 3:
                     reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 4:
+                    message.email = reader.readString();
+                    break;
+                case 5:
+                    message.username = reader.readString();
                     break;
                 default: reader.skipField();
             }

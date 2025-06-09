@@ -17,9 +17,9 @@ export const TeamPage = () => {
     const ownedSpaces = spaces.filter(space => space.user_id === currentUserId)
     const sharedSpaces = spaces.filter(space => space.user_id !== currentUserId)
 
-    return (
-        <Layout>
-            <div className="space-y-8">
+  return (
+    <Layout>
+        <div className="space-y-8">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Team & Collaboration</h1>
                     <p className="text-base-content/70">Manage shared spaces and collaborate with team members</p>
@@ -158,8 +158,8 @@ export const TeamPage = () => {
                             <li>- <span className="badge badge-error badge-sm mr-2">Admin</span> Can manage space settings and members</li>
                         </ul>
                     </div>
-                </div>
             </div>
-        </Layout>
-    )
+        </div>
+    </Layout>
+                )
 } 

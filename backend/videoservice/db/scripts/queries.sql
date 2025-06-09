@@ -160,8 +160,9 @@ SET access_level = @access_level, updated_at = @updated_at
 WHERE user_id = @user_id AND space_id = @space_id;
 
 -- name: GetSpaceMembers :many
-SELECT us.user_id, us.access_level, us.created_at, us.updated_at
+SELECT us.user_id, us.access_level, us.created_at, us.updated_at, u.email, u.username
 FROM user_spaces us
+LEFT JOIN users u ON us.user_id = u.id
 WHERE us.space_id = @space_id
 ORDER BY us.created_at ASC;
 
@@ -177,7 +178,15 @@ WHERE id = @space_id AND user_id = @user_id;
 -- User queries for sharing
 
 -- name: GetAllUsers :many
-SELECT DISTINCT uploaded_user_id as user_id FROM videos
-WHERE uploaded_user_id != @exclude_user_id
-ORDER BY uploaded_user_id;
+SELECT DISTINCT u.id, u.email, u.username FROM users u
+INNER JOIN videos v ON u.id = v.uploaded_user_id
+WHERE u.id != @exclude_user_id
+ORDER BY u.email;
+
+-- name: CreateOrUpdateUser :exec
+INSERT INTO users (id, email, username, created_at)
+VALUES (@id, @email, @username, @created_at)
+ON CONFLICT(id) DO UPDATE SET
+    email = excluded.email,
+    username = excluded.username;
 
