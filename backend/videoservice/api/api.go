@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -207,6 +208,7 @@ func (s *VideoAPI) ListSpaces(ctx context.Context, req *proto.ListSpacesRequest)
 			UserId:      space.UserID,
 			CreatedAt:   timestamppb.New(space.CreatedAt),
 			UpdatedAt:   timestamppb.New(space.UpdatedAt),
+			AccessLevel: space.AccessLevel,
 		})
 	}
 
@@ -233,6 +235,16 @@ func (s *VideoAPI) GetSpace(ctx context.Context, req *proto.GetSpaceRequest) (*p
 		return nil, status.Error(codes.Internal, "failed to get space")
 	}
 
+	// Convert AccessLevel from interface{} to string safely
+	accessLevel := ""
+	if space.AccessLevel != nil {
+		if al, ok := space.AccessLevel.(string); ok {
+			accessLevel = al
+		} else {
+			s.log.Warn("AccessLevel is not a string", "type", fmt.Sprintf("%T", space.AccessLevel), "value", space.AccessLevel)
+		}
+	}
+
 	return &proto.Space{
 		Id:          space.ID,
 		Name:        space.Name,
@@ -240,6 +252,7 @@ func (s *VideoAPI) GetSpace(ctx context.Context, req *proto.GetSpaceRequest) (*p
 		UserId:      space.UserID,
 		CreatedAt:   timestamppb.New(space.CreatedAt),
 		UpdatedAt:   timestamppb.New(space.UpdatedAt),
+		AccessLevel: accessLevel,
 	}, nil
 }
 
