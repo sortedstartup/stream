@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
 	"log/slog"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
+	"google.golang.org/api/option"
 )
 
 type Firebase struct {
@@ -14,27 +17,59 @@ type Firebase struct {
 }
 
 func NewFirebase() (*Firebase, error) {
+	// Try default credentials first
+	app, auth, err := initializeFirebaseApp()
+	if err == nil {
+		return &Firebase{App: app, Auth: auth}, nil
+	}
 
-	//TODO: move it to firebase init
+	slog.Error("failed to initialize firebase app using default credentials", "err", err)
+
+	// Fallback to base64 encoded credentials
+	app, auth, err = initializeFirebaseWithBase64Creds()
+	if err != nil {
+		slog.Error("failed to initialize firebase app using base64 credentials", "err", err)
+		return nil, err
+	}
+
+	return &Firebase{App: app, Auth: auth}, nil
+}
+
+// initializeFirebaseApp initializes Firebase using default credentials
+func initializeFirebaseApp() (*firebase.App, *auth.Client, error) {
 	app, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		//TODO: return right kind of error
-		slog.Error("error initializing firebase app", "err", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	auth, err := app.Auth(context.Background())
+	authClient, err := app.Auth(context.Background())
 	if err != nil {
-		slog.Error("error initializing firebase auth", "err", err)
-		//TODO: return right kind of error
-		return nil, err
+		return nil, nil, err
 	}
 
-	// return nil
-	return &Firebase{
-		App:  app,
-		Auth: auth,
-	}, nil
+	return app, authClient, nil
+}
+
+// initializeFirebaseWithBase64Creds initializes Firebase using base64 encoded credentials
+func initializeFirebaseWithBase64Creds() (*firebase.App, *auth.Client, error) {
+	slog.Info("trying to initialize firebase app using base64 encoded env variable [GOOGLE_APPLICATION_CREDENTIALS_BASE64]")
+
+	creds, err := base64.StdEncoding.DecodeString(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS_BASE64"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsJSON(creds))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authClient, err := app.Auth(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return app, authClient, nil
 }
 
 // VerifyIDToken verifies the token and returns the user

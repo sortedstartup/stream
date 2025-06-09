@@ -1,7 +1,8 @@
 package config
 
 type VideoServiceConfig struct {
-	DB DBConfig `json:"db" mapstructure:"db"`
+	DB           DBConfig `json:"db" mapstructure:"db"`
+	FileStoreDir string   `json:"fileStoreDir" mapstructure:"fileStoreDir"`
 }
 
 type DBConfig struct {

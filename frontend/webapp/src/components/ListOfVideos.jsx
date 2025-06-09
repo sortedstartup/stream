@@ -78,13 +78,19 @@ const ListOfVideos = () => {
     return (
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold mb-6">List of Videos</h1>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {videos.map((video) => (
-                    <div key={video.id} className="max-w-[225px] mx-auto w-full">
-                        <VideoCard video={video} />
-                    </div>
-                ))}
-            </div>
+            {videos.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                    {videos.map((video) => (
+                        <div key={video.id} className="max-w-[225px] mx-auto w-full">
+                            <VideoCard video={video} />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-8">
+                    <p className="text-lg text-base-content/70">No videos available</p>
+                </div>
+            )}
         </div>
     )
 }

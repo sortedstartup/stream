@@ -1,0 +1,73 @@
+name: Build Go Binary
+
+on:
+  push:
+    tags:
+      - build-v[0-9]+.[0-9]+.[0-9]+-rc*
+      
+jobs:
+  build:
+    name: Build Go Binary with Embedded React Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ENV_NAME: staging
+    defaults:
+      run:
+        working-directory: ./frontend/webapp
+    permissions:
+      contents: read
+      packages: write
+      deployments: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build frontend
+        run: pnpm build --mode ${{ env.ENV_NAME }}
+
+      - name: Copy frontend dist to backend
+        run: |
+          cp -rf dist ../../backend/mono/webapp
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Build Go binary
+        working-directory: ./backend/mono
+        # VERSION=$(git describe --tags)
+        run: go build  -o stream-${{ env.ENV_NAME }}-binary
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          tags: ghcr.io/${{ github.repository }}/sortedstream:binary-${{ env.ENV_NAME }}-latest
+          push: true
+          build-args: |
+            ENV_NAME=${{ env.ENV_NAME }}
+

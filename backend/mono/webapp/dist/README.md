@@ -1,0 +1,1 @@
+##  Web app folder is to copy frontend file during go build 
