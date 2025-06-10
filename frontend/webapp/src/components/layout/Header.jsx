@@ -1,6 +1,6 @@
 import React from 'react'
 import { useStore } from '@nanostores/react'
-import { $currentUser, clearAuthState } from '../../auth/store/auth'
+import { $currentUser, $isLoggedIn, clearAuthState } from '../../auth/store/auth'
 import { useNavigate } from 'react-router'
 
 const toggleTheme = (e) => {
@@ -15,6 +15,7 @@ const toggleTheme = (e) => {
 export const Header = () => {
   
   const currentUser = useStore($currentUser)
+  const isLoggedIn = useStore($isLoggedIn)
   const navigate = useNavigate()
 
   return (
@@ -22,20 +23,11 @@ export const Header = () => {
       <div className="flex-1">
         <a className="btn btn-ghost text-xl p-0">Stream</a>
       </div>
-      <div className="flex-1 flex justify-center">
-        <div className="form-control">
-          <input
-            type="text"
-            placeholder="Search"
-            className="input input-bordered input-sm w-64 max-w-xs"
-          />
-        </div>
-      </div>
       <div className="flex-1 flex justify-end gap-2">
         
         <ThemeSelector />
         <div className="w-6"></div>
-        <UserMenu />
+        {isLoggedIn && <UserMenu />}
         
       </div>
     </div>

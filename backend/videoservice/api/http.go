@@ -196,19 +196,15 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authContext, err := interceptors.AuthFromContext(r.Context())
+	_, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		slog.Error("Unauthorized", "err", err)
 		return
 	}
-	userID := authContext.User.ID
 
-	// Get video details from database
-	video, err := api.dbQueries.GetVideoByID(r.Context(), db.GetVideoByIDParams{
-		ID:     videoID,
-		UserID: userID,
-	})
+	// Get video details from database (now allows any authenticated user to access any video)
+	video, err := api.dbQueries.GetVideoByIDForAllUsers(r.Context(), videoID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Video not found", http.StatusNotFound)
