@@ -166,6 +166,22 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "filename": "%s"}`, fileName)))
 }
 
+func getMimeTypeFromExtension(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mov":
+		return "video/quicktime"
+	case ".avi":
+		return "video/x-msvideo"
+	default:
+		return "application/octet-stream" // fallback
+	}
+}
+
 func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	// Only allow GET requests
 	if r.Method != http.MethodGet {
@@ -225,13 +241,32 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set appropriate headers
-	w.Header().Set("Content-Type", "video/webm") // Adjust content type based on your video format
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
-
-	// Stream the file to the response
-	// TODO: make it efficient and streaming
-	if _, err := io.Copy(w, file); err != nil {
-		api.log.Error("Failed to stream video file", "error", err)
-		// Can't send error response here as we've already started writing the response
+	contentType := getMimeTypeFromExtension(video.Url)
+	w.Header().Set("Content-Type", contentType)
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader == "" {
+		// No range header – serve full file
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+		w.WriteHeader(http.StatusOK)
+		io.Copy(w, file)
+		return
 	}
+
+	var start, end int64
+	if _, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end); err != nil || start < 0 {
+		http.Error(w, "Invalid Range header", http.StatusBadRequest)
+		return
+	}
+	if end == 0 || end >= fileInfo.Size() {
+		end = fileInfo.Size() - 1
+	}
+	length := end - start + 1
+
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileInfo.Size()))
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
+	w.WriteHeader(http.StatusPartialContent)
+
+	file.Seek(start, io.SeekStart)
+	io.CopyN(w, file, length)
 }

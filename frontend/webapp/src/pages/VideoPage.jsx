@@ -16,10 +16,32 @@ const CustomVideoPlayer = ({ videoUrl }) => {
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
+    const [supportsMediaSource, setSupportsMediaSource] = useState(false)
     const authToken = useStore($authToken)
 
+    useEffect(() => {
+        // Check MediaSource support and determine if we need to use it
+        setSupportsMediaSource('MediaSource' in window)
+    }, [])
+
+    const getVideoMimeType = (url) => {
+        const extension = url.split('.').pop().toLowerCase()
+        switch (extension) {
+            case 'webm':
+                return 'video/webm; codecs="vp8,opus"'
+            case 'mp4':
+                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
+            case 'mov':
+                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
+            case 'avi':
+                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
+            default:
+                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
+        }
+    }
+
     const setupMediaSource = () => {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // Create new MediaSource instance
             mediaSourceRef.current = new MediaSource()
             const mediaUrl = URL.createObjectURL(mediaSourceRef.current)
@@ -27,7 +49,6 @@ const CustomVideoPlayer = ({ videoUrl }) => {
 
             mediaSourceRef.current.addEventListener('sourceopen', () => {
                 // Fetch video with authentication
-                // console.log(Auth)
                 fetch(videoUrl, {
                     headers: {
                         'authorization': `${authToken}`,
@@ -35,7 +56,16 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                 })
                 .then(response => response.blob())
                 .then(async videoBlob => {
-                    const sourceBuffer = mediaSourceRef.current.addSourceBuffer('video/webm; codecs="vp8,opus"')
+                    const mimeType = getVideoMimeType(videoUrl)
+                    
+                    // Check if the MIME type is supported
+                    if (!MediaSource.isTypeSupported(mimeType)) {
+                        console.warn(`MIME type ${mimeType} not supported, falling back to direct video src`)
+                        reject(new Error('MIME type not supported'))
+                        return
+                    }
+
+                    const sourceBuffer = mediaSourceRef.current.addSourceBuffer(mimeType)
                     sourceBuffer.addEventListener('updateend', () => {
                          if (mediaSourceRef.current.readyState === 'open') {
                                 try {
@@ -51,16 +81,59 @@ const CustomVideoPlayer = ({ videoUrl }) => {
                     })
                     sourceBuffer.appendBuffer(await videoBlob.arrayBuffer())
                 })
-                .catch(error => console.error('Error fetching video:', error))
+                .catch(error => {
+                    console.error('Error fetching video:', error)
+                    reject(error)
+                })
+            })
+
+            mediaSourceRef.current.addEventListener('error', (e) => {
+                console.error('MediaSource error:', e)
+                reject(e)
             })
         }) 
     }
 
+    const setupDirectVideo = () => {
+        return new Promise((resolve, reject) => {
+            // Fetch video with authentication and create blob URL
+            fetch(videoUrl, {
+                headers: {
+                    'authorization': `${authToken}`,
+                }
+            })
+            .then(response => response.blob())
+            .then(videoBlob => {
+                const blobUrl = URL.createObjectURL(videoBlob)
+                videoRef.current.src = blobUrl
+                videoRef.current.addEventListener('loadedmetadata', () => {
+                    setDuration(videoRef.current.duration)
+                    resolve()
+                }, { once: true })
+                videoRef.current.load()
+            })
+            .catch(error => {
+                console.error('Error fetching video:', error)
+                reject(error)
+            })
+        })
+    }
+
     const togglePlay = async () => {
         if (videoRef.current.paused) {
-            if (!mediaSourceRef.current) {
-                await setupMediaSource() // Wait for MediaSource setup to complete
+            // Use MediaSource for WebM files to maintain compatibility with screen recordings
+            if (!mediaSourceRef.current && !videoRef.current.src && supportsMediaSource && videoUrl.includes('.webm')) {
+                try {
+                    await setupMediaSource()
+                } catch (error) {
+                    console.log('MediaSource setup failed, falling back to direct video:', error)
+                    await setupDirectVideo()
+                }
+            } else if (!videoRef.current.src) {
+                // For MP4 and other formats, use direct blob approach
+                await setupDirectVideo()
             }
+            
             await videoRef.current.play()
             setIsPlaying(true)
         } else {
