@@ -42,6 +42,11 @@ fly volumes create sortedstream_data -r <region> --size 10
 cat firebase-secret.json | base64 -w0
 fly secrets set GOOGLE_APPLICATION_CREDENTIALS_BASE64=<base64_encoded_json>
 ```
+8. (Optional) To restrict login access to specific emails, set the ALLOWED_EMAILS environment variable with comma-separated email addresses:
+```
+fly secrets set ALLOWED_EMAILS=user1@example.com,user2@example.com,admin@yourcompany.com
+```
+If this variable is not set, all authenticated users will be allowed to access the app.
 
 ## Deploy in fly.io
 1. In .github/workflows folder, we do have build yaml files, which will build the binary, generate docker image and push to github container registry.

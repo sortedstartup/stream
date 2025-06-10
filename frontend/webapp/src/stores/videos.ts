@@ -28,18 +28,30 @@ export const videoService = new VideoServiceClient(
 );
 
 export const fetchVideos = async () => {
-    const response = await videoService.ListVideos(ListVideosRequest.fromObject({
-        pageNumber: 0,
-        pageSize: 10,
-    }),{})
+    try {
+        const response = await videoService.ListVideos(ListVideosRequest.fromObject({
+            pageNumber: 0,
+            pageSize: 10,
+        }),{})
 
-    $videos.set(response.videos)
+        $videos.set(response.videos)
+    } catch (error) {
+        console.error("Error fetching videos:", error)
+        // Clear videos on error (especially auth errors)
+        $videos.set([])
+        throw error // Re-throw to let calling code handle if needed
+    }
 }
 
 export const fetchVideo = async (id: string) => {
-    const response = await videoService.GetVideo(GetVideoRequest.fromObject({
-         video_id: id
-    }),{})
+    try {
+        const response = await videoService.GetVideo(GetVideoRequest.fromObject({
+             video_id: id
+        }),{})
 
-    return response
+        return response
+    } catch (error) {
+        console.error("Error fetching video:", error)
+        throw error
+    }
 }
