@@ -17,6 +17,8 @@ import (
 	"sortedstartup.com/stream/commentservice/db"
 	"sortedstartup.com/stream/commentservice/proto"
 	"sortedstartup.com/stream/common/interceptors"
+	userapi "sortedstartup.com/stream/userservice/api"
+	userproto "sortedstartup.com/stream/userservice/proto"
 )
 
 type CommentAPI struct {
@@ -26,6 +28,7 @@ type CommentAPI struct {
 
 	log       *slog.Logger
 	dbQueries db.Querier
+	userAPI   *userapi.UserAPI
 
 	//implemented proto server
 	proto.UnimplementedCommentServiceServer
@@ -39,7 +42,7 @@ func NewCommentAPITest(mockDB db.Querier, logger *slog.Logger) *CommentAPI {
 	}
 }
 
-func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, error) {
+func NewCommentAPIProduction(config config.CommentServiceConfig, userAPI *userapi.UserAPI) (*CommentAPI, error) {
 	slog.Info("NewCommentAPIProduction")
 
 	// fbAuth, err := auth.NewFirebase()
@@ -61,6 +64,7 @@ func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, e
 		db:        _db,
 		log:       childLogger,
 		dbQueries: dbQueries,
+		userAPI:   userAPI,
 	}
 
 	return commentAPI, nil
@@ -86,6 +90,19 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
+	// Validate user with user service
+	validateResp, err := s.userAPI.ValidateUser(ctx, &userproto.ValidateUserRequest{
+		UserId: authContext.User.ID,
+	})
+	if err != nil {
+		s.log.Error("Error validating user", "err", err)
+		return nil, status.Error(codes.Internal, "failed to validate user")
+	}
+
+	if !validateResp.IsValid {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+
 	commentID := generateUUID()
 
 	// Check if ParentCommentId is nil
@@ -94,12 +111,15 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		parentCommentID = sql.NullString{String: *req.ParentCommentId, Valid: *req.ParentCommentId != ""}
 	}
 
+	// Use username from user service
+	username := validateResp.User.Username
+
 	err = s.dbQueries.CreateComment(ctx, db.CreateCommentParams{
 		ID:              commentID,
 		Content:         req.Content,
 		VideoID:         req.VideoId,
 		UserID:          authContext.User.ID,
-		Username:        sql.NullString{String: authContext.User.Name, Valid: true},
+		Username:        sql.NullString{String: username, Valid: true},
 		ParentCommentID: parentCommentID,
 	})
 	if err != nil {
@@ -111,7 +131,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:  req.Content,
 		VideoId:  req.VideoId,
 		UserId:   authContext.User.ID,
-		Username: authContext.User.Name,
+		Username: username,
 	}, nil
 }
 

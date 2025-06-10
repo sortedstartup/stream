@@ -26,10 +26,3 @@ type CommentLike struct {
 	CommentID string
 	CreatedAt time.Time
 }
-
-type User struct {
-	ID        string
-	Username  string
-	Email     string
-	CreatedAt sql.NullTime
-}
