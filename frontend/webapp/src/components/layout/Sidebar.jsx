@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Settings, Users, Video, Circle } from 'react-feather'
+import { Home, Settings, Users, Video, Circle, Upload as UploadIcon } from 'react-feather'
 import { Link } from 'react-router'
 
 export const Sidebar = ({ className }) => {
@@ -32,6 +32,14 @@ export const Sidebar = ({ className }) => {
         >
           <Circle size={20} className="text-red-500" />
           <span className="text-xs">Record</span>
+        </Link>
+
+        <Link 
+          to="/upload"
+          className="flex flex-col items-center p-2 hover:bg-base-300 rounded-lg"
+        >
+          <UploadIcon size={20} />
+          <span className="text-xs">Upload</span>
         </Link>
 
         <Link 
