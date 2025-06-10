@@ -90,17 +90,26 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
-	// Validate user with user service
-	validateResp, err := s.userAPI.ValidateUser(ctx, &userproto.ValidateUserRequest{
-		UserId: authContext.User.ID,
+	// Try to get user by email first, then create if doesn't exist
+	var username string
+	userResp, err := s.userAPI.GetUserByEmail(ctx, &userproto.GetUserByEmailRequest{
+		Email: authContext.User.Email,
 	})
 	if err != nil {
-		s.log.Error("Error validating user", "err", err)
-		return nil, status.Error(codes.Internal, "failed to validate user")
-	}
+		// User doesn't exist, create them
+		s.log.Info("User not found by email, creating new user", "email", authContext.User.Email, "username", authContext.User.Name)
 
-	if !validateResp.IsValid {
-		return nil, status.Error(codes.NotFound, "user not found")
+		createResp, createErr := s.userAPI.CreateUser(ctx, &userproto.CreateUserRequest{
+			Username: authContext.User.Name,
+			Email:    authContext.User.Email,
+		})
+		if createErr != nil {
+			s.log.Error("Error creating user", "err", createErr)
+			return nil, status.Error(codes.Internal, "failed to create user")
+		}
+		username = createResp.Username
+	} else {
+		username = userResp.Username
 	}
 
 	commentID := generateUUID()
@@ -110,9 +119,6 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 	if req.ParentCommentId != nil {
 		parentCommentID = sql.NullString{String: *req.ParentCommentId, Valid: *req.ParentCommentId != ""}
 	}
-
-	// Use username from user service
-	username := validateResp.User.Username
 
 	err = s.dbQueries.CreateComment(ctx, db.CreateCommentParams{
 		ID:              commentID,
