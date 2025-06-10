@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - build-v[0-9]+.[0-9]+.[0-9]+
+    branches:
+      - feature/update-fly-deploy-instructions
 jobs:
   build:
     name: Build Go Binary with Embedded React Frontend

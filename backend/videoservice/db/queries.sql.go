@@ -132,6 +132,41 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 	return items, nil
 }
 
+const getAllVideosForAllUsers = `-- name: GetAllVideosForAllUsers :many
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos ORDER BY created_at DESC
+`
+
+func (q *Queries) GetAllVideosForAllUsers(ctx context.Context) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getAllVideosForAllUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVideoByID = `-- name: GetVideoByID :one
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
 WHERE id = ?1 AND uploaded_user_id = ?2
@@ -145,6 +180,27 @@ type GetVideoByIDParams struct {
 
 func (q *Queries) GetVideoByID(ctx context.Context, arg GetVideoByIDParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, getVideoByID, arg.ID, arg.UserID)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UploadedUserID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getVideoByIDForAllUsers = `-- name: GetVideoByIDForAllUsers :one
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
+WHERE id = ?1
+LIMIT 1
+`
+
+func (q *Queries) GetVideoByIDForAllUsers(ctx context.Context, id string) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByIDForAllUsers, id)
 	var i Video
 	err := row.Scan(
 		&i.ID,

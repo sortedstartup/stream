@@ -13,10 +13,8 @@ export const auth = getAuth(app)
 // Configure FirebaseUI
 const uiConfig = {
   signInOptions: [
-    // Add sign-in methods you want to support
-    'google.com',
-    'facebook.com',
-    'email'
+    // Only Google sign-in
+    'google.com'
   ],
   signInFlow: 'popup' as const,
   callbacks: {

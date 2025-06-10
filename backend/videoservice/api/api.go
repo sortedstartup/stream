@@ -79,24 +79,15 @@ func (s *VideoAPI) Init() error {
 
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
 
-	authContext, err := interceptors.AuthFromContext(ctx)
+	_, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		slog.Error("Error getting auth from context", "err", err)
 		return nil, err
 	}
-	userID := authContext.User.ID
-	pageSize := req.PageSize
-	pageNumber := req.PageNumber
+	// Note: We still verify authentication, but now show videos from all users
 
-	if pageSize == 0 {
-		pageSize = 10
-	}
-
-	videos, err := s.dbQueries.GetAllVideoUploadedByUserPaginated(ctx, db.GetAllVideoUploadedByUserPaginatedParams{
-		UserID:     userID,
-		PageSize:   int64(pageSize),
-		PageNumber: int64(pageNumber),
-	})
+	// Get all videos for all users (since authentication is already verified)
+	videos, err := s.dbQueries.GetAllVideosForAllUsers(ctx)
 	if err != nil {
 		slog.Error("Error getting videos", "err", err)
 		return nil, err
@@ -118,29 +109,21 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 }
 
 func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*proto.Video, error) {
-	// Get auth context to verify user has access
-	authContext, err := interceptors.AuthFromContext(ctx)
+	// Get auth context to verify user is authenticated
+	_, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
 		return nil, err
 	}
 
-	// Get video from database
-	video, err := s.dbQueries.GetVideoByID(ctx, db.GetVideoByIDParams{
-		ID:     req.VideoId,
-		UserID: authContext.User.ID,
-	})
+	// Get video from database (now allows any authenticated user to access any video)
+	video, err := s.dbQueries.GetVideoByIDForAllUsers(ctx, req.VideoId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "video not found")
 		}
 		s.log.Error("Error getting video", "err", err)
 		return nil, status.Error(codes.Internal, "internal error")
-	}
-
-	// Verify user has access to this video
-	if video.UploadedUserID != authContext.User.ID {
-		return nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
 	// Convert to proto message
