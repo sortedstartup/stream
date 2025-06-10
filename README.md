@@ -48,6 +48,12 @@ fly secrets set ALLOWED_EMAILS=user1@example.com,user2@example.com,admin@yourcom
 ```
 If this variable is not set, all authenticated users will be allowed to access the app.
 
+9. Create secrets for file store and db in fly.io.
+```
+fly secrets set VIDEOSERVICE_FILESTOREDIR=/data/uploads
+fly secrets set VIDEOSERVICE_DB_URL=/data/db.sqlite
+```
+
 ## Deploy in fly.io
 1. In .github/workflows folder, we do have build yaml files, which will build the binary, generate docker image and push to github container registry.
 2. To trigger the build, you have to create a tag in the repo. For example, if you want to deploy version 1.0.0, you have to create a tag with name v1.0.0.
