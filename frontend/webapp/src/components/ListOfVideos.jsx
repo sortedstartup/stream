@@ -1,8 +1,9 @@
 import React from 'react'
 import { useStore } from '@nanostores/react'
-import { $videos } from '../stores/videos'
+import { $videos, fetchVideos } from '../stores/videos'
 import { VideoStatus, Visibility } from '../proto/videoservice'
 import { useNavigate } from 'react-router'
+import { useState, useEffect } from 'react'
 
 const VideoCard = ({ video }) => {
     const navigate = useNavigate()
@@ -74,6 +75,53 @@ const VideoCard = ({ video }) => {
 
 const ListOfVideos = () => {
     const videos = useStore($videos)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        const loadVideos = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+                await fetchVideos()
+            } catch (err) {
+                console.error("Failed to load videos:", err)
+                setError("Failed to load videos. You may not have permission to access this content.")
+            } finally {
+                setLoading(false)
+            }
+        }
+        
+        loadVideos()
+    }, [])
+
+    if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <h1 className="text-2xl font-bold mb-6">List of Videos</h1>
+                <div className="text-center py-8">
+                    <span className="loading loading-spinner loading-lg"></span>
+                    <p className="mt-4 text-lg text-base-content/70">Loading videos...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <h1 className="text-2xl font-bold mb-6">List of Videos</h1>
+                <div className="text-center py-8">
+                    <div className="alert alert-error max-w-md mx-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{error}</span>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">

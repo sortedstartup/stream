@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -72,6 +74,24 @@ func initializeFirebaseWithBase64Creds() (*firebase.App, *auth.Client, error) {
 	return app, authClient, nil
 }
 
+// isEmailAllowed checks if the email is in the allowed list
+func isEmailAllowed(email string) bool {
+	allowedEmails := os.Getenv("ALLOWED_EMAILS")
+	if allowedEmails == "" {
+		// If no whitelist is set, allow all emails (default behavior)
+		return true
+	}
+
+	// Split the comma-separated list and check if email is in the list
+	emailList := strings.Split(allowedEmails, ",")
+	for _, allowedEmail := range emailList {
+		if strings.TrimSpace(allowedEmail) == email {
+			return true
+		}
+	}
+	return false
+}
+
 // VerifyIDToken verifies the token and returns the user
 func (f *Firebase) VerifyIDToken(token string) (*AuthContext, error) {
 	ctx := context.Background()
@@ -82,15 +102,21 @@ func (f *Firebase) VerifyIDToken(token string) (*AuthContext, error) {
 		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, err
 	}
 
+	email := tok.Claims["email"].(string)
+
+	// Check if email is in the allowed list
+	if !isEmailAllowed(email) {
+		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, fmt.Errorf("email not in allowed list: %s", email)
+	}
+
 	user := &User{
 		ID:    tok.UID,
 		Name:  tok.Claims["name"].(string),
-		Email: tok.Claims["email"].(string),
+		Email: email,
 	}
 
 	return &AuthContext{
 		User:            user,
 		IsAuthenticated: true,
 	}, nil
-
 }
