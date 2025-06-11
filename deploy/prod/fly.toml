@@ -24,3 +24,7 @@ primary_region = 'atl'
 [mounts]
   source = "sortedstream_data"
   destination = "/data"
+
+[env]
+VIDEOSERVICE_FILESTOREDIR = "/data/uploads"
+VIDEOSERVICE_DB_URL = "/data/db.sqlite"
