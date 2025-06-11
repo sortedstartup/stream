@@ -152,9 +152,6 @@ func NewMonolith() (*Monolith, error) {
 	httpServer := &http.Server{
 		Addr:    config.Server.GrpcWebAddrPortString(),
 		Handler: enableCORS(parentMux),
-		// Essential timeouts for large file uploads
-		ReadTimeout:  15 * time.Minute, // Time to read the entire request (for large uploads)
-		WriteTimeout: 15 * time.Minute, // Time to write the response
 	}
 
 	return &Monolith{
