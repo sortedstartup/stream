@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	maxUploadSize = 100 << 20 // Maximum file size limit: 100 MB
+	maxUploadSize = 500 << 20 // Maximum file size limit: 500 MB
 )
 
 func (api *VideoAPI) getVideoDir() string {
@@ -56,8 +56,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
-		http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
-		slog.Error("File size exceeds the 100 MB limit")
+		http.Error(w, "File size exceeds the 500 MB limit", http.StatusRequestEntityTooLarge)
+		slog.Error("File size exceeds the 500 MB limit")
 		return
 	}
 
@@ -132,8 +132,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Check for MaxBytesError
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			slog.Error("File size exceeds the 100 MB limit", "err", err)
-			http.Error(w, "File size exceeds the 100 MB limit", http.StatusRequestEntityTooLarge)
+			slog.Error("File size exceeds the 500 MB limit", "err", err)
+			http.Error(w, "File size exceeds the 500 MB limit", http.StatusRequestEntityTooLarge)
 		} else {
 			slog.Error("Failed to save file", "err", err)
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
