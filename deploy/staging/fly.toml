@@ -1,0 +1,30 @@
+# fly.toml app configuration file generated for sortedstream-staging on 2025-06-11T15:48:04-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'sortedstream-staging'
+primary_region = 'atl'
+
+[[mounts]]
+  source = 'sortedstream_staging_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  # Essential timeouts for large file uploads (15 minutes)
+  connect_timeout = 900
+  idle_timeout = 900
+
+[[vm]]
+  size = 'performance-1x'
+
+[env]
+VIDEOSERVICE_FILESTOREDIR = "/data/uploads"
+VIDEOSERVICE_DB_URL = "/data/db.sqlite"

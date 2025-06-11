@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - build-v[0-9]+.[0-9]+.[0-9]+-rc*
+    branches:
+      - feature/staging-deployment
       
 jobs:
   build:
