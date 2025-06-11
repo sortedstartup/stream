@@ -19,7 +19,7 @@ primary_region = 'atl'
   idle_timeout = 900
 
 [[vm]]
-  size = 'shared-cpu-1x'
+  size = 'performance-1x'  # 1GB RAM to handle large uploads
 
 [mounts]
   source = "sortedstream_data"
