@@ -13,6 +13,10 @@ primary_region = 'atl'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
+  
+  # Essential timeouts for large file uploads (15 minutes)
+  connect_timeout = 900
+  idle_timeout = 900
 
 [[vm]]
   size = 'shared-cpu-1x'
