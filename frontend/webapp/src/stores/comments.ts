@@ -24,7 +24,10 @@ export const commentService = new CommentServiceClient(
       {
         intercept: (request, invoker) => {
           const metadata = request.getMetadata();
-          metadata["authorization"] = $authToken.get();
+          const token = $authToken.get();
+          if (token) {
+            metadata["authorization"] = token;
+          }
           return invoker(request);
         },
       },
