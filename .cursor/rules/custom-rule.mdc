@@ -1,0 +1,194 @@
+---
+description: 
+globs: *.go,*.sql,*.proto,*.toml,*.ts,*.jsx,*.html,*.css
+alwaysApply: false
+---
+---
+description: 
+globs: backend/**,frontend/**
+alwaysApply: false
+---
+Tech stack: Go, React, sqlite
+Reporsitory structure
+.
+|-- LICENSE
+|-- README.md
+|-- TODO.md
+|-- backend
+|   |-- 3d8fa932-0046-40cc-86cc-19c23ce89649.mp4
+|   |-- Dockerfile
+|   |-- commentservice
+|   |   |-- api
+|   |   |   |-- api.go
+|   |   |   `-- api_test.go
+|   |   |-- autogenerate.go
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- db
+|   |   |   |-- db.go
+|   |   |   |-- migrate.go
+|   |   |   |-- migrations
+|   |   |   |   |-- 1_init.up.sql
+|   |   |   |   `-- 2_add_username_in_comments_table.up.sql
+|   |   |   |-- models.go
+|   |   |   |-- querier.go
+|   |   |   |-- queries.sql.go
+|   |   |   `-- scripts
+|   |   |       |-- queries.sql
+|   |   |       `-- sqlc.yaml
+|   |   |-- go.mod
+|   |   `-- proto
+|   |       |-- commentservice.pb.go
+|   |       `-- commentservice_grpc.pb.go
+|   |-- common
+|   |   |-- auth
+|   |   |   |-- auth.go
+|   |   |   `-- firebase.go
+|   |   |-- constants
+|   |   |   `-- constants.go
+|   |   |-- go.mod
+|   |   |-- go.sum
+|   |   |-- interceptors
+|   |   |   |-- auth.go
+|   |   |   `-- panic_recovery.go
+|   |   `-- validation
+|   |       |-- email_validation.go
+|   |       |-- email_validation_test.go
+|   |       `-- string_validations.go
+|   |-- db.sqlite
+|   |-- go.mod
+|   |-- go.sum
+|   |-- go.work
+|   |-- go.work.sum
+|   |-- mono
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- go.mod
+|   |   |-- go.sum
+|   |   |-- main.go
+|   |   |-- version
+|   |   |   |-- version.githash
+|   |   |   |-- version.go
+|   |   |   `-- version.number
+|   |   `-- webapp
+|   |       `-- dist
+|   |           `-- README.md
+|   `-- videoservice
+|       |-- api
+|       |   |-- api.go
+|       |   |-- http.go
+|       |   `-- http_test.go
+|       |-- autogenerate.go
+|       |-- config
+|       |   `-- config.go
+|       |-- db
+|       |   |-- db.go
+|       |   |-- migrate.go
+|       |   |-- migrations
+|       |   |   |-- 1_init.up.sql
+|       |   |   `-- 2_add_uploaded_user.up.sql
+|       |   |-- models.go
+|       |   |-- queries.sql.go
+|       |   `-- scripts
+|       |       |-- queries.sql
+|       |       `-- sqlc.yaml
+|       |-- go.mod
+|       |-- go.sum
+|       |-- processing
+|       `-- proto
+|           |-- videoservice.pb.go
+|           `-- videoservice_grpc.pb.go
+|-- deploy
+|   |-- Dockerfile
+|   |-- prod
+|   |   `-- fly.toml
+|   `-- staging
+|       `-- fly.toml
+|-- docs
+|   |-- html5-mediasource.md
+|   `-- info-blob
+|       |-- about-video-streaming-in-browser.md
+|       `-- video-html5.excalidraw.png
+|-- frontend
+|   `-- webapp
+|       |-- README.md
+|       |-- dist
+|       |   |-- assets
+|       |   |   |-- index-CvPl-NUa.js
+|       |   |   `-- index-hPH7Cqbi.css
+|       |   |-- index.html
+|       |   `-- vite.svg
+|       |-- eslint.config.js
+|       |-- index.html
+|       |-- package.json
+|       |-- pnpm-lock.yaml
+|       |-- public
+|       |   `-- vite.svg
+|       |-- src
+|       |   |-- App.css
+|       |   |-- App.jsx
+|       |   |-- assets
+|       |   |   `-- react.svg
+|       |   |-- auth
+|       |   |   |-- components
+|       |   |   |   `-- ProtectedRoute.jsx
+|       |   |   |-- pages
+|       |   |   |   `-- LoginPage.jsx
+|       |   |   |-- providers
+|       |   |   |   `-- firebase-auth.ts
+|       |   |   |-- store
+|       |   |   |   `-- auth.ts
+|       |   |   `-- utils
+|       |   |-- components
+|       |   |   |-- CommentSection.tsx
+|       |   |   |-- ListOfVideos.jsx
+|       |   |   |-- ScreenRecorder.jsx
+|       |   |   `-- layout
+|       |   |       |-- Footer.jsx
+|       |   |       |-- Header.jsx
+|       |   |       |-- Layout.jsx
+|       |   |       `-- Sidebar.jsx
+|       |   |-- index.css
+|       |   |-- main.jsx
+|       |   |-- pages
+|       |   |   |-- HomePage.jsx
+|       |   |   |-- Library.jsx
+|       |   |   |-- ProfilePage.jsx
+|       |   |   |-- RecordPage.jsx
+|       |   |   |-- SettingsPage.jsx
+|       |   |   |-- TeamPage.jsx
+|       |   |   |-- UploadPage.jsx
+|       |   |   |-- VideoPage.jsx
+|       |   |   `-- VideosPage.jsx
+|       |   |-- proto
+|       |   |   |-- commentservice.ts
+|       |   |   |-- google
+|       |   |   |   `-- protobuf
+|       |   |   |       `-- timestamp.ts
+|       |   |   `-- videoservice.ts
+|       |   |-- stores
+|       |   |   |-- comments.ts
+|       |   |   `-- videos.ts
+|       |   |-- version
+|       |   |   |-- get-git-hash.cjs
+|       |   |   |-- version.number
+|       |   |   `-- versionInfo.ts
+|       |   `-- vite-env.d.ts
+|       |-- tailwind.config.js
+|       |-- tsconfig.json
+|       |-- tsconfig.node.json
+|       `-- vite.config.js
+|-- package-lock.json
+|-- proto
+|   |-- commentservice.proto
+|   `-- videoservice.proto
+
+
+-> Every time when we make change in go backend, we run `go generate` to auto generate code. You tell when to run this generate. I will manualy run it. 
+
+
+
+
+
+
+
