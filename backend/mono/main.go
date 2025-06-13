@@ -24,6 +24,9 @@ import (
 
 	commentAPI "sortedstartup.com/stream/commentservice/api"
 	commentProto "sortedstartup.com/stream/commentservice/proto"
+
+	userAPI "sortedstartup.com/stream/userservice/api"
+	userProto "sortedstartup.com/stream/userservice/proto"
 )
 
 //go:embed webapp/dist
@@ -40,6 +43,7 @@ type Monolith struct {
 
 	VideoAPI   *videoAPI.VideoAPI
 	CommentAPI *commentAPI.CommentAPI
+	UserAPI    *userAPI.UserAPI
 
 	GRPCServer    *grpc.Server
 	GRPCWebServer *http.Server
@@ -113,8 +117,15 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
+	log.Info("Creating userservice API")
+	userAPI, err := userAPI.NewUserAPIProduction(config.UserService)
+	if err != nil {
+		log.Error("Could not create userservice API", "err", err)
+		return nil, err
+	}
+
 	log.Info("Creating commentservice API")
-	commentAPI, err := commentAPI.NewCommentAPIProduction(config.CommentService)
+	commentAPI, err := commentAPI.NewCommentAPIProduction(config.CommentService, userAPI)
 	if err != nil {
 		log.Error("Could not create commentservice API", "err", err)
 		return nil, err
@@ -203,6 +214,7 @@ func NewMonolith() (*Monolith, error) {
 		Config:        &config,
 		VideoAPI:      videoAPI,
 		CommentAPI:    commentAPI,
+		UserAPI:       userAPI,
 		Firebase:      firebase,
 		GRPCServer:    grpcServer,
 		GRPCWebServer: httpServer,
@@ -212,8 +224,14 @@ func NewMonolith() (*Monolith, error) {
 
 func (m *Monolith) InitServices() error {
 
-	m.log.Info("Initializing Task Service")
+	m.log.Info("Initializing Video Service")
 	err := m.VideoAPI.Init()
+	if err != nil {
+		return err
+	}
+
+	m.log.Info("Initializing User Service")
+	err = m.UserAPI.Init()
 	if err != nil {
 		return err
 	}
@@ -229,8 +247,14 @@ func (m *Monolith) InitServices() error {
 
 func (m *Monolith) StartServices() error {
 
-	m.log.Info("Starting Task Service")
+	m.log.Info("Starting Video Service")
 	err := m.VideoAPI.Start()
+	if err != nil {
+		return err
+	}
+
+	m.log.Info("Starting User Service")
+	err = m.UserAPI.Start()
 	if err != nil {
 		return err
 	}
@@ -254,6 +278,7 @@ func (m *Monolith) startServer() error {
 
 	videoProto.RegisterVideoServiceServer(m.GRPCServer, m.VideoAPI)
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
+	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
 
 	reflection.Register(m.GRPCServer)
 
