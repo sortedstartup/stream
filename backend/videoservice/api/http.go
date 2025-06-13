@@ -183,6 +183,8 @@ func getMimeTypeFromExtension(path string) string {
 }
 
 func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
+	slog.Info("serveVideoHandler called", "path", r.URL.Path, "method", r.Method)
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -193,35 +195,47 @@ func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Video ID is required", http.StatusBadRequest)
 		return
 	}
+	slog.Info("Processing video request", "videoID", videoID)
 
 	// Get user ID from context
 	authContext, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
+		slog.Error("Auth context error", "err", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	userID := authContext.User.ID
+	slog.Info("User authenticated", "userID", userID)
 
 	// Get video from database
 	video, err := videoAPI.dbQueries.GetVideoByIDForAllUsers(r.Context(), videoID)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			slog.Error("Video not found in database", "videoID", videoID)
 			http.Error(w, "Video not found", http.StatusNotFound)
 			return
 		}
+		slog.Error("Database error", "err", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("Video found in database", "videoID", videoID, "url", video.Url)
 
 	// Check if user has access to the video
 	if video.UploadedUserID != userID {
+		slog.Error("User not authorized to access video", "userID", userID, "videoUserID", video.UploadedUserID)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	// Construct absolute path to video file
+	videoPath := filepath.Join(videoAPI.getVideoDir(), video.Url)
+	slog.Info("Attempting to open video file", "path", videoPath)
+
 	// Open the video file
-	file, err := os.Open(video.Url)
+	file, err := os.Open(videoPath)
 	if err != nil {
+		slog.Error("Error opening video file", "err", err, "path", videoPath)
 		http.Error(w, "Error opening video file", http.StatusInternalServerError)
 		return
 	}
@@ -230,6 +244,7 @@ func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Reque
 	// Get file info
 	fileInfo, err := file.Stat()
 	if err != nil {
+		slog.Error("Error getting file info", "err", err)
 		http.Error(w, "Error getting file info", http.StatusInternalServerError)
 		return
 	}
@@ -254,6 +269,7 @@ func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Reque
 		if strings.HasSuffix(rangeStr, "-") {
 			// Format: bytes=0-
 			if _, err := fmt.Sscanf(rangeStr, "%d-", &start); err != nil {
+				slog.Error("Invalid Range header", "err", err, "range", rangeHeader)
 				http.Error(w, "Invalid Range header", http.StatusBadRequest)
 				return
 			}
@@ -261,6 +277,7 @@ func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Reque
 		} else {
 			// Format: bytes=start-end
 			if _, err := fmt.Sscanf(rangeStr, "%d-%d", &start, &end); err != nil {
+				slog.Error("Invalid Range header", "err", err, "range", rangeHeader)
 				http.Error(w, "Invalid Range header", http.StatusBadRequest)
 				return
 			}
@@ -269,11 +286,13 @@ func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Reque
 			}
 		}
 	} else {
+		slog.Error("Invalid Range header format", "range", rangeHeader)
 		http.Error(w, "Invalid Range header", http.StatusBadRequest)
 		return
 	}
 
 	if start < 0 || start > end {
+		slog.Error("Invalid Range values", "start", start, "end", end)
 		http.Error(w, "Invalid Range values", http.StatusBadRequest)
 		return
 	}
