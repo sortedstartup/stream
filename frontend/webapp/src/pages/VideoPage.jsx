@@ -11,129 +11,14 @@ import { Layout } from '../components/layout/Layout'
 
 const CustomVideoPlayer = ({ videoUrl }) => {
     const videoRef = useRef(null)
-    const mediaSourceRef = useRef(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
-    const [supportsMediaSource, setSupportsMediaSource] = useState(false)
     const authToken = useStore($authToken)
-
-    useEffect(() => {
-        // Check MediaSource support and determine if we need to use it
-        setSupportsMediaSource('MediaSource' in window)
-    }, [])
-
-    const getVideoMimeType = (url) => {
-        const extension = url.split('.').pop().toLowerCase()
-        switch (extension) {
-            case 'webm':
-                return 'video/webm; codecs="vp8,opus"'
-            case 'mp4':
-                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
-            case 'mov':
-                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
-            case 'avi':
-                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
-            default:
-                return 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"'
-        }
-    }
-
-    const setupMediaSource = () => {
-        return new Promise((resolve, reject) => {
-            // Create new MediaSource instance
-            mediaSourceRef.current = new MediaSource()
-            const mediaUrl = URL.createObjectURL(mediaSourceRef.current)
-            videoRef.current.src = mediaUrl
-
-            mediaSourceRef.current.addEventListener('sourceopen', () => {
-                // Fetch video with authentication
-                fetch(videoUrl, {
-                    headers: {
-                        'authorization': `${authToken}`,
-                    }
-                })
-                .then(response => response.blob())
-                .then(async videoBlob => {
-                    const mimeType = getVideoMimeType(videoUrl)
-                    
-                    // Check if the MIME type is supported
-                    if (!MediaSource.isTypeSupported(mimeType)) {
-                        console.warn(`MIME type ${mimeType} not supported, falling back to direct video src`)
-                        reject(new Error('MIME type not supported'))
-                        return
-                    }
-
-                    const sourceBuffer = mediaSourceRef.current.addSourceBuffer(mimeType)
-                    sourceBuffer.addEventListener('updateend', () => {
-                         if (mediaSourceRef.current.readyState === 'open') {
-                                try {
-                                    const end = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
-                                    mediaSourceRef.current.duration = end;
-                                    setDuration(end);
-                                } catch (err) {
-                                    console.error('Error setting duration:', err);
-                                }
-                                mediaSourceRef.current.endOfStream();
-                                resolve(); // Resolve the promise when setup is complete
-                            }
-                    })
-                    sourceBuffer.appendBuffer(await videoBlob.arrayBuffer())
-                })
-                .catch(error => {
-                    console.error('Error fetching video:', error)
-                    reject(error)
-                })
-            })
-
-            mediaSourceRef.current.addEventListener('error', (e) => {
-                console.error('MediaSource error:', e)
-                reject(e)
-            })
-        }) 
-    }
-
-    const setupDirectVideo = () => {
-        return new Promise((resolve, reject) => {
-            // Fetch video with authentication and create blob URL
-            fetch(videoUrl, {
-                headers: {
-                    'authorization': `${authToken}`,
-                }
-            })
-            .then(response => response.blob())
-            .then(videoBlob => {
-                const blobUrl = URL.createObjectURL(videoBlob)
-                videoRef.current.src = blobUrl
-                videoRef.current.addEventListener('loadedmetadata', () => {
-                    setDuration(videoRef.current.duration)
-                    resolve()
-                }, { once: true })
-                videoRef.current.load()
-            })
-            .catch(error => {
-                console.error('Error fetching video:', error)
-                reject(error)
-            })
-        })
-    }
 
     const togglePlay = async () => {
         if (videoRef.current.paused) {
-            // Use MediaSource for WebM files to maintain compatibility with screen recordings
-            if (!mediaSourceRef.current && !videoRef.current.src && supportsMediaSource && videoUrl.includes('.webm')) {
-                try {
-                    await setupMediaSource()
-                } catch (error) {
-                    console.log('MediaSource setup failed, falling back to direct video:', error)
-                    await setupDirectVideo()
-                }
-            } else if (!videoRef.current.src) {
-                // For MP4 and other formats, use direct blob approach
-                await setupDirectVideo()
-            }
-            
             await videoRef.current.play()
             setIsPlaying(true)
         } else {
@@ -178,8 +63,10 @@ const CustomVideoPlayer = ({ videoUrl }) => {
             <video
                 ref={videoRef}
                 className="w-full aspect-video"
+                src={videoUrl}
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
+                crossOrigin="anonymous"
             />
             
             <div className="p-4 space-y-2">
@@ -240,6 +127,7 @@ const CustomVideoPlayer = ({ videoUrl }) => {
 export const VideoPage = () => {
     const { id } = useParams()
     const [video, setVideo] = useState(null)
+    const authToken = useStore($authToken)
 
     useEffect(() => {
         fetchVideo(id).then(video=>{
@@ -253,7 +141,7 @@ export const VideoPage = () => {
             <Layout>
                 <div className="container mx-auto px-4 py-8">
                     <h1 className="text-2xl font-bold mb-6">{video.title}</h1>
-                    <CustomVideoPlayer videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "")}/api/videoservice/video/${id}`} />
+                    <CustomVideoPlayer videoUrl={`${import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "")}/api/videoservice/video/${id}?token=${authToken}`} />
                     <div className="mt-6">
                         <p className="text-base-content/70">{video.description}</p>
                         <div className="mt-4 text-sm text-base-content/60">

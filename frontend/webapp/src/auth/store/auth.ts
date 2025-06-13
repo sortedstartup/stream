@@ -4,8 +4,8 @@ import { User } from 'firebase/auth'
 
 // Create atoms for auth state
 export const $isLoggedIn = atom(false)
+export const $authToken = atom<string | null>(null)
 export const $currentUser = atom<User | null>(null)
-export const $authToken = atom<string>("")
 
 // Initialize auth state from localStorage
 const savedToken = localStorage.getItem('authToken')
@@ -18,9 +18,14 @@ export const initTokenRefreshHandler = () => {
   return auth.onIdTokenChanged(async (user) => {
     if (user) {
       const token = await user.getIdToken()
+      // Store in localStorage for backward compatibility
       localStorage.setItem('authToken', token)
+      $authToken.set(token)
+      $isLoggedIn.set(true)
     } else {
-      localStorage.removeItem('authToken') 
+      localStorage.removeItem('authToken')
+      $authToken.set(null)
+      $isLoggedIn.set(false)
     }
   })
 }
@@ -41,8 +46,7 @@ export const setAuthState = ({ user, token }: AuthState) => {
 }
 
 export const clearAuthState = () => {
-  logout()
-  $authToken.set("")
+  $authToken.set(null)
   $currentUser.set(null)
   $isLoggedIn.set(false)
   localStorage.removeItem('authToken')

@@ -14,7 +14,10 @@ const unaryInterceptor: UnaryInterceptor<any, any> = {
     intercept: (request, invoker) => {
       const m = request.getMetadata();
       const token = $authToken.get();
-      m["authorization"] = token; //`${$authContext.get().user.token}`;
+      // Only set authorization header if token exists
+      if (token) {
+        m["authorization"] = token;
+      }
       return invoker(request);
     },
   };

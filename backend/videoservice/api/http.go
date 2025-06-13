@@ -182,57 +182,55 @@ func getMimeTypeFromExtension(path string) string {
 	}
 }
 
-func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
-	// Only allow GET requests
+func (videoAPI *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Extract video ID from URL path
 	videoID := r.URL.Path[len("/video/"):]
 	if videoID == "" {
 		http.Error(w, "Video ID is required", http.StatusBadRequest)
 		return
 	}
 
-	_, err := interceptors.AuthFromContext(r.Context())
+	// Get user ID from context
+	authContext, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		slog.Error("Unauthorized", "err", err)
 		return
 	}
+	userID := authContext.User.ID
 
-	// Get video details from database (now allows any authenticated user to access any video)
-	video, err := api.dbQueries.GetVideoByIDForAllUsers(r.Context(), videoID)
+	// Get video from database
+	video, err := videoAPI.dbQueries.GetVideoByIDForAllUsers(r.Context(), videoID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Video not found", http.StatusNotFound)
 			return
 		}
-		api.log.Error("Failed to get video from database", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has access to the video
+	if video.UploadedUserID != userID {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	// Open the video file
-	// get file name from the video url
-	videoFileName := filepath.Base(video.Url)
-	absVideoPath := filepath.Join(api.getVideoDir(), videoFileName)
-
-	file, err := os.Open(absVideoPath) // Use the URL field from the database
+	file, err := os.Open(video.Url)
 	if err != nil {
-		api.log.Error("Failed to open video file", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Error opening video file", http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
 
-	// Get file info for Content-Length header
+	// Get file info
 	fileInfo, err := file.Stat()
 	if err != nil {
-		api.log.Error("Failed to get file info", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Error getting file info", http.StatusInternalServerError)
 		return
 	}
 
@@ -240,6 +238,7 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	contentType := getMimeTypeFromExtension(video.Url)
 	w.Header().Set("Content-Type", contentType)
 	rangeHeader := r.Header.Get("Range")
+
 	if rangeHeader == "" {
 		// No range header – serve full file
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
@@ -248,14 +247,37 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse range header
 	var start, end int64
-	if _, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end); err != nil || start < 0 {
+	if strings.HasPrefix(rangeHeader, "bytes=") {
+		rangeStr := rangeHeader[6:] // Remove "bytes=" prefix
+		if strings.HasSuffix(rangeStr, "-") {
+			// Format: bytes=0-
+			if _, err := fmt.Sscanf(rangeStr, "%d-", &start); err != nil {
+				http.Error(w, "Invalid Range header", http.StatusBadRequest)
+				return
+			}
+			end = fileInfo.Size() - 1
+		} else {
+			// Format: bytes=start-end
+			if _, err := fmt.Sscanf(rangeStr, "%d-%d", &start, &end); err != nil {
+				http.Error(w, "Invalid Range header", http.StatusBadRequest)
+				return
+			}
+			if end == 0 || end >= fileInfo.Size() {
+				end = fileInfo.Size() - 1
+			}
+		}
+	} else {
 		http.Error(w, "Invalid Range header", http.StatusBadRequest)
 		return
 	}
-	if end == 0 || end >= fileInfo.Size() {
-		end = fileInfo.Size() - 1
+
+	if start < 0 || start > end {
+		http.Error(w, "Invalid Range values", http.StatusBadRequest)
+		return
 	}
+
 	length := end - start + 1
 
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileInfo.Size()))

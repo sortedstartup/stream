@@ -13,7 +13,10 @@ import (
 	"sortedstartup.com/stream/common/auth"
 )
 
-const AUTH_HEADER = "authorization"
+const (
+	AUTH_HEADER = "authorization"
+	AUTH_COOKIE = "auth_token"
+)
 
 type AuthInterceptor func(auth.Auth) grpc.UnaryServerInterceptor
 
@@ -52,21 +55,51 @@ func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor 
 	}
 }
 
-func FirebaseHTTPAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
+// CookieAuthMiddleware handles authentication using both cookies and authorization header
+func CookieAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("authorization")
+		// Get token from either cookie, query parameter, or authorization header
+		var token string
 
-		if authHeader == "" {
+		// First check cookie
+		if cookie, err := r.Cookie(AUTH_COOKIE); err == nil {
+			token = cookie.Value
+		}
+
+		// If no cookie, check query parameter
+		if token == "" {
+			token = r.URL.Query().Get("token")
+		}
+
+		// If still no token, check authorization header
+		if token == "" {
+			token = r.Header.Get(AUTH_HEADER)
+		}
+
+		if token == "" {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 
-		authContext, verificationErr := fbauth.VerifyIDToken(authHeader)
-
+		// Verify the token
+		authContext, verificationErr := fbauth.VerifyIDToken(token)
 		if verificationErr != nil {
 			slog.Info("error verifying ID token", "err", verificationErr)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
+		}
+
+		// Set cookie if it doesn't exist or doesn't match
+		if cookie, err := r.Cookie(AUTH_COOKIE); err != nil || cookie.Value != token {
+			http.SetCookie(w, &http.Cookie{
+				Name:     AUTH_COOKIE,
+				Value:    token,
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
+				MaxAge:   3600, // 1 hour
+			})
 		}
 
 		newctx := context.WithValue(r.Context(), auth.AUTH_CONTEXT_KEY, authContext)
