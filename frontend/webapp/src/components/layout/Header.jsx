@@ -2,6 +2,7 @@ import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $currentUser, $isLoggedIn, clearAuthState } from '../../auth/store/auth'
 import { useNavigate } from 'react-router'
+import { signOut } from '../../auth/providers/firebase-auth'
 
 const toggleTheme = (e) => {
     const html = document.querySelector('html')
@@ -80,8 +81,13 @@ export const UserMenu = () => {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    clearAuthState()
-    navigate('/login')
+    try {
+      await signOut()
+      clearAuthState()
+      navigate('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   return (

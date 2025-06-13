@@ -8,16 +8,22 @@ import { setAuthState, clearAuthState } from '../store/auth'
 import { Header } from '../../components/layout/Header'
 
 export const LoginPage = () => {
-    
   const navigate = useNavigate()
   const isLoggedIn = useStore($isLoggedIn)
   const firebaseUiContainerRef = useRef(null)
 
   useEffect(() => {
-    if (!isLoggedIn && firebaseUiContainerRef.current) {
+    // If user is logged in, redirect to home
+    if (isLoggedIn) {
+      navigate('/')
+      return
+    }
+
+    // Initialize Firebase UI if not logged in
+    if (firebaseUiContainerRef.current) {
       startUi('#firebaseui-auth-container', handleAuthSuccess)
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, navigate])
 
   const handleAuthSuccess = async (authResult) => {
     const { user } = authResult
@@ -42,32 +48,9 @@ export const LoginPage = () => {
     navigate('/login')
   }
 
-
-
-
+  // If logged in, don't render anything (will redirect in useEffect)
   if (isLoggedIn) {
-    return (
-      <>
-        <Header/>
-        <div className="min-h-[calc(100vh-4rem)] hero bg-base-200">
-          <div className="hero-content text-center">
-            <div className="card w-96 bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title justify-center text-2xl">You are logged in</h2>
-                <div className="card-actions justify-center mt-6">
-                  <button
-                    onClick={handleLogout}
-                    className="btn btn-error"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    )
+    return null
   }
 
   return (
