@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - build-v[0-9]+.[0-9]+.[0-9]+-rc*
+    branches:
+      - add-cookie-support-to-serve-video-src-tags
       
 jobs:
   build:
