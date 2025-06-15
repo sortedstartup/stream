@@ -148,9 +148,18 @@ func NewMonolith() (*Monolith, error) {
 	staticFileServer := http.FileServer(http.FS(distFS))
 
 	parentMux := http.NewServeMux()
+
+	// Create a handler for gRPC web requests with Firebase auth
+	grpcWebHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wrappedGrpc.ServeHTTP(w, r)
+	})
+
+	// Wrap the gRPC web handler with Firebase auth middleware
+	authenticatedGrpcWebHandler := interceptors.FirebaseHTTPHeaderAuthMiddleware(firebase, grpcWebHandler)
+
 	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
-			wrappedGrpc.ServeHTTP(w, r)
+			authenticatedGrpcWebHandler.ServeHTTP(w, r)
 			return
 		}
 
@@ -200,10 +209,7 @@ func NewMonolith() (*Monolith, error) {
 		staticFileServer.ServeHTTP(w, r)
 	})
 
-	// parentMux.Handle("/test/*", aNewMux())
-	// this muxOne can be got from video service struct
 	parentMux.Handle("/api/videoservice/", http.StripPrefix("/api/videoservice", videoAPI.HTTPServerMux))
-	parentMux.Handle("/api/commentservice/", http.StripPrefix("/api/commentservice", commentAPI.HTTPServerMux))
 
 	httpServer := &http.Server{
 		Addr:    config.Server.GrpcWebAddrPortString(),
