@@ -32,7 +32,8 @@ type VideoAPI struct {
 func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
-	fbAuth, err := auth.NewFirebase()
+	// Initialize Firebase Auth
+	fbAuth, err := auth.NewFirebase(nil) // We don't need UserAPI in video service since we don't create users here
 	if err != nil {
 		return nil, err
 	}

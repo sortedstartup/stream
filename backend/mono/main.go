@@ -104,8 +104,15 @@ func NewMonolith() (*Monolith, error) {
 
 	log.Info("Creating monolith components")
 
+	log.Info("Creating userservice API")
+	userAPI, err := userAPI.NewUserAPIProduction(config.UserService)
+	if err != nil {
+		log.Error("Could not create userservice API", "err", err)
+		return nil, err
+	}
+
 	log.Info("Creating firebase")
-	firebase, err := auth.NewFirebase()
+	firebase, err := auth.NewFirebase(userAPI)
 	if err != nil {
 		return nil, err
 	}
@@ -114,13 +121,6 @@ func NewMonolith() (*Monolith, error) {
 	videoAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
-		return nil, err
-	}
-
-	log.Info("Creating userservice API")
-	userAPI, err := userAPI.NewUserAPIProduction(config.UserService)
-	if err != nil {
-		log.Error("Could not create userservice API", "err", err)
 		return nil, err
 	}
 

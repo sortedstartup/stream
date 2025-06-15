@@ -11,18 +11,23 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	userapi "sortedstartup.com/stream/userservice/api"
+	userproto "sortedstartup.com/stream/userservice/proto"
 )
 
 type Firebase struct {
-	App  *firebase.App
-	Auth *auth.Client
+	App     *firebase.App
+	Auth    *auth.Client
+	UserAPI *userapi.UserAPI
 }
 
-func NewFirebase() (*Firebase, error) {
+func NewFirebase(userAPI *userapi.UserAPI) (*Firebase, error) {
 	// Try default credentials first
 	app, auth, err := initializeFirebaseApp()
 	if err == nil {
-		return &Firebase{App: app, Auth: auth}, nil
+		return &Firebase{App: app, Auth: auth, UserAPI: userAPI}, nil
 	}
 
 	slog.Error("failed to initialize firebase app using default credentials", "err", err)
@@ -34,7 +39,7 @@ func NewFirebase() (*Firebase, error) {
 		return nil, err
 	}
 
-	return &Firebase{App: app, Auth: auth}, nil
+	return &Firebase{App: app, Auth: auth, UserAPI: userAPI}, nil
 }
 
 // initializeFirebaseApp initializes Firebase using default credentials
@@ -109,9 +114,35 @@ func (f *Firebase) VerifyIDToken(token string) (*AuthContext, error) {
 		return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, fmt.Errorf("email not in allowed list: %s", email)
 	}
 
+	// Try to get user by email first
+	userResp, err := f.UserAPI.GetUserByEmail(ctx, &userproto.GetUserByEmailRequest{
+		Email: email,
+	})
+
+	var username string
+	if err != nil {
+		// If user doesn't exist, create them
+		if status.Code(err) == codes.NotFound {
+			createResp, createErr := f.UserAPI.CreateUser(ctx, &userproto.CreateUserRequest{
+				Username: tok.Claims["name"].(string),
+				Email:    email,
+			})
+			if createErr != nil {
+				slog.Error("Error creating user", "err", createErr)
+				return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, createErr
+			}
+			username = createResp.Username
+		} else {
+			slog.Error("Error getting user by email", "err", err)
+			return &AuthContext{User: &ANONYMOUS, IsAuthenticated: false}, err
+		}
+	} else {
+		username = userResp.Username
+	}
+
 	user := &User{
 		ID:    tok.UID,
-		Name:  tok.Claims["name"].(string),
+		Name:  username,
 		Email: email,
 	}
 

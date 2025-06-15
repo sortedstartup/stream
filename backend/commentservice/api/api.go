@@ -90,26 +90,13 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
-	// Try to get user by email first, then create if doesn't exist
-	var username string
+	// Get user by email
 	userResp, err := s.userAPI.GetUserByEmail(ctx, &userproto.GetUserByEmailRequest{
 		Email: authContext.User.Email,
 	})
 	if err != nil {
-		// User doesn't exist, create them
-		s.log.Info("User not found by email, creating new user", "email", authContext.User.Email, "username", authContext.User.Name)
-
-		createResp, createErr := s.userAPI.CreateUser(ctx, &userproto.CreateUserRequest{
-			Username: authContext.User.Name,
-			Email:    authContext.User.Email,
-		})
-		if createErr != nil {
-			s.log.Error("Error creating user", "err", createErr)
-			return nil, status.Error(codes.Internal, "failed to create user")
-		}
-		username = createResp.Username
-	} else {
-		username = userResp.Username
+		s.log.Error("Error getting user by email", "err", err)
+		return nil, status.Error(codes.Internal, "failed to get user")
 	}
 
 	commentID := generateUUID()
@@ -125,7 +112,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:         req.Content,
 		VideoID:         req.VideoId,
 		UserID:          authContext.User.ID,
-		Username:        sql.NullString{String: username, Valid: true},
+		Username:        sql.NullString{String: userResp.Username, Valid: true},
 		ParentCommentID: parentCommentID,
 	})
 	if err != nil {
@@ -137,7 +124,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:  req.Content,
 		VideoId:  req.VideoId,
 		UserId:   authContext.User.ID,
-		Username: username,
+		Username: userResp.Username,
 	}, nil
 }
 
