@@ -199,7 +199,6 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		slog.Error("Unauthorized", "err", err)
 		return
 	}
 
@@ -210,59 +209,40 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Video not found", http.StatusNotFound)
 			return
 		}
-		api.log.Error("Failed to get video from database", "error", err)
+		api.log.Error("Failed to get video from database", "error", err, "videoID", videoID)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Open the video file
-	// get file name from the video url
+	// Build the file path
 	videoFileName := filepath.Base(video.Url)
 	absVideoPath := filepath.Join(api.getVideoDir(), videoFileName)
 
-	file, err := os.Open(absVideoPath) // Use the URL field from the database
+	// Open the video file
+	file, err := os.Open(absVideoPath)
 	if err != nil {
-		api.log.Error("Failed to open video file", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		api.log.Error("Failed to open video file", "error", err, "path", absVideoPath)
+		http.Error(w, "Video file not found", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
 
-	// Get file info for Content-Length header
+	// Get file info for ServeContent
 	fileInfo, err := file.Stat()
 	if err != nil {
-		api.log.Error("Failed to get file info", "error", err)
+		api.log.Error("Failed to get file info", "error", err, "path", absVideoPath)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Set appropriate headers
+	// Set the appropriate content type
 	contentType := getMimeTypeFromExtension(video.Url)
 	w.Header().Set("Content-Type", contentType)
-	rangeHeader := r.Header.Get("Range")
-	if rangeHeader == "" {
-		// No range header – serve full file
-		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
-		w.WriteHeader(http.StatusOK)
-		io.Copy(w, file)
-		return
-	}
 
-	var start, end int64
-	if _, err := fmt.Sscanf(rangeHeader, "bytes=%d-%d", &start, &end); err != nil || start < 0 {
-		http.Error(w, "Invalid Range header", http.StatusBadRequest)
-		return
-	}
-	if end == 0 || end >= fileInfo.Size() {
-		end = fileInfo.Size() - 1
-	}
-	length := end - start + 1
+	// Cache video files for a longer period since they rarely change
+	// 7 days = 604800 seconds
+	w.Header().Set("Cache-Control", "public, max-age=604800") // Cache for 7 days
 
-	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileInfo.Size()))
-	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
-	w.WriteHeader(http.StatusPartialContent)
-
-	file.Seek(start, io.SeekStart)
-	io.CopyN(w, file, length)
+	// Use http.ServeContent to handle range requests, caching, and proper HTTP semantics
+	http.ServeContent(w, r, videoFileName, fileInfo.ModTime(), file)
 }

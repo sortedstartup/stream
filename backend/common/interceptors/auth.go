@@ -17,6 +17,16 @@ const AUTH_HEADER = "authorization"
 
 type AuthInterceptor func(auth.Auth) grpc.UnaryServerInterceptor
 
+// Shared Firebase token verification logic
+func verifyFirebaseToken(fbauth *auth.Firebase, token string) (*auth.AuthContext, error) {
+	authContext, verificationErr := fbauth.VerifyIDToken(token)
+	if verificationErr != nil {
+		slog.Info("error verifying ID token", "err", verificationErr)
+		return nil, fmt.Errorf("invalid authentication token")
+	}
+	return authContext, nil
+}
+
 func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor {
 
 	// The client (browser+JS or language SDK) send the auth token (a string) in the headers of each request
@@ -39,11 +49,9 @@ func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor 
 			return nil, status.Errorf(codes.Unauthenticated, err.Error())
 		}
 
-		authContext, verificationErr := fbauth.VerifyIDToken(authToken)
-
+		authContext, verificationErr := verifyFirebaseToken(fbauth, authToken)
 		if verificationErr != nil {
-			slog.Info("error verifying ID token", "err", verificationErr)
-			return nil, status.Errorf(codes.Unauthenticated, "invalid authentication token")
+			return nil, status.Errorf(codes.Unauthenticated, verificationErr.Error())
 		}
 
 		newctx := context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, authContext)
@@ -52,8 +60,9 @@ func FirebaseAuthInterceptor(fbauth *auth.Firebase) grpc.UnaryServerInterceptor 
 	}
 }
 
-func FirebaseHTTPAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
+func FirebaseHTTPHeaderAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		authHeader := r.Header.Get("authorization")
 
 		if authHeader == "" {
@@ -61,10 +70,72 @@ func FirebaseHTTPAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.H
 			return
 		}
 
-		authContext, verificationErr := fbauth.VerifyIDToken(authHeader)
-
+		authContext, verificationErr := verifyFirebaseToken(fbauth, authHeader)
 		if verificationErr != nil {
-			slog.Info("error verifying ID token", "err", verificationErr)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// After successful authorization header verification, manage the authorization cookie
+		const authCookieName = "authorization"
+
+		// Check if existing cookie is present
+		existingCookie, err := r.Cookie(authCookieName)
+
+		shouldSetCookie := false
+
+		if err != nil {
+			// Cookie doesn't exist, set it
+			shouldSetCookie = true
+			slog.Debug("Authorization cookie not present, will set it")
+		} else if existingCookie.Value != authHeader {
+			// Cookie exists but has different value, update it
+			shouldSetCookie = true
+			slog.Debug("Authorization cookie has different value, will update it")
+		}
+
+		if shouldSetCookie {
+			authCookie := &http.Cookie{
+				Name:     authCookieName,
+				Value:    authHeader,
+				Path:     "/",
+				MaxAge:   3600 * 24, // 1 day
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
+			}
+			http.SetCookie(w, authCookie)
+			slog.Debug("Authorization cookie set/updated")
+		}
+
+		newctx := context.WithValue(r.Context(), auth.AUTH_CONTEXT_KEY, authContext)
+		r = r.WithContext(newctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func FirebaseCookieAuthMiddleware(fbauth *auth.Firebase, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const authCookieName = "authorization"
+
+		// Get authorization cookie
+		authCookie, err := r.Cookie(authCookieName)
+		if err != nil {
+			slog.Debug("Authorization cookie not found", "err", err, "url", r.URL.Path)
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		if authCookie.Value == "" {
+			slog.Debug("Authorization cookie is empty", "url", r.URL.Path)
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Verify the token from cookie using shared logic
+		authContext, verificationErr := verifyFirebaseToken(fbauth, authCookie.Value)
+		if verificationErr != nil {
+			slog.Info("Invalid authorization cookie", "err", verificationErr, "url", r.URL.Path)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
