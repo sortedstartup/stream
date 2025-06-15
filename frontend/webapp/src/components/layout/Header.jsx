@@ -12,23 +12,32 @@ const toggleTheme = (e) => {
     }
 }
 
-export const Header = () => {
-  
+export const Header = ({ onMenuClick }) => {
   const currentUser = useStore($currentUser)
   const isLoggedIn = useStore($isLoggedIn)
   const navigate = useNavigate()
 
   return (
-    <div className="navbar bg-base-100 min-h-0 h-12">
+    <div className="navbar bg-base-100 min-h-0 h-16 px-4">
+      {/* Mobile Menu Button */}
+      <div className="flex-none md:hidden">
+        <button 
+          className="btn btn-square btn-ghost"
+          onClick={onMenuClick}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-5 h-5 stroke-current">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+
       <div className="flex-1">
         <a className="btn btn-ghost text-xl p-0">Stream</a>
       </div>
-      <div className="flex-1 flex justify-end gap-2">
-        
+
+      <div className="flex-none flex items-center gap-4">
         <ThemeSelector />
-        <div className="w-6"></div>
         {isLoggedIn && <UserMenu />}
-        
       </div>
     </div>
   )
