@@ -137,7 +137,6 @@ func NewMonolith() (*Monolith, error) {
 	staticFileServer := http.FileServer(http.FS(distFS))
 
 	parentMux := http.NewServeMux()
-	//ServerMux.Handle("/upload", interceptors.FirebaseHTTPHeaderAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
 
 	// Create a handler for gRPC web requests with Firebase auth
 	grpcWebHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
