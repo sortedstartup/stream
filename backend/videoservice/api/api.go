@@ -57,8 +57,8 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 	}
 
 	// The authentication is handled in mono/main.go
-	ServerMux.Handle("/upload", http.HandlerFunc(videoAPI.uploadHandler))
-	//the cookie auth middleware is just to allow if cookie is present
+	ServerMux.Handle("/upload", interceptors.FirebaseHTTPHeaderAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
+	//the cookie auth middleware is just to allow if the user is logged in
 	ServerMux.Handle("/video/", interceptors.FirebaseCookieAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.serveVideoHandler)))
 
 	return videoAPI, nil
