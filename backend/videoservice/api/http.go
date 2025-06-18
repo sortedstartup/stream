@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,7 +19,8 @@ import (
 )
 
 const (
-	maxUploadSize = 500 << 20 // Maximum file size limit: 500 MB
+	maxUploadSize = 1024 << 20 // Maximum file size limit: 1024 MB
+	maxFormParts  = 4          // Maximum number of multipart form parts allowed
 )
 
 func (api *VideoAPI) getVideoDir() string {
@@ -36,7 +38,7 @@ func (api *VideoAPI) getVideoDir() string {
 	return uploadDir
 }
 
-// uploadHandler handles file uploads
+// uploadHandler handles file uploads with streaming to prevent memory issues
 func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("uploadHandler")
 
@@ -56,48 +58,143 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
-		http.Error(w, "File size exceeds the 500 MB limit", http.StatusRequestEntityTooLarge)
-		slog.Error("File size exceeds the 500 MB limit")
+		http.Error(w, "File size exceeds the 1024 MB limit", http.StatusRequestEntityTooLarge)
+		slog.Error("File size exceeds the 1024 MB limit")
 		return
 	}
 
 	// Limit the request body size for memory efficiency
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
-	// Parse the multipart form
-	err = r.ParseMultipartForm(maxUploadSize)
+	// Get the multipart reader for streaming
+	reader, err := r.MultipartReader()
 	if err != nil {
-		http.Error(w, "Invalid form data", http.StatusBadRequest)
-		slog.Error("Invalid form data", "err", err)
+		http.Error(w, "Invalid multipart form", http.StatusBadRequest)
+		slog.Error("Invalid multipart form", "err", err)
 		return
 	}
 
-	// Retrieve the uploaded file
-	file, fileHeader, err := r.FormFile("video") // "video" is the form field name
-	if err != nil {
-		http.Error(w, "Error retrieving file", http.StatusBadRequest)
-		slog.Error("Error retrieving file", "err", err)
+	var title, description string
+	var videoPart *multipart.Part
+	var originalFilename string
+	var partCount int
+
+	// Cleanup function for videoPart
+	defer func() {
+		if videoPart != nil {
+			videoPart.Close()
+		}
+	}()
+
+	// Helper function to read text field
+	readTextField := func(part *multipart.Part, fieldName string, currentValue string) (string, error) {
+		if currentValue != "" {
+			return "", fmt.Errorf("duplicate %s field", fieldName)
+		}
+		data, err := io.ReadAll(part)
+		if err != nil {
+			return "", fmt.Errorf("error reading %s: %w", fieldName, err)
+		}
+		return strings.TrimSpace(string(data)), nil
+	}
+
+	// Process all multipart fields
+	for {
+		partCount++
+		if partCount > maxFormParts {
+			http.Error(w, "Too many form parts", http.StatusBadRequest)
+			slog.Error("Too many form parts", "count", partCount)
+			return
+		}
+
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			http.Error(w, "Error reading multipart form", http.StatusBadRequest)
+			slog.Error("Error reading multipart form", "err", err)
+			return
+		}
+
+		formName := part.FormName()
+
+		switch formName {
+		case "title":
+			title, err = readTextField(part, "title", title)
+			if err != nil {
+				part.Close()
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				slog.Error("Title field error", "err", err)
+				return
+			}
+
+		case "description":
+			description, err = readTextField(part, "description", description)
+			if err != nil {
+				part.Close()
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				slog.Error("Description field error", "err", err)
+				return
+			}
+
+		case "video":
+			if videoPart != nil {
+				part.Close()
+				http.Error(w, "Multiple video files not allowed", http.StatusBadRequest)
+				slog.Error("Multiple video files not allowed")
+				return
+			}
+
+			originalFilename = part.FileName()
+			if originalFilename == "" {
+				part.Close()
+				http.Error(w, "No file selected", http.StatusBadRequest)
+				slog.Error("No file selected")
+				return
+			}
+
+			// Validate file type
+			ext := strings.ToLower(filepath.Ext(originalFilename))
+			if ext != ".mp4" && ext != ".webm" && ext != ".ogg" && ext != ".ogv" {
+				part.Close()
+				http.Error(w, "Unsupported file format. Only .mp4, .webm, .ogg, .ogv are allowed", http.StatusBadRequest)
+				slog.Error("Unsupported file format", "ext", ext)
+				return
+			}
+
+			videoPart = part // Don't close - will be handled by defer
+
+		default:
+			part.Close()
+			http.Error(w, "Unknown form field: "+formName, http.StatusBadRequest)
+			slog.Error("Unknown form field", "field", formName)
+			return
+		}
+
+		// Close part unless it's the video part
+		if formName != "video" {
+			part.Close()
+		}
+	}
+
+	// Validate required fields
+	if title == "" || description == "" {
+		http.Error(w, "Title and description are required", http.StatusBadRequest)
+		slog.Error("Missing required fields", "hasTitle", title != "", "hasDescription", description != "")
 		return
 	}
-	defer file.Close()
 
-	// Retrieve the title and description from the form
-	title := r.FormValue("title")
-	description := r.FormValue("description")
-
-	// Validate file type
-	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext != ".mp4" && ext != ".mov" && ext != ".avi" && ext != ".webm" {
-		http.Error(w, "Unsupported file format. Only .mp4, .mov, .avi, .webm are allowed", http.StatusBadRequest)
-		slog.Error("Unsupported file format. Only .mp4, .mov, .avi, .webm are allowed")
+	if videoPart == nil {
+		http.Error(w, "No video file found", http.StatusBadRequest)
+		slog.Error("No video file found")
 		return
 	}
 
-	// Generate a unique filename with the original extension
+	// Process the video file
+	ext := strings.ToLower(filepath.Ext(originalFilename))
 	uid := uuid.New().String()
 	fileName := uid + ext
-
-	// Resolve absolute path for the uploads directory
 
 	absUploadDir, err := filepath.Abs(api.getVideoDir())
 	if err != nil {
@@ -105,19 +202,16 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to resolve upload directory", "err", err)
 		return
 	}
-	outputPath := filepath.Join(absUploadDir, fileName)
 
-	// Ensure the uploads directory exists
 	if _, err := os.Stat(absUploadDir); os.IsNotExist(err) {
-		err := os.Mkdir(absUploadDir, 0755)
-		if err != nil {
+		if err := os.Mkdir(absUploadDir, 0755); err != nil {
 			http.Error(w, "Error creating uploads directory", http.StatusInternalServerError)
 			slog.Error("Error creating uploads directory", "err", err)
 			return
 		}
 	}
 
-	// Create the destination file for writing
+	outputPath := filepath.Join(absUploadDir, fileName)
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		http.Error(w, "Unable to create file", http.StatusInternalServerError)
@@ -127,25 +221,24 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	defer outFile.Close()
 
 	// Stream the file content directly to disk
-	_, err = io.Copy(outFile, file)
+	_, err = io.Copy(outFile, videoPart)
 	if err != nil {
-		// Check for MaxBytesError
+		os.Remove(outputPath) // Cleanup on error
+
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			slog.Error("File size exceeds the 500 MB limit", "err", err)
-			http.Error(w, "File size exceeds the 500 MB limit", http.StatusRequestEntityTooLarge)
+			http.Error(w, "File size exceeds the limit", http.StatusRequestEntityTooLarge)
+			slog.Error("File size exceeds limit", "err", err)
 		} else {
-			slog.Error("Failed to save file", "err", err)
 			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			slog.Error("Failed to save file", "err", err)
 		}
-
-		// Delete the partially written file
-		os.Remove(outputPath)
-		slog.Error("Error saving file, partial file deleted", "err", err)
 		return
 	}
 
-	// Save video details to the database, including title and description
+	slog.Info("File streamed successfully", "filename", fileName, "original", originalFilename)
+
+	// Save video details to the database
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
 		Title:          title,
@@ -156,6 +249,11 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:      time.Now(),
 	})
 	if err != nil {
+		// Clean up the uploaded file if database operation fails
+		absUploadDir, _ := filepath.Abs(api.getVideoDir())
+		outputPath := filepath.Join(absUploadDir, fileName)
+		os.Remove(outputPath)
+
 		slog.Error("Failed to add video to the database", "err", err)
 		http.Error(w, "Failed to add video to the library", http.StatusInternalServerError)
 		return
@@ -173,10 +271,10 @@ func getMimeTypeFromExtension(path string) string {
 		return "video/mp4"
 	case ".webm":
 		return "video/webm"
-	case ".mov":
-		return "video/quicktime"
-	case ".avi":
-		return "video/x-msvideo"
+	case ".ogg":
+		return "video/ogg"
+	case ".ogv":
+		return "video/ogg"
 	default:
 		return "application/octet-stream" // fallback
 	}
