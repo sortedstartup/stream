@@ -21,9 +21,9 @@ export const UploadPage = () => {
     }
 
     const formData = new FormData();
-    formData.append('video', videoFile);
     formData.append('title', title);
     formData.append('description', description);
+    formData.append('video', videoFile);
 
     setIsUploading(true);
     setStatusMessage('Uploading...');
