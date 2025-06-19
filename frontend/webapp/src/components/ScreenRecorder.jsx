@@ -145,10 +145,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     setStatusMessage("Uploading video...");
 
     const formData = new FormData();
-    formData.append("video", currentVideoBlob, fileName);
     formData.append("title", title);
     formData.append("description", description);
-
+    formData.append("video", currentVideoBlob, fileName);
+    
     try {
       const response = await fetch(import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, "") + "/api/videoservice/upload", {
         method: "POST",
