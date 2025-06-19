@@ -27,3 +27,6 @@ primary_region = 'atl'
 [env]
 VIDEOSERVICE_FILESTOREDIR = "/data/uploads"
 VIDEOSERVICE_DB_URL = "/data/db.sqlite"
+
+[scale]
+  count = 1
