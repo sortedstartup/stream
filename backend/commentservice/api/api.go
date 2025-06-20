@@ -17,6 +17,8 @@ import (
 	"sortedstartup.com/stream/commentservice/db"
 	"sortedstartup.com/stream/commentservice/proto"
 	"sortedstartup.com/stream/common/interceptors"
+	userapi "sortedstartup.com/stream/userservice/api"
+	userproto "sortedstartup.com/stream/userservice/proto"
 )
 
 type CommentAPI struct {
@@ -26,6 +28,7 @@ type CommentAPI struct {
 
 	log       *slog.Logger
 	dbQueries db.Querier
+	userAPI   *userapi.UserAPI
 
 	//implemented proto server
 	proto.UnimplementedCommentServiceServer
@@ -39,7 +42,7 @@ func NewCommentAPITest(mockDB db.Querier, logger *slog.Logger) *CommentAPI {
 	}
 }
 
-func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, error) {
+func NewCommentAPIProduction(config config.CommentServiceConfig, userAPI *userapi.UserAPI) (*CommentAPI, error) {
 	slog.Info("NewCommentAPIProduction")
 
 	// fbAuth, err := auth.NewFirebase()
@@ -61,6 +64,7 @@ func NewCommentAPIProduction(config config.CommentServiceConfig) (*CommentAPI, e
 		db:        _db,
 		log:       childLogger,
 		dbQueries: dbQueries,
+		userAPI:   userAPI,
 	}
 
 	return commentAPI, nil
@@ -86,6 +90,15 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
 
+	// Get user by email
+	userResp, err := s.userAPI.GetUserByEmail(ctx, &userproto.GetUserByEmailRequest{
+		Email: authContext.User.Email,
+	})
+	if err != nil {
+		s.log.Error("Error getting user by email", "err", err)
+		return nil, status.Error(codes.Internal, "failed to get user")
+	}
+
 	commentID := generateUUID()
 
 	// Check if ParentCommentId is nil
@@ -99,7 +112,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:         req.Content,
 		VideoID:         req.VideoId,
 		UserID:          authContext.User.ID,
-		Username:        sql.NullString{String: authContext.User.Name, Valid: true},
+		Username:        sql.NullString{String: userResp.Username, Valid: true},
 		ParentCommentID: parentCommentID,
 	})
 	if err != nil {
@@ -111,7 +124,7 @@ func (s *CommentAPI) CreateComment(ctx context.Context, req *proto.CreateComment
 		Content:  req.Content,
 		VideoId:  req.VideoId,
 		UserId:   authContext.User.ID,
-		Username: authContext.User.Name,
+		Username: userResp.Username,
 	}, nil
 }
 
