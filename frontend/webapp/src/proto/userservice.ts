@@ -147,342 +147,25 @@ export class User extends pb_1.Message {
         return User.deserialize(bytes);
     }
 }
-export class CreateUserRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        id?: string;
-        username?: string;
-        email?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("id" in data && data.id != undefined) {
-                this.id = data.id;
-            }
-            if ("username" in data && data.username != undefined) {
-                this.username = data.username;
-            }
-            if ("email" in data && data.email != undefined) {
-                this.email = data.email;
-            }
-        }
-    }
-    get id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get username() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set username(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get email() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set email(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    static fromObject(data: {
-        id?: string;
-        username?: string;
-        email?: string;
-    }): CreateUserRequest {
-        const message = new CreateUserRequest({});
-        if (data.id != null) {
-            message.id = data.id;
-        }
-        if (data.username != null) {
-            message.username = data.username;
-        }
-        if (data.email != null) {
-            message.email = data.email;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            id?: string;
-            username?: string;
-            email?: string;
-        } = {};
-        if (this.id != null) {
-            data.id = this.id;
-        }
-        if (this.username != null) {
-            data.username = this.username;
-        }
-        if (this.email != null) {
-            data.email = this.email;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.id.length)
-            writer.writeString(1, this.id);
-        if (this.username.length)
-            writer.writeString(2, this.username);
-        if (this.email.length)
-            writer.writeString(3, this.email);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateUserRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateUserRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.id = reader.readString();
-                    break;
-                case 2:
-                    message.username = reader.readString();
-                    break;
-                case 3:
-                    message.email = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): CreateUserRequest {
-        return CreateUserRequest.deserialize(bytes);
-    }
-}
-export class GetUserRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        id?: string;
-        email?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("id" in data && data.id != undefined) {
-                this.id = data.id;
-            }
-            if ("email" in data && data.email != undefined) {
-                this.email = data.email;
-            }
-        }
-    }
-    get id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get email() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set email(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    static fromObject(data: {
-        id?: string;
-        email?: string;
-    }): GetUserRequest {
-        const message = new GetUserRequest({});
-        if (data.id != null) {
-            message.id = data.id;
-        }
-        if (data.email != null) {
-            message.email = data.email;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            id?: string;
-            email?: string;
-        } = {};
-        if (this.id != null) {
-            data.id = this.id;
-        }
-        if (this.email != null) {
-            data.email = this.email;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.id.length)
-            writer.writeString(1, this.id);
-        if (this.email.length)
-            writer.writeString(2, this.email);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.id = reader.readString();
-                    break;
-                case 2:
-                    message.email = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): GetUserRequest {
-        return GetUserRequest.deserialize(bytes);
-    }
-}
-export class UpdateUserRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        username?: string;
-        email?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("username" in data && data.username != undefined) {
-                this.username = data.username;
-            }
-            if ("email" in data && data.email != undefined) {
-                this.email = data.email;
-            }
-        }
-    }
-    get username() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set username(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get email() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set email(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    static fromObject(data: {
-        username?: string;
-        email?: string;
-    }): UpdateUserRequest {
-        const message = new UpdateUserRequest({});
-        if (data.username != null) {
-            message.username = data.username;
-        }
-        if (data.email != null) {
-            message.email = data.email;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            username?: string;
-            email?: string;
-        } = {};
-        if (this.username != null) {
-            data.username = this.username;
-        }
-        if (this.email != null) {
-            data.email = this.email;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.username.length)
-            writer.writeString(2, this.username);
-        if (this.email.length)
-            writer.writeString(3, this.email);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 2:
-                    message.username = reader.readString();
-                    break;
-                case 3:
-                    message.email = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): UpdateUserRequest {
-        return UpdateUserRequest.deserialize(bytes);
-    }
-}
 export class GetUserByEmailRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        email?: string;
-    }) {
+    constructor(data?: any[] | {}) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("email" in data && data.email != undefined) {
-                this.email = data.email;
-            }
-        }
+        if (!Array.isArray(data) && typeof data == "object") { }
     }
-    get email() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set email(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    static fromObject(data: {
-        email?: string;
-    }): GetUserByEmailRequest {
+    static fromObject(data: {}): GetUserByEmailRequest {
         const message = new GetUserByEmailRequest({});
-        if (data.email != null) {
-            message.email = data.email;
-        }
         return message;
     }
     toObject() {
-        const data: {
-            email?: string;
-        } = {};
-        if (this.email != null) {
-            data.email = this.email;
-        }
+        const data: {} = {};
         return data;
     }
     serialize(): Uint8Array;
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.email.length)
-            writer.writeString(1, this.email);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -492,9 +175,6 @@ export class GetUserByEmailRequest extends pb_1.Message {
             if (reader.isEndGroup())
                 break;
             switch (reader.getFieldNumber()) {
-                case 1:
-                    message.email = reader.readString();
-                    break;
                 default: reader.skipField();
             }
         }
@@ -509,42 +189,6 @@ export class GetUserByEmailRequest extends pb_1.Message {
 }
 export abstract class UnimplementedUserServiceService {
     static definition = {
-        CreateUser: {
-            path: "/userservice.UserService/CreateUser",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: CreateUserRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => CreateUserRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: User) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
-        },
-        GetUser: {
-            path: "/userservice.UserService/GetUser",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: GetUserRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => GetUserRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: User) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
-        },
-        UpdateUser: {
-            path: "/userservice.UserService/UpdateUser",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: UpdateUserRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => UpdateUserRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: User) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
-        },
-        GetUserByEmail: {
-            path: "/userservice.UserService/GetUserByEmail",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: GetUserByEmailRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => GetUserByEmailRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: User) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
-        },
         CreateUserIfNotExists: {
             path: "/userservice.UserService/CreateUserIfNotExists",
             requestStream: false,
@@ -556,10 +200,6 @@ export abstract class UnimplementedUserServiceService {
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
-    abstract CreateUser(call: grpc_1.ServerUnaryCall<CreateUserRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
-    abstract GetUser(call: grpc_1.ServerUnaryCall<GetUserRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
-    abstract UpdateUser(call: grpc_1.ServerUnaryCall<UpdateUserRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
-    abstract GetUserByEmail(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
     abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
 }
 export class UserServiceClient {
@@ -571,22 +211,6 @@ export class UserServiceClient {
         options.format = options.format || "text";
         this._address = address;
         this._client = new grpc_web_1.GrpcWebClientBase(options);
-    }
-    private static CreateUser = new grpc_web_1.MethodDescriptor<CreateUserRequest, User>("/userservice.UserService/CreateUser", grpc_web_1.MethodType.UNARY, CreateUserRequest, User, (message: CreateUserRequest) => message.serialize(), User.deserialize);
-    CreateUser(message: CreateUserRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<CreateUserRequest, User>(this._address + "/userservice.UserService/CreateUser", message, metadata || {}, UserServiceClient.CreateUser);
-    }
-    private static GetUser = new grpc_web_1.MethodDescriptor<GetUserRequest, User>("/userservice.UserService/GetUser", grpc_web_1.MethodType.UNARY, GetUserRequest, User, (message: GetUserRequest) => message.serialize(), User.deserialize);
-    GetUser(message: GetUserRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetUserRequest, User>(this._address + "/userservice.UserService/GetUser", message, metadata || {}, UserServiceClient.GetUser);
-    }
-    private static UpdateUser = new grpc_web_1.MethodDescriptor<UpdateUserRequest, User>("/userservice.UserService/UpdateUser", grpc_web_1.MethodType.UNARY, UpdateUserRequest, User, (message: UpdateUserRequest) => message.serialize(), User.deserialize);
-    UpdateUser(message: UpdateUserRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<UpdateUserRequest, User>(this._address + "/userservice.UserService/UpdateUser", message, metadata || {}, UserServiceClient.UpdateUser);
-    }
-    private static GetUserByEmail = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, User>("/userservice.UserService/GetUserByEmail", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, User, (message: GetUserByEmailRequest) => message.serialize(), User.deserialize);
-    GetUserByEmail(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetUserByEmailRequest, User>(this._address + "/userservice.UserService/GetUserByEmail", message, metadata || {}, UserServiceClient.GetUserByEmail);
     }
     private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, User>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, User, (message: GetUserByEmailRequest) => message.serialize(), User.deserialize);
     CreateUserIfNotExists(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {

@@ -22,38 +22,17 @@ export const userService = new UserServiceClient(
     }
 );
 
-export const createUserIfNotExists = async (email: string): Promise<User> => {
+export const createUserIfNotExists = async (): Promise<User> => {
     try {
-        // TODO: Uncomment after running `go generate` to regenerate proto files
         const response = await userService.CreateUserIfNotExists(
-            GetUserByEmailRequest.fromObject({ email }),
+            GetUserByEmailRequest.fromObject({}),
             {}
         );
-
-        // Temporary fallback - try to get user by email
-        // const response = await userService.GetUserByEmail(
-        //     GetUserByEmailRequest.fromObject({ email }),
-        //     {}
-        // );
 
         $currentDbUser.set(response);
         return response;
     } catch (error) {
         console.error("Error creating/fetching user:", error);
-        throw error;
-    }
-};
-
-export const getUserByEmail = async (email: string): Promise<User> => {
-    try {
-        const response = await userService.GetUserByEmail(
-            GetUserByEmailRequest.fromObject({ email }),
-            {}
-        );
-
-        return response;
-    } catch (error) {
-        console.error("Error fetching user by email:", error);
         throw error;
     }
 }; 

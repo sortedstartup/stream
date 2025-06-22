@@ -14,11 +14,3 @@ INSERT INTO users (
 -- name: GetUserByEmail :one
 SELECT * FROM users 
 WHERE email = @email;
-
--- name: UpdateUser :one
-UPDATE users 
-SET 
-    username = COALESCE(@username, username),
-    email = COALESCE(@email, email)
-WHERE id = @id
-RETURNING *;

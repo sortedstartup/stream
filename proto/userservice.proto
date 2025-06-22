@@ -7,10 +7,6 @@ option go_package = "sortedstartup.com/stream/userservice/proto";
 import "google/protobuf/timestamp.proto";
 
 service UserService {
-  rpc CreateUser(CreateUserRequest) returns (User);
-  rpc GetUser(GetUserRequest) returns (User);
-  rpc UpdateUser(UpdateUserRequest) returns (User);
-  rpc GetUserByEmail(GetUserByEmailRequest) returns (User);
   rpc CreateUserIfNotExists(GetUserByEmailRequest) returns (User);
 }
 
@@ -21,22 +17,5 @@ message User {
   google.protobuf.Timestamp created_at = 4;
 }
 
-message CreateUserRequest {
-    string id = 1;
-    string username = 2;
-    string email = 3;
-}
-
-message GetUserRequest {
-    string id = 1;
-    string email = 2;
-}
-
-message UpdateUserRequest {
-    string username = 2;
-    string email = 3;
-}
-
 message GetUserByEmailRequest {
-    string email = 1;
 }

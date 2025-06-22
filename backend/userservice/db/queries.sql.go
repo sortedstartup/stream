@@ -64,30 +64,3 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	)
 	return i, err
 }
-
-const updateUser = `-- name: UpdateUser :one
-UPDATE users 
-SET 
-    username = COALESCE(?1, username),
-    email = COALESCE(?2, email)
-WHERE id = ?3
-RETURNING id, username, email, created_at
-`
-
-type UpdateUserParams struct {
-	Username string
-	Email    string
-	ID       string
-}
-
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUser, arg.Username, arg.Email, arg.ID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.Email,
-		&i.CreatedAt,
-	)
-	return i, err
-}

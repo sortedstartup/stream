@@ -35,12 +35,8 @@ export const LoginPage = () => {
     })
 
     try {
-      // Create user in database if not exists
-      await createUserIfNotExists(user.email)
-      console.log('User created/verified in database')
+      await createUserIfNotExists()
     } catch (error) {
-      console.error('Failed to create user in database:', error)
-      // Don't block login flow, but log the error
     }
 
     navigate('/')
