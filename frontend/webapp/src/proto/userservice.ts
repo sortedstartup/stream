@@ -14,7 +14,6 @@ export class User extends pb_1.Message {
         id?: string;
         username?: string;
         email?: string;
-        avatar_url?: string;
         created_at?: dependency_1.Timestamp;
     }) {
         super();
@@ -28,9 +27,6 @@ export class User extends pb_1.Message {
             }
             if ("email" in data && data.email != undefined) {
                 this.email = data.email;
-            }
-            if ("avatar_url" in data && data.avatar_url != undefined) {
-                this.avatar_url = data.avatar_url;
             }
             if ("created_at" in data && data.created_at != undefined) {
                 this.created_at = data.created_at;
@@ -55,26 +51,19 @@ export class User extends pb_1.Message {
     set email(value: string) {
         pb_1.Message.setField(this, 3, value);
     }
-    get avatar_url() {
-        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
-    }
-    set avatar_url(value: string) {
-        pb_1.Message.setField(this, 4, value);
-    }
     get created_at() {
-        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 4) as dependency_1.Timestamp;
     }
     set created_at(value: dependency_1.Timestamp) {
-        pb_1.Message.setWrapperField(this, 5, value);
+        pb_1.Message.setWrapperField(this, 4, value);
     }
     get has_created_at() {
-        return pb_1.Message.getField(this, 5) != null;
+        return pb_1.Message.getField(this, 4) != null;
     }
     static fromObject(data: {
         id?: string;
         username?: string;
         email?: string;
-        avatar_url?: string;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
     }): User {
         const message = new User({});
@@ -87,9 +76,6 @@ export class User extends pb_1.Message {
         if (data.email != null) {
             message.email = data.email;
         }
-        if (data.avatar_url != null) {
-            message.avatar_url = data.avatar_url;
-        }
         if (data.created_at != null) {
             message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
         }
@@ -100,7 +86,6 @@ export class User extends pb_1.Message {
             id?: string;
             username?: string;
             email?: string;
-            avatar_url?: string;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         } = {};
         if (this.id != null) {
@@ -111,9 +96,6 @@ export class User extends pb_1.Message {
         }
         if (this.email != null) {
             data.email = this.email;
-        }
-        if (this.avatar_url != null) {
-            data.avatar_url = this.avatar_url;
         }
         if (this.created_at != null) {
             data.created_at = this.created_at.toObject();
@@ -130,10 +112,8 @@ export class User extends pb_1.Message {
             writer.writeString(2, this.username);
         if (this.email.length)
             writer.writeString(3, this.email);
-        if (this.avatar_url.length)
-            writer.writeString(4, this.avatar_url);
         if (this.has_created_at)
-            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
+            writer.writeMessage(4, this.created_at, () => this.created_at.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -153,9 +133,6 @@ export class User extends pb_1.Message {
                     message.email = reader.readString();
                     break;
                 case 4:
-                    message.avatar_url = reader.readString();
-                    break;
-                case 5:
                     reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
                     break;
                 default: reader.skipField();
@@ -176,7 +153,6 @@ export class CreateUserRequest extends pb_1.Message {
         id?: string;
         username?: string;
         email?: string;
-        avatar_url?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -189,9 +165,6 @@ export class CreateUserRequest extends pb_1.Message {
             }
             if ("email" in data && data.email != undefined) {
                 this.email = data.email;
-            }
-            if ("avatar_url" in data && data.avatar_url != undefined) {
-                this.avatar_url = data.avatar_url;
             }
         }
     }
@@ -213,17 +186,10 @@ export class CreateUserRequest extends pb_1.Message {
     set email(value: string) {
         pb_1.Message.setField(this, 3, value);
     }
-    get avatar_url() {
-        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
-    }
-    set avatar_url(value: string) {
-        pb_1.Message.setField(this, 4, value);
-    }
     static fromObject(data: {
         id?: string;
         username?: string;
         email?: string;
-        avatar_url?: string;
     }): CreateUserRequest {
         const message = new CreateUserRequest({});
         if (data.id != null) {
@@ -235,9 +201,6 @@ export class CreateUserRequest extends pb_1.Message {
         if (data.email != null) {
             message.email = data.email;
         }
-        if (data.avatar_url != null) {
-            message.avatar_url = data.avatar_url;
-        }
         return message;
     }
     toObject() {
@@ -245,7 +208,6 @@ export class CreateUserRequest extends pb_1.Message {
             id?: string;
             username?: string;
             email?: string;
-            avatar_url?: string;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -255,9 +217,6 @@ export class CreateUserRequest extends pb_1.Message {
         }
         if (this.email != null) {
             data.email = this.email;
-        }
-        if (this.avatar_url != null) {
-            data.avatar_url = this.avatar_url;
         }
         return data;
     }
@@ -271,8 +230,6 @@ export class CreateUserRequest extends pb_1.Message {
             writer.writeString(2, this.username);
         if (this.email.length)
             writer.writeString(3, this.email);
-        if (this.avatar_url.length)
-            writer.writeString(4, this.avatar_url);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -290,9 +247,6 @@ export class CreateUserRequest extends pb_1.Message {
                     break;
                 case 3:
                     message.email = reader.readString();
-                    break;
-                case 4:
-                    message.avatar_url = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -401,7 +355,6 @@ export class UpdateUserRequest extends pb_1.Message {
     constructor(data?: any[] | {
         username?: string;
         email?: string;
-        avatar_url?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -411,9 +364,6 @@ export class UpdateUserRequest extends pb_1.Message {
             }
             if ("email" in data && data.email != undefined) {
                 this.email = data.email;
-            }
-            if ("avatar_url" in data && data.avatar_url != undefined) {
-                this.avatar_url = data.avatar_url;
             }
         }
     }
@@ -429,16 +379,9 @@ export class UpdateUserRequest extends pb_1.Message {
     set email(value: string) {
         pb_1.Message.setField(this, 3, value);
     }
-    get avatar_url() {
-        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
-    }
-    set avatar_url(value: string) {
-        pb_1.Message.setField(this, 4, value);
-    }
     static fromObject(data: {
         username?: string;
         email?: string;
-        avatar_url?: string;
     }): UpdateUserRequest {
         const message = new UpdateUserRequest({});
         if (data.username != null) {
@@ -447,25 +390,18 @@ export class UpdateUserRequest extends pb_1.Message {
         if (data.email != null) {
             message.email = data.email;
         }
-        if (data.avatar_url != null) {
-            message.avatar_url = data.avatar_url;
-        }
         return message;
     }
     toObject() {
         const data: {
             username?: string;
             email?: string;
-            avatar_url?: string;
         } = {};
         if (this.username != null) {
             data.username = this.username;
         }
         if (this.email != null) {
             data.email = this.email;
-        }
-        if (this.avatar_url != null) {
-            data.avatar_url = this.avatar_url;
         }
         return data;
     }
@@ -477,8 +413,6 @@ export class UpdateUserRequest extends pb_1.Message {
             writer.writeString(2, this.username);
         if (this.email.length)
             writer.writeString(3, this.email);
-        if (this.avatar_url.length)
-            writer.writeString(4, this.avatar_url);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -493,9 +427,6 @@ export class UpdateUserRequest extends pb_1.Message {
                     break;
                 case 3:
                     message.email = reader.readString();
-                    break;
-                case 4:
-                    message.avatar_url = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -613,6 +544,15 @@ export abstract class UnimplementedUserServiceService {
             requestDeserialize: (bytes: Buffer) => GetUserByEmailRequest.deserialize(new Uint8Array(bytes)),
             responseSerialize: (message: User) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
+        },
+        CreateUserIfNotExists: {
+            path: "/userservice.UserService/CreateUserIfNotExists",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetUserByEmailRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetUserByEmailRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: User) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
@@ -620,6 +560,7 @@ export abstract class UnimplementedUserServiceService {
     abstract GetUser(call: grpc_1.ServerUnaryCall<GetUserRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
     abstract UpdateUser(call: grpc_1.ServerUnaryCall<UpdateUserRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
     abstract GetUserByEmail(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
+    abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
 }
 export class UserServiceClient {
     private _address: string;
@@ -646,5 +587,9 @@ export class UserServiceClient {
     private static GetUserByEmail = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, User>("/userservice.UserService/GetUserByEmail", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, User, (message: GetUserByEmailRequest) => message.serialize(), User.deserialize);
     GetUserByEmail(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<GetUserByEmailRequest, User>(this._address + "/userservice.UserService/GetUserByEmail", message, metadata || {}, UserServiceClient.GetUserByEmail);
+    }
+    private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, User>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, User, (message: GetUserByEmailRequest) => message.serialize(), User.deserialize);
+    CreateUserIfNotExists(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetUserByEmailRequest, User>(this._address + "/userservice.UserService/CreateUserIfNotExists", message, metadata || {}, UserServiceClient.CreateUserIfNotExists);
     }
 }

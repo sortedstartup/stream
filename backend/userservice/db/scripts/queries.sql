@@ -3,13 +3,11 @@ INSERT INTO users (
     id,
     username,
     email,
-    avatar_url,
     created_at
 ) VALUES (
     @id,
     @username,
     @email,
-    @avatar_url,
     @created_at
 ) RETURNING *;
 
@@ -21,7 +19,6 @@ WHERE email = @email;
 UPDATE users 
 SET 
     username = COALESCE(@username, username),
-    email = COALESCE(@email, email),
-    avatar_url = COALESCE(@avatar_url, avatar_url)  
+    email = COALESCE(@email, email)
 WHERE id = @id
 RETURNING *;

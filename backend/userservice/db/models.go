@@ -12,6 +12,5 @@ type User struct {
 	ID        string
 	Username  string
 	Email     string
-	AvatarUrl string
 	CreatedAt time.Time
 }

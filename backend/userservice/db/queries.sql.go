@@ -15,22 +15,19 @@ INSERT INTO users (
     id,
     username,
     email,
-    avatar_url,
     created_at
 ) VALUES (
     ?1,
     ?2,
     ?3,
-    ?4,
-    ?5
-) RETURNING id, username, email, avatar_url, created_at
+    ?4
+) RETURNING id, username, email, created_at
 `
 
 type CreateUserParams struct {
 	ID        string
 	Username  string
 	Email     string
-	AvatarUrl string
 	CreatedAt time.Time
 }
 
@@ -39,7 +36,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.ID,
 		arg.Username,
 		arg.Email,
-		arg.AvatarUrl,
 		arg.CreatedAt,
 	)
 	var i User
@@ -47,14 +43,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, avatar_url, created_at FROM users 
+SELECT id, username, email, created_at FROM users 
 WHERE email = ?1
 `
 
@@ -65,7 +60,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -75,32 +69,24 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users 
 SET 
     username = COALESCE(?1, username),
-    email = COALESCE(?2, email),
-    avatar_url = COALESCE(?3, avatar_url)  
-WHERE id = ?4
-RETURNING id, username, email, avatar_url, created_at
+    email = COALESCE(?2, email)
+WHERE id = ?3
+RETURNING id, username, email, created_at
 `
 
 type UpdateUserParams struct {
-	Username  string
-	Email     string
-	AvatarUrl string
-	ID        string
+	Username string
+	Email    string
+	ID       string
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUser,
-		arg.Username,
-		arg.Email,
-		arg.AvatarUrl,
-		arg.ID,
-	)
+	row := q.db.QueryRowContext(ctx, updateUser, arg.Username, arg.Email, arg.ID)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.AvatarUrl,
 		&i.CreatedAt,
 	)
 	return i, err

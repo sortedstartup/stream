@@ -6,6 +6,7 @@ import { $isLoggedIn } from '../store/auth'
 import { startUi, signOut } from '../providers/firebase-auth'
 import { setAuthState, clearAuthState } from '../store/auth'
 import { Header } from '../../components/layout/Header'
+import { createUserIfNotExists } from '../../stores/users'
 
 export const LoginPage = () => {
     
@@ -32,6 +33,15 @@ export const LoginPage = () => {
       },
       token
     })
+
+    try {
+      // Create user in database if not exists
+      await createUserIfNotExists(user.email)
+      console.log('User created/verified in database')
+    } catch (error) {
+      console.error('Failed to create user in database:', error)
+      // Don't block login flow, but log the error
+    }
 
     navigate('/')
   }
