@@ -6,6 +6,7 @@ import { $isLoggedIn } from '../store/auth'
 import { startUi, signOut } from '../providers/firebase-auth'
 import { setAuthState, clearAuthState } from '../store/auth'
 import { Header } from '../../components/layout/Header'
+import { createUserIfNotExists } from '../../stores/users'
 
 export const LoginPage = () => {
     
@@ -32,6 +33,11 @@ export const LoginPage = () => {
       },
       token
     })
+
+    try {
+      await createUserIfNotExists()
+    } catch (error) {
+    }
 
     navigate('/')
   }
