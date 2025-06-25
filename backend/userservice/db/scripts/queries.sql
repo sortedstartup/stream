@@ -1,5 +1,5 @@
 -- name: CreateUser :one
-INSERT INTO users (
+INSERT INTO userservice_users (
     id,
     username,
     email,
@@ -12,5 +12,5 @@ INSERT INTO users (
 ) RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT * FROM users 
+SELECT * FROM userservice_users 
 WHERE email = @email;

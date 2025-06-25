@@ -11,7 +11,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (
+INSERT INTO userservice_users (
     id,
     username,
     email,
@@ -31,14 +31,14 @@ type CreateUserParams struct {
 	CreatedAt time.Time
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (UserserviceUser, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Username,
 		arg.Email,
 		arg.CreatedAt,
 	)
-	var i User
+	var i UserserviceUser
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -49,13 +49,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, created_at FROM users 
+SELECT id, username, email, created_at FROM userservice_users 
 WHERE email = ?1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (UserserviceUser, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
+	var i UserserviceUser
 	err := row.Scan(
 		&i.ID,
 		&i.Username,

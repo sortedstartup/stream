@@ -7,7 +7,7 @@ option go_package = "sortedstartup.com/stream/userservice/proto";
 import "google/protobuf/timestamp.proto";
 
 service UserService {
-  rpc CreateUserIfNotExists(GetUserByEmailRequest) returns (User);
+  rpc CreateUserIfNotExists(GetUserByEmailRequest) returns (GetUserByEmailResponse);
 }
 
 message User {
@@ -18,4 +18,10 @@ message User {
 }
 
 message GetUserByEmailRequest {
+}
+
+message GetUserByEmailResponse {
+  string message = 1;
+  bool success = 2;
+  User user = 3; // Optional user data for future use
 }

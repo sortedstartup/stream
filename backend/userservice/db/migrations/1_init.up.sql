@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS userservice_users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,

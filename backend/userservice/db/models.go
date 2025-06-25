@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type User struct {
+type UserserviceUser struct {
 	ID        string
 	Username  string
 	Email     string

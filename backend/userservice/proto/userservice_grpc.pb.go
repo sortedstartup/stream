@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	CreateUserIfNotExists(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*User, error)
+	CreateUserIfNotExists(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*GetUserByEmailResponse, error)
 }
 
 type userServiceClient struct {
@@ -37,9 +37,9 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) CreateUserIfNotExists(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*User, error) {
+func (c *userServiceClient) CreateUserIfNotExists(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*GetUserByEmailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(User)
+	out := new(GetUserByEmailResponse)
 	err := c.cc.Invoke(ctx, UserService_CreateUserIfNotExists_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (c *userServiceClient) CreateUserIfNotExists(ctx context.Context, in *GetUs
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
-	CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*User, error)
+	CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*GetUserByEmailResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -62,7 +62,7 @@ type UserServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedUserServiceServer struct{}
 
-func (UnimplementedUserServiceServer) CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*User, error) {
+func (UnimplementedUserServiceServer) CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*GetUserByEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUserIfNotExists not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}

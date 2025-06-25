@@ -57,7 +57,7 @@ func (s *UserAPI) Init() error {
 	return nil
 }
 
-func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserByEmailRequest) (*proto.User, error) {
+func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserByEmailRequest) (*proto.GetUserByEmailResponse, error) {
 	s.log.Info("CreateUserIfNotExists")
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -69,6 +69,8 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 
 	dbUser, err := s.dbQueries.GetUserByEmail(ctx, userEmail)
 	s.log.Info("GetUserByEmail result", "error", err, "hasError", err != nil, "isNoRows", err == sql.ErrNoRows)
+
+	var successMessage string
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -87,6 +89,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 				return nil, status.Error(codes.Internal, "failed to create user")
 			}
 			s.log.Info("User created successfully with email", "email", authContext.User.Email)
+			successMessage = "User created successfully"
 		} else {
 			s.log.Error("Database error while getting user", "error", err)
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -97,8 +100,12 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 		if dbUser.ID == "" || dbUser.Email == "" {
 			s.log.Warn("User exists but has empty fields, this might indicate a database issue", "dbUser", dbUser)
 		}
+		successMessage = "User already exists"
 	}
 
-	// Return empty user response to indicate success
-	return &proto.User{}, nil
+	// Return success response with message
+	return &proto.GetUserByEmailResponse{
+		Message: successMessage,
+		Success: true,
+	}, nil
 }

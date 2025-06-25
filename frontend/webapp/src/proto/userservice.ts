@@ -187,6 +187,122 @@ export class GetUserByEmailRequest extends pb_1.Message {
         return GetUserByEmailRequest.deserialize(bytes);
     }
 }
+export class GetUserByEmailResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        success?: boolean;
+        user?: User;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("user" in data && data.user != undefined) {
+                this.user = data.user;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get user() {
+        return pb_1.Message.getWrapperField(this, User, 3) as User;
+    }
+    set user(value: User) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_user() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        success?: boolean;
+        user?: ReturnType<typeof User.prototype.toObject>;
+    }): GetUserByEmailResponse {
+        const message = new GetUserByEmailResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.user != null) {
+            message.user = User.fromObject(data.user);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            success?: boolean;
+            user?: ReturnType<typeof User.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.user != null) {
+            data.user = this.user.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.success != false)
+            writer.writeBool(2, this.success);
+        if (this.has_user)
+            writer.writeMessage(3, this.user, () => this.user.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserByEmailResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserByEmailResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    message.success = reader.readBool();
+                    break;
+                case 3:
+                    reader.readMessage(message.user, () => message.user = User.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUserByEmailResponse {
+        return GetUserByEmailResponse.deserialize(bytes);
+    }
+}
 export abstract class UnimplementedUserServiceService {
     static definition = {
         CreateUserIfNotExists: {
@@ -195,12 +311,12 @@ export abstract class UnimplementedUserServiceService {
             responseStream: false,
             requestSerialize: (message: GetUserByEmailRequest) => Buffer.from(message.serialize()),
             requestDeserialize: (bytes: Buffer) => GetUserByEmailRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: User) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => User.deserialize(new Uint8Array(bytes))
+            responseSerialize: (message: GetUserByEmailResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetUserByEmailResponse.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
-    abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, User>, callback: grpc_1.sendUnaryData<User>): void;
+    abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, GetUserByEmailResponse>, callback: grpc_1.sendUnaryData<GetUserByEmailResponse>): void;
 }
 export class UserServiceClient {
     private _address: string;
@@ -212,8 +328,8 @@ export class UserServiceClient {
         this._address = address;
         this._client = new grpc_web_1.GrpcWebClientBase(options);
     }
-    private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, User>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, User, (message: GetUserByEmailRequest) => message.serialize(), User.deserialize);
+    private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, GetUserByEmailResponse>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, GetUserByEmailResponse, (message: GetUserByEmailRequest) => message.serialize(), GetUserByEmailResponse.deserialize);
     CreateUserIfNotExists(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetUserByEmailRequest, User>(this._address + "/userservice.UserService/CreateUserIfNotExists", message, metadata || {}, UserServiceClient.CreateUserIfNotExists);
+        return this._client.thenableCall<GetUserByEmailRequest, GetUserByEmailResponse>(this._address + "/userservice.UserService/CreateUserIfNotExists", message, metadata || {}, UserServiceClient.CreateUserIfNotExists);
     }
 }
