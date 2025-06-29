@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -209,6 +210,26 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("File streamed successfully", "filename", fileName, "original", originalFilename)
 
+	// Now remux to ensure seekable container (esp. webm/mp4)
+	fixedFileName := uid + "_fixed" + ext
+	fixedOutputPath := filepath.Join(absUploadDir, fixedFileName)
+
+	if err := remuxVideo(outputPath, fixedOutputPath); err != nil {
+		os.Remove(outputPath)
+		os.Remove(fixedOutputPath)
+		slog.Error("Failed to remux video", "err", err)
+		http.Error(w, "Server failed to process video", http.StatusInternalServerError)
+		return
+	}
+
+	// Replace raw file with fixed one
+	os.Remove(outputPath)
+	if err := os.Rename(fixedOutputPath, outputPath); err != nil {
+		slog.Error("Failed to replace original file with remuxed file", "err", err)
+		http.Error(w, "Server error finalizing video", http.StatusInternalServerError)
+		return
+	}
+
 	// Save video details to the database
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
@@ -311,4 +332,11 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Use http.ServeContent to handle range requests, caching, and proper HTTP semantics
 	http.ServeContent(w, r, videoFileName, fileInfo.ModTime(), file)
+}
+
+func remuxVideo(inputPath, outputPath string) error {
+	cmd := exec.Command("ffmpeg", "-i", inputPath, "-c", "copy", "-y", outputPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
