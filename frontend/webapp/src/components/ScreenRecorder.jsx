@@ -17,6 +17,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const mediaRecorder = useRef(null);
   const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
+  const chunksRef = useRef([]);
 
   // --- OPFS Helpers ---
   const fileName = "recording.webm";
@@ -76,29 +77,35 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       screenStream.getTracks().forEach((track) => combinedStream.addTrack(track));
       audioStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
 
-      const fileHandle = await getRecordingFileHandle();
-      const writable = await fileHandle.createWritable();
-      writableStreamRef.current = writable;
-
+      chunksRef.current = [];
       mediaRecorder.current = new MediaRecorder(combinedStream);
 
-      mediaRecorder.current.ondataavailable = async (event) => {
-        if (event.data.size > 0 && writableStreamRef.current) {
-          await writableStreamRef.current.write(event.data);
+      mediaRecorder.current.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.current.onstop = async () => {
-        if (writableStreamRef.current) {
-          await writableStreamRef.current.close();
-          writableStreamRef.current = null;
-        }
+        try {
+          const finalBlob = new Blob(chunksRef.current, { type: "video/webm" });
 
-        const file = await fileHandle.getFile();
-        setCurrentVideoBlob(file);
-        setVideoUrl(URL.createObjectURL(file));
-        setShowForm(true);
-        setStatusMessage(null);
+          setCurrentVideoBlob(finalBlob);
+          setVideoUrl(URL.createObjectURL(finalBlob));
+          setShowForm(true);
+          setStatusMessage(null);
+
+          // Save the finalized Blob to OPFS once
+          const fileHandle = await getRecordingFileHandle();
+          const writable = await fileHandle.createWritable();
+          await writable.write(finalBlob);
+          await writable.close();
+
+          console.log("Recording saved to OPFS successfully!");
+        } catch (error) {
+          console.error("Error saving recording to OPFS:", error);
+          setStatusMessage("Failed to save recording.");
+        }
       };
 
       mediaRecorder.current.start();
