@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { useStore } from "@nanostores/react";
+import fixWebmDuration from "webm-duration-fix";
 
 export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -17,7 +18,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const mediaRecorder = useRef(null);
   const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
-  const chunksRef = useRef([]);
 
   // --- OPFS Helpers ---
   const fileName = "recording.webm";
@@ -77,35 +77,40 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       screenStream.getTracks().forEach((track) => combinedStream.addTrack(track));
       audioStream.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
 
-      chunksRef.current = [];
+      const fileHandle = await getRecordingFileHandle();
+      const writable = await fileHandle.createWritable();
+      writableStreamRef.current = writable;
+
       mediaRecorder.current = new MediaRecorder(combinedStream);
 
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
+      mediaRecorder.current.ondataavailable = async (event) => {
+        if (event.data.size > 0 && writableStreamRef.current) {
+          await writableStreamRef.current.write(event.data);
         }
       };
 
       mediaRecorder.current.onstop = async () => {
-        try {
-          const finalBlob = new Blob(chunksRef.current, { type: "video/webm" });
-
-          setCurrentVideoBlob(finalBlob);
-          setVideoUrl(URL.createObjectURL(finalBlob));
-          setShowForm(true);
-          setStatusMessage(null);
-
-          // Save the finalized Blob to OPFS once
-          const fileHandle = await getRecordingFileHandle();
-          const writable = await fileHandle.createWritable();
-          await writable.write(finalBlob);
-          await writable.close();
-
-          console.log("Recording saved to OPFS successfully!");
-        } catch (error) {
-          console.error("Error saving recording to OPFS:", error);
-          setStatusMessage("Failed to save recording.");
+        if (writableStreamRef.current) {
+          await writableStreamRef.current.close();
+          writableStreamRef.current = null;
         }
+
+        const file = await fileHandle.getFile();
+
+        try {
+          const fixedBlob = await fixWebmDuration(file);
+          setCurrentVideoBlob(fixedBlob);
+          setVideoUrl(URL.createObjectURL(fixedBlob));
+          setStatusMessage("Recording ready (duration fixed).");
+        } catch (err) {
+          console.error("Failed to fix WebM duration:", err);
+          // Fallback to original
+          setCurrentVideoBlob(file);
+          setVideoUrl(URL.createObjectURL(file));
+          setStatusMessage("Recording ready (unfixed).");
+        }
+
+        setShowForm(true);
       };
 
       mediaRecorder.current.start();
