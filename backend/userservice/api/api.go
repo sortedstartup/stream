@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"sortedstartup.com/stream/common/interceptors"
@@ -19,6 +21,7 @@ type UserAPI struct {
 	db        *sql.DB
 	log       *slog.Logger
 	dbQueries *db.Queries
+	userCache *lru.Cache
 	proto.UnimplementedUserServiceServer
 }
 
@@ -34,10 +37,16 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, error) {
 
 	dbQueries := db.New(_db)
 
+	cache, err := lru.New(10000) 
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user cache: %w", err)
+	}
+
 	userAPI := &UserAPI{
 		config:    config,
 		db:        _db,
 		log:       childLogger,
+		userCache: cache,
 		dbQueries: dbQueries,
 	}
 	return userAPI, nil
@@ -67,6 +76,18 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 	userEmail := authContext.User.Email
 	s.log.Info("userEmail", "userEmail", userEmail)
 
+	// CACHE CHECK
+	if _, found := s.userCache.Get(userEmail); found {
+		s.log.Info("Cache hit: skipping DB check", "email", userEmail)
+		return &proto.GetUserByEmailResponse{
+			Message: "User already exists (cache)",
+			Success: true,
+		}, nil
+	}
+
+	s.log.Info("DB_CHECK: querying DB for email", "email", userEmail)
+
+	// DB CHECK (and fallback to create)
 	dbUser, err := s.dbQueries.GetUserByEmail(ctx, userEmail)
 	s.log.Info("GetUserByEmail result", "error", err, "hasError", err != nil, "isNoRows", err == sql.ErrNoRows)
 
@@ -102,6 +123,10 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 		}
 		successMessage = "User already exists"
 	}
+
+	// ADD TO CACHE
+	s.userCache.Add(userEmail, true)
+	s.log.Info("CACHE_ADD: adding email to cache", "email", userEmail)
 
 	// Return success response with message
 	return &proto.GetUserByEmailResponse{
