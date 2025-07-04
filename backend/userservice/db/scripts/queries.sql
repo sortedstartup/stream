@@ -35,8 +35,15 @@ INSERT INTO userservice_tenants (
 
 -- name: GetUserTenants :many
 SELECT 
-    t.id, t.name, t.description, t.is_personal, t.created_at, t.created_by,
-    tu.role, tu.created_at as joined_at
+    tu.id as tenant_user_id,
+    t.id as tenant_id, 
+    t.name, 
+    t.description, 
+    t.is_personal, 
+    t.created_at, 
+    t.created_by,
+    tu.role, 
+    tu.created_at as joined_at
 FROM userservice_tenants t
 JOIN userservice_tenant_users tu ON t.id = tu.tenant_id
 WHERE tu.user_id = @user_id

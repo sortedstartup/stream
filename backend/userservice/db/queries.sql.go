@@ -211,8 +211,15 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Userservice
 
 const getUserTenants = `-- name: GetUserTenants :many
 SELECT 
-    t.id, t.name, t.description, t.is_personal, t.created_at, t.created_by,
-    tu.role, tu.created_at as joined_at
+    tu.id as tenant_user_id,
+    t.id as tenant_id, 
+    t.name, 
+    t.description, 
+    t.is_personal, 
+    t.created_at, 
+    t.created_by,
+    tu.role, 
+    tu.created_at as joined_at
 FROM userservice_tenants t
 JOIN userservice_tenant_users tu ON t.id = tu.tenant_id
 WHERE tu.user_id = ?1
@@ -220,14 +227,15 @@ ORDER BY t.created_at DESC
 `
 
 type GetUserTenantsRow struct {
-	ID          string
-	Name        string
-	Description sql.NullString
-	IsPersonal  bool
-	CreatedAt   time.Time
-	CreatedBy   string
-	Role        string
-	JoinedAt    time.Time
+	TenantUserID string
+	TenantID     string
+	Name         string
+	Description  sql.NullString
+	IsPersonal   bool
+	CreatedAt    time.Time
+	CreatedBy    string
+	Role         string
+	JoinedAt     time.Time
 }
 
 func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserTenantsRow, error) {
@@ -240,7 +248,8 @@ func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserT
 	for rows.Next() {
 		var i GetUserTenantsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.TenantUserID,
+			&i.TenantID,
 			&i.Name,
 			&i.Description,
 			&i.IsPersonal,

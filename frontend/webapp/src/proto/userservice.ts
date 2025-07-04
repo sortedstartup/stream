@@ -927,15 +927,19 @@ export class GetUserTenantsResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
+        tenants?: Tenant[];
     }) {
         super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [3], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
             if ("message" in data && data.message != undefined) {
                 this.message = data.message;
             }
             if ("success" in data && data.success != undefined) {
                 this.success = data.success;
+            }
+            if ("tenants" in data && data.tenants != undefined) {
+                this.tenants = data.tenants;
             }
         }
     }
@@ -951,9 +955,16 @@ export class GetUserTenantsResponse extends pb_1.Message {
     set success(value: boolean) {
         pb_1.Message.setField(this, 2, value);
     }
+    get tenants() {
+        return pb_1.Message.getRepeatedWrapperField(this, Tenant, 3) as Tenant[];
+    }
+    set tenants(value: Tenant[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 3, value);
+    }
     static fromObject(data: {
         message?: string;
         success?: boolean;
+        tenants?: ReturnType<typeof Tenant.prototype.toObject>[];
     }): GetUserTenantsResponse {
         const message = new GetUserTenantsResponse({});
         if (data.message != null) {
@@ -962,18 +973,25 @@ export class GetUserTenantsResponse extends pb_1.Message {
         if (data.success != null) {
             message.success = data.success;
         }
+        if (data.tenants != null) {
+            message.tenants = data.tenants.map(item => Tenant.fromObject(item));
+        }
         return message;
     }
     toObject() {
         const data: {
             message?: string;
             success?: boolean;
+            tenants?: ReturnType<typeof Tenant.prototype.toObject>[];
         } = {};
         if (this.message != null) {
             data.message = this.message;
         }
         if (this.success != null) {
             data.success = this.success;
+        }
+        if (this.tenants != null) {
+            data.tenants = this.tenants.map((item: Tenant) => item.toObject());
         }
         return data;
     }
@@ -985,6 +1003,8 @@ export class GetUserTenantsResponse extends pb_1.Message {
             writer.writeString(1, this.message);
         if (this.success != false)
             writer.writeBool(2, this.success);
+        if (this.tenants.length)
+            writer.writeRepeatedMessage(3, this.tenants, (item: Tenant) => item.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -999,6 +1019,9 @@ export class GetUserTenantsResponse extends pb_1.Message {
                     break;
                 case 2:
                     message.success = reader.readBool();
+                    break;
+                case 3:
+                    reader.readMessage(message.tenants, () => pb_1.Message.addToRepeatedWrapperField(message, 3, Tenant.deserialize(reader), Tenant));
                     break;
                 default: reader.skipField();
             }
