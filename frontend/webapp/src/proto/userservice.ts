@@ -681,7 +681,6 @@ export class CreateTenantRequest extends pb_1.Message {
     constructor(data?: any[] | {
         name?: string;
         description?: string;
-        user_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -691,9 +690,6 @@ export class CreateTenantRequest extends pb_1.Message {
             }
             if ("description" in data && data.description != undefined) {
                 this.description = data.description;
-            }
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
             }
         }
     }
@@ -709,16 +705,9 @@ export class CreateTenantRequest extends pb_1.Message {
     set description(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
     static fromObject(data: {
         name?: string;
         description?: string;
-        user_id?: string;
     }): CreateTenantRequest {
         const message = new CreateTenantRequest({});
         if (data.name != null) {
@@ -727,25 +716,18 @@ export class CreateTenantRequest extends pb_1.Message {
         if (data.description != null) {
             message.description = data.description;
         }
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
         return message;
     }
     toObject() {
         const data: {
             name?: string;
             description?: string;
-            user_id?: string;
         } = {};
         if (this.name != null) {
             data.name = this.name;
         }
         if (this.description != null) {
             data.description = this.description;
-        }
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
         }
         return data;
     }
@@ -757,8 +739,6 @@ export class CreateTenantRequest extends pb_1.Message {
             writer.writeString(1, this.name);
         if (this.description.length)
             writer.writeString(2, this.description);
-        if (this.user_id.length)
-            writer.writeString(3, this.user_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -773,9 +753,6 @@ export class CreateTenantRequest extends pb_1.Message {
                     break;
                 case 2:
                     message.description = reader.readString();
-                    break;
-                case 3:
-                    message.user_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -907,47 +884,23 @@ export class CreateTenantResponse extends pb_1.Message {
 }
 export class GetUserTenantsRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        user_id?: string;
-    }) {
+    constructor(data?: any[] | {}) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
-            }
-        }
+        if (!Array.isArray(data) && typeof data == "object") { }
     }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    static fromObject(data: {
-        user_id?: string;
-    }): GetUserTenantsRequest {
+    static fromObject(data: {}): GetUserTenantsRequest {
         const message = new GetUserTenantsRequest({});
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
         return message;
     }
     toObject() {
-        const data: {
-            user_id?: string;
-        } = {};
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
-        }
+        const data: {} = {};
         return data;
     }
     serialize(): Uint8Array;
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.user_id.length)
-            writer.writeString(1, this.user_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -957,9 +910,6 @@ export class GetUserTenantsRequest extends pb_1.Message {
             if (reader.isEndGroup())
                 break;
             switch (reader.getFieldNumber()) {
-                case 1:
-                    message.user_id = reader.readString();
-                    break;
                 default: reader.skipField();
             }
         }
@@ -977,19 +927,15 @@ export class GetUserTenantsResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
-        tenant_users?: TenantUser[];
     }) {
         super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [3], this.#one_of_decls);
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
             if ("message" in data && data.message != undefined) {
                 this.message = data.message;
             }
             if ("success" in data && data.success != undefined) {
                 this.success = data.success;
-            }
-            if ("tenant_users" in data && data.tenant_users != undefined) {
-                this.tenant_users = data.tenant_users;
             }
         }
     }
@@ -1005,16 +951,9 @@ export class GetUserTenantsResponse extends pb_1.Message {
     set success(value: boolean) {
         pb_1.Message.setField(this, 2, value);
     }
-    get tenant_users() {
-        return pb_1.Message.getRepeatedWrapperField(this, TenantUser, 3) as TenantUser[];
-    }
-    set tenant_users(value: TenantUser[]) {
-        pb_1.Message.setRepeatedWrapperField(this, 3, value);
-    }
     static fromObject(data: {
         message?: string;
         success?: boolean;
-        tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
     }): GetUserTenantsResponse {
         const message = new GetUserTenantsResponse({});
         if (data.message != null) {
@@ -1023,25 +962,18 @@ export class GetUserTenantsResponse extends pb_1.Message {
         if (data.success != null) {
             message.success = data.success;
         }
-        if (data.tenant_users != null) {
-            message.tenant_users = data.tenant_users.map(item => TenantUser.fromObject(item));
-        }
         return message;
     }
     toObject() {
         const data: {
             message?: string;
             success?: boolean;
-            tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
         } = {};
         if (this.message != null) {
             data.message = this.message;
         }
         if (this.success != null) {
             data.success = this.success;
-        }
-        if (this.tenant_users != null) {
-            data.tenant_users = this.tenant_users.map((item: TenantUser) => item.toObject());
         }
         return data;
     }
@@ -1053,8 +985,6 @@ export class GetUserTenantsResponse extends pb_1.Message {
             writer.writeString(1, this.message);
         if (this.success != false)
             writer.writeBool(2, this.success);
-        if (this.tenant_users.length)
-            writer.writeRepeatedMessage(3, this.tenant_users, (item: TenantUser) => item.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1069,9 +999,6 @@ export class GetUserTenantsResponse extends pb_1.Message {
                     break;
                 case 2:
                     message.success = reader.readBool();
-                    break;
-                case 3:
-                    reader.readMessage(message.tenant_users, () => pb_1.Message.addToRepeatedWrapperField(message, 3, TenantUser.deserialize(reader), TenantUser));
                     break;
                 default: reader.skipField();
             }
@@ -1203,7 +1130,6 @@ export class AddUserToTenantResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
-        tenant_user?: TenantUser;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -1213,9 +1139,6 @@ export class AddUserToTenantResponse extends pb_1.Message {
             }
             if ("success" in data && data.success != undefined) {
                 this.success = data.success;
-            }
-            if ("tenant_user" in data && data.tenant_user != undefined) {
-                this.tenant_user = data.tenant_user;
             }
         }
     }
@@ -1231,19 +1154,9 @@ export class AddUserToTenantResponse extends pb_1.Message {
     set success(value: boolean) {
         pb_1.Message.setField(this, 2, value);
     }
-    get tenant_user() {
-        return pb_1.Message.getWrapperField(this, TenantUser, 3) as TenantUser;
-    }
-    set tenant_user(value: TenantUser) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_tenant_user() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
     static fromObject(data: {
         message?: string;
         success?: boolean;
-        tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
     }): AddUserToTenantResponse {
         const message = new AddUserToTenantResponse({});
         if (data.message != null) {
@@ -1252,25 +1165,18 @@ export class AddUserToTenantResponse extends pb_1.Message {
         if (data.success != null) {
             message.success = data.success;
         }
-        if (data.tenant_user != null) {
-            message.tenant_user = TenantUser.fromObject(data.tenant_user);
-        }
         return message;
     }
     toObject() {
         const data: {
             message?: string;
             success?: boolean;
-            tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
         } = {};
         if (this.message != null) {
             data.message = this.message;
         }
         if (this.success != null) {
             data.success = this.success;
-        }
-        if (this.tenant_user != null) {
-            data.tenant_user = this.tenant_user.toObject();
         }
         return data;
     }
@@ -1282,8 +1188,6 @@ export class AddUserToTenantResponse extends pb_1.Message {
             writer.writeString(1, this.message);
         if (this.success != false)
             writer.writeBool(2, this.success);
-        if (this.has_tenant_user)
-            writer.writeMessage(3, this.tenant_user, () => this.tenant_user.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1298,9 +1202,6 @@ export class AddUserToTenantResponse extends pb_1.Message {
                     break;
                 case 2:
                     message.success = reader.readBool();
-                    break;
-                case 3:
-                    reader.readMessage(message.tenant_user, () => message.tenant_user = TenantUser.deserialize(reader));
                     break;
                 default: reader.skipField();
             }

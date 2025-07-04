@@ -52,7 +52,6 @@ message TenantUser {
 message CreateTenantRequest {
   string name = 1;
   string description = 2;
-  string user_id = 3;
 }
 
 message CreateTenantResponse {
@@ -62,13 +61,12 @@ message CreateTenantResponse {
 }
 
 message GetUserTenantsRequest {
-  string user_id = 1;
+  
 }
 
 message GetUserTenantsResponse {
   string message = 1;
   bool success = 2;
-  repeated TenantUser tenant_users = 3;
 }
 
 message AddUserToTenantRequest {
@@ -80,7 +78,6 @@ message AddUserToTenantRequest {
 message AddUserToTenantResponse {
   string message = 1;
   bool success = 2;
-  TenantUser tenant_user = 3;
 }
 
 message GetTenantUsersRequest {
