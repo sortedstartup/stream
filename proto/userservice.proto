@@ -8,6 +8,10 @@ import "google/protobuf/timestamp.proto";
 
 service UserService {
   rpc CreateUserIfNotExists(GetUserByEmailRequest) returns (GetUserByEmailResponse);
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc GetUserTenants(GetUserTenantsRequest) returns (GetUserTenantsResponse);
+  rpc AddUserToTenant(AddUserToTenantRequest) returns (AddUserToTenantResponse);
+  rpc GetTenantUsers(GetTenantUsersRequest) returns (GetTenantUsersResponse);
 }
 
 message User {
@@ -24,4 +28,67 @@ message GetUserByEmailResponse {
   string message = 1;
   bool success = 2;
   User user = 3; // Optional user data for future use
+}
+
+// Tenant messages
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool is_personal = 4;
+  google.protobuf.Timestamp created_at = 5;
+  string created_by = 6;
+}
+
+message TenantUser {
+  string id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp created_at = 5;
+  User user = 6; // Optional user details
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string description = 2;
+  string user_id = 3;
+}
+
+message CreateTenantResponse {
+  string message = 1;
+  bool success = 2;
+  Tenant tenant = 3;
+}
+
+message GetUserTenantsRequest {
+  string user_id = 1;
+}
+
+message GetUserTenantsResponse {
+  string message = 1;
+  bool success = 2;
+  repeated TenantUser tenant_users = 3;
+}
+
+message AddUserToTenantRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddUserToTenantResponse {
+  string message = 1;
+  bool success = 2;
+  TenantUser tenant_user = 3;
+}
+
+message GetTenantUsersRequest {
+  string tenant_id = 1;
+}
+
+message GetTenantUsersResponse {
+  string message = 1;
+  bool success = 2;
+  repeated TenantUser tenant_users = 3;
 }

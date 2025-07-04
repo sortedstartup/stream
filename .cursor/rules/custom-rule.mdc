@@ -15,7 +15,6 @@ Reporsitory structure
 |-- README.md
 |-- TODO.md
 |-- backend
-|   |-- 3d8fa932-0046-40cc-86cc-19c23ce89649.mp4
 |   |-- Dockerfile
 |   |-- commentservice
 |   |   |-- api
@@ -29,7 +28,9 @@ Reporsitory structure
 |   |   |   |-- migrate.go
 |   |   |   |-- migrations
 |   |   |   |   |-- 1_init.up.sql
-|   |   |   |   `-- 2_add_username_in_comments_table.up.sql
+|   |   |   |   |-- 2_add_username_in_comments_table.up.sql
+|   |   |   |   |-- 3_update_comment_foreign_key.up.sql
+|   |   |   |   `-- 4_drop_users_table.up.sql
 |   |   |   |-- models.go
 |   |   |   |-- querier.go
 |   |   |   |-- queries.sql.go
@@ -63,6 +64,8 @@ Reporsitory structure
 |   |-- mono
 |   |   |-- config
 |   |   |   `-- config.go
+|   |   |-- db.sqlite
+|   |   |-- functions
 |   |   |-- go.mod
 |   |   |-- go.sum
 |   |   |-- main.go
@@ -73,6 +76,27 @@ Reporsitory structure
 |   |   `-- webapp
 |   |       `-- dist
 |   |           `-- README.md
+|   |-- uploads
+|   |-- userservice
+|   |   |-- api
+|   |   |   `-- api.go
+|   |   |-- autogenerate.go
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- db
+|   |   |   |-- db.go
+|   |   |   |-- migrate.go
+|   |   |   |-- migrations
+|   |   |   |   `-- 1_init.up.sql
+|   |   |   |-- models.go
+|   |   |   |-- queries.sql.go
+|   |   |   `-- scripts
+|   |   |       |-- queries.sql
+|   |   |       `-- sqlc.yaml
+|   |   |-- go.mod
+|   |   `-- proto
+|   |       |-- userservice.pb.go
+|   |       `-- userservice_grpc.pb.go
 |   `-- videoservice
 |       |-- api
 |       |   |-- api.go
@@ -183,12 +207,54 @@ Reporsitory structure
 |   |-- commentservice.proto
 |   `-- videoservice.proto
 
+Existing database tables schema:
+CREATE TABLE userservice_users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
 
--> Every time when we make change in go backend, we run `go generate` to auto generate code. You tell when to run this generate. I will manualy run it. 
+
+CREATE TABLE comment_likes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    comment_id TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
 
 
+CREATE TABLE "comments" (
+    id TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    video_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    parent_comment_id TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    username TEXT
+)
 
+CREATE TABLE videos (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+, uploaded_user_id TEXT NOT NULL, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)
 
+---------
+Existing features:
+1. Login using firebase auth
+2. User can record screen and upload
+3. User can upload local videos
+4. List videos
+5. Play video
+6. Add comment to video
+
+---------
+When we implement new feature, we can start updating proto files in root level "proto" folder. Once we made proto changes, then we can make changes in respective backend service folder, by adding migrations, scripts/queries.sql. 
+Then ask me to run 'go generate' in respective service folder in backend, I will run, it will auto generate few files. We just have to write code using these auto generated method. Example, we may update api.go etc..
 
 
 

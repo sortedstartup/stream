@@ -20,6 +20,10 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	UserService_CreateUserIfNotExists_FullMethodName = "/userservice.UserService/CreateUserIfNotExists"
+	UserService_CreateTenant_FullMethodName          = "/userservice.UserService/CreateTenant"
+	UserService_GetUserTenants_FullMethodName        = "/userservice.UserService/GetUserTenants"
+	UserService_AddUserToTenant_FullMethodName       = "/userservice.UserService/AddUserToTenant"
+	UserService_GetTenantUsers_FullMethodName        = "/userservice.UserService/GetTenantUsers"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -27,6 +31,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
 	CreateUserIfNotExists(ctx context.Context, in *GetUserByEmailRequest, opts ...grpc.CallOption) (*GetUserByEmailResponse, error)
+	CreateTenant(ctx context.Context, in *CreateTenantRequest, opts ...grpc.CallOption) (*CreateTenantResponse, error)
+	GetUserTenants(ctx context.Context, in *GetUserTenantsRequest, opts ...grpc.CallOption) (*GetUserTenantsResponse, error)
+	AddUserToTenant(ctx context.Context, in *AddUserToTenantRequest, opts ...grpc.CallOption) (*AddUserToTenantResponse, error)
+	GetTenantUsers(ctx context.Context, in *GetTenantUsersRequest, opts ...grpc.CallOption) (*GetTenantUsersResponse, error)
 }
 
 type userServiceClient struct {
@@ -47,11 +55,55 @@ func (c *userServiceClient) CreateUserIfNotExists(ctx context.Context, in *GetUs
 	return out, nil
 }
 
+func (c *userServiceClient) CreateTenant(ctx context.Context, in *CreateTenantRequest, opts ...grpc.CallOption) (*CreateTenantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateTenantResponse)
+	err := c.cc.Invoke(ctx, UserService_CreateTenant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUserTenants(ctx context.Context, in *GetUserTenantsRequest, opts ...grpc.CallOption) (*GetUserTenantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserTenantsResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserTenants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) AddUserToTenant(ctx context.Context, in *AddUserToTenantRequest, opts ...grpc.CallOption) (*AddUserToTenantResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddUserToTenantResponse)
+	err := c.cc.Invoke(ctx, UserService_AddUserToTenant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetTenantUsers(ctx context.Context, in *GetTenantUsersRequest, opts ...grpc.CallOption) (*GetTenantUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTenantUsersResponse)
+	err := c.cc.Invoke(ctx, UserService_GetTenantUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 type UserServiceServer interface {
 	CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*GetUserByEmailResponse, error)
+	CreateTenant(context.Context, *CreateTenantRequest) (*CreateTenantResponse, error)
+	GetUserTenants(context.Context, *GetUserTenantsRequest) (*GetUserTenantsResponse, error)
+	AddUserToTenant(context.Context, *AddUserToTenantRequest) (*AddUserToTenantResponse, error)
+	GetTenantUsers(context.Context, *GetTenantUsersRequest) (*GetTenantUsersResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -64,6 +116,18 @@ type UnimplementedUserServiceServer struct{}
 
 func (UnimplementedUserServiceServer) CreateUserIfNotExists(context.Context, *GetUserByEmailRequest) (*GetUserByEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUserIfNotExists not implemented")
+}
+func (UnimplementedUserServiceServer) CreateTenant(context.Context, *CreateTenantRequest) (*CreateTenantResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateTenant not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserTenants(context.Context, *GetUserTenantsRequest) (*GetUserTenantsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserTenants not implemented")
+}
+func (UnimplementedUserServiceServer) AddUserToTenant(context.Context, *AddUserToTenantRequest) (*AddUserToTenantResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddUserToTenant not implemented")
+}
+func (UnimplementedUserServiceServer) GetTenantUsers(context.Context, *GetTenantUsersRequest) (*GetTenantUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTenantUsers not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -104,6 +168,78 @@ func _UserService_CreateUserIfNotExists_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_CreateTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CreateTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CreateTenant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CreateTenant(ctx, req.(*CreateTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUserTenants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserTenantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserTenants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserTenants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserTenants(ctx, req.(*GetUserTenantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AddUserToTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddUserToTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AddUserToTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AddUserToTenant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AddUserToTenant(ctx, req.(*AddUserToTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetTenantUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTenantUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetTenantUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetTenantUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetTenantUsers(ctx, req.(*GetTenantUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +250,22 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateUserIfNotExists",
 			Handler:    _UserService_CreateUserIfNotExists_Handler,
+		},
+		{
+			MethodName: "CreateTenant",
+			Handler:    _UserService_CreateTenant_Handler,
+		},
+		{
+			MethodName: "GetUserTenants",
+			Handler:    _UserService_GetUserTenants_Handler,
+		},
+		{
+			MethodName: "AddUserToTenant",
+			Handler:    _UserService_AddUserToTenant_Handler,
+		},
+		{
+			MethodName: "GetTenantUsers",
+			Handler:    _UserService_GetTenantUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
