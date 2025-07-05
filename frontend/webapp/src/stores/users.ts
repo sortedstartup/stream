@@ -29,8 +29,8 @@ export const createUserIfNotExists = async (): Promise<User> => {
             {}
         );
 
-        $currentDbUser.set(response);
-        return response;
+        $currentDbUser.set(response.user);
+        return response.user;
     } catch (error) {
         console.error("Error creating/fetching user:", error);
         throw error;
