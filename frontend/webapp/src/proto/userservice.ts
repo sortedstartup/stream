@@ -488,6 +488,214 @@ export class Tenant extends pb_1.Message {
         return Tenant.deserialize(bytes);
     }
 }
+export class TenantWithRole extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        name?: string;
+        description?: string;
+        is_personal?: boolean;
+        created_at?: dependency_1.Timestamp;
+        created_by?: string;
+        role?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+            if ("is_personal" in data && data.is_personal != undefined) {
+                this.is_personal = data.is_personal;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+            if ("created_by" in data && data.created_by != undefined) {
+                this.created_by = data.created_by;
+            }
+            if ("role" in data && data.role != undefined) {
+                this.role = data.role;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get is_personal() {
+        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
+    }
+    set is_personal(value: boolean) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 5, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 5) != null;
+    }
+    get created_by() {
+        return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
+    }
+    set created_by(value: string) {
+        pb_1.Message.setField(this, 6, value);
+    }
+    get role() {
+        return pb_1.Message.getFieldWithDefault(this, 7, "") as string;
+    }
+    set role(value: string) {
+        pb_1.Message.setField(this, 7, value);
+    }
+    static fromObject(data: {
+        id?: string;
+        name?: string;
+        description?: string;
+        is_personal?: boolean;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        created_by?: string;
+        role?: string;
+    }): TenantWithRole {
+        const message = new TenantWithRole({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        if (data.is_personal != null) {
+            message.is_personal = data.is_personal;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        if (data.created_by != null) {
+            message.created_by = data.created_by;
+        }
+        if (data.role != null) {
+            message.role = data.role;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            name?: string;
+            description?: string;
+            is_personal?: boolean;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            created_by?: string;
+            role?: string;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        if (this.is_personal != null) {
+            data.is_personal = this.is_personal;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        if (this.created_by != null) {
+            data.created_by = this.created_by;
+        }
+        if (this.role != null) {
+            data.role = this.role;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.name.length)
+            writer.writeString(2, this.name);
+        if (this.description.length)
+            writer.writeString(3, this.description);
+        if (this.is_personal != false)
+            writer.writeBool(4, this.is_personal);
+        if (this.has_created_at)
+            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
+        if (this.created_by.length)
+            writer.writeString(6, this.created_by);
+        if (this.role.length)
+            writer.writeString(7, this.role);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): TenantWithRole {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new TenantWithRole();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.name = reader.readString();
+                    break;
+                case 3:
+                    message.description = reader.readString();
+                    break;
+                case 4:
+                    message.is_personal = reader.readBool();
+                    break;
+                case 5:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 6:
+                    message.created_by = reader.readString();
+                    break;
+                case 7:
+                    message.role = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): TenantWithRole {
+        return TenantWithRole.deserialize(bytes);
+    }
+}
 export class TenantUser extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
@@ -927,7 +1135,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
-        tenants?: Tenant[];
+        tenants?: TenantWithRole[];
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [3], this.#one_of_decls);
@@ -956,15 +1164,15 @@ export class GetUserTenantsResponse extends pb_1.Message {
         pb_1.Message.setField(this, 2, value);
     }
     get tenants() {
-        return pb_1.Message.getRepeatedWrapperField(this, Tenant, 3) as Tenant[];
+        return pb_1.Message.getRepeatedWrapperField(this, TenantWithRole, 3) as TenantWithRole[];
     }
-    set tenants(value: Tenant[]) {
+    set tenants(value: TenantWithRole[]) {
         pb_1.Message.setRepeatedWrapperField(this, 3, value);
     }
     static fromObject(data: {
         message?: string;
         success?: boolean;
-        tenants?: ReturnType<typeof Tenant.prototype.toObject>[];
+        tenants?: ReturnType<typeof TenantWithRole.prototype.toObject>[];
     }): GetUserTenantsResponse {
         const message = new GetUserTenantsResponse({});
         if (data.message != null) {
@@ -974,7 +1182,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
             message.success = data.success;
         }
         if (data.tenants != null) {
-            message.tenants = data.tenants.map(item => Tenant.fromObject(item));
+            message.tenants = data.tenants.map(item => TenantWithRole.fromObject(item));
         }
         return message;
     }
@@ -982,7 +1190,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
         const data: {
             message?: string;
             success?: boolean;
-            tenants?: ReturnType<typeof Tenant.prototype.toObject>[];
+            tenants?: ReturnType<typeof TenantWithRole.prototype.toObject>[];
         } = {};
         if (this.message != null) {
             data.message = this.message;
@@ -991,7 +1199,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
             data.success = this.success;
         }
         if (this.tenants != null) {
-            data.tenants = this.tenants.map((item: Tenant) => item.toObject());
+            data.tenants = this.tenants.map((item: TenantWithRole) => item.toObject());
         }
         return data;
     }
@@ -1004,7 +1212,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
         if (this.success != false)
             writer.writeBool(2, this.success);
         if (this.tenants.length)
-            writer.writeRepeatedMessage(3, this.tenants, (item: Tenant) => item.serialize(writer));
+            writer.writeRepeatedMessage(3, this.tenants, (item: TenantWithRole) => item.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1021,7 +1229,7 @@ export class GetUserTenantsResponse extends pb_1.Message {
                     message.success = reader.readBool();
                     break;
                 case 3:
-                    reader.readMessage(message.tenants, () => pb_1.Message.addToRepeatedWrapperField(message, 3, Tenant.deserialize(reader), Tenant));
+                    reader.readMessage(message.tenants, () => pb_1.Message.addToRepeatedWrapperField(message, 3, TenantWithRole.deserialize(reader), TenantWithRole));
                     break;
                 default: reader.skipField();
             }
@@ -1039,7 +1247,7 @@ export class AddUserToTenantRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         tenant_id?: string;
-        user_id?: string;
+        username?: string;
         role?: string;
     }) {
         super();
@@ -1048,8 +1256,8 @@ export class AddUserToTenantRequest extends pb_1.Message {
             if ("tenant_id" in data && data.tenant_id != undefined) {
                 this.tenant_id = data.tenant_id;
             }
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
+            if ("username" in data && data.username != undefined) {
+                this.username = data.username;
             }
             if ("role" in data && data.role != undefined) {
                 this.role = data.role;
@@ -1062,10 +1270,10 @@ export class AddUserToTenantRequest extends pb_1.Message {
     set tenant_id(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get user_id() {
+    get username() {
         return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set user_id(value: string) {
+    set username(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
     get role() {
@@ -1076,15 +1284,15 @@ export class AddUserToTenantRequest extends pb_1.Message {
     }
     static fromObject(data: {
         tenant_id?: string;
-        user_id?: string;
+        username?: string;
         role?: string;
     }): AddUserToTenantRequest {
         const message = new AddUserToTenantRequest({});
         if (data.tenant_id != null) {
             message.tenant_id = data.tenant_id;
         }
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
+        if (data.username != null) {
+            message.username = data.username;
         }
         if (data.role != null) {
             message.role = data.role;
@@ -1094,14 +1302,14 @@ export class AddUserToTenantRequest extends pb_1.Message {
     toObject() {
         const data: {
             tenant_id?: string;
-            user_id?: string;
+            username?: string;
             role?: string;
         } = {};
         if (this.tenant_id != null) {
             data.tenant_id = this.tenant_id;
         }
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
+        if (this.username != null) {
+            data.username = this.username;
         }
         if (this.role != null) {
             data.role = this.role;
@@ -1114,8 +1322,8 @@ export class AddUserToTenantRequest extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.tenant_id.length)
             writer.writeString(1, this.tenant_id);
-        if (this.user_id.length)
-            writer.writeString(2, this.user_id);
+        if (this.username.length)
+            writer.writeString(2, this.username);
         if (this.role.length)
             writer.writeString(3, this.role);
         if (!w)
@@ -1131,7 +1339,7 @@ export class AddUserToTenantRequest extends pb_1.Message {
                     message.tenant_id = reader.readString();
                     break;
                 case 2:
-                    message.user_id = reader.readString();
+                    message.username = reader.readString();
                     break;
                 case 3:
                     message.role = reader.readString();
