@@ -1,7 +1,7 @@
 import { atom } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
-import { GetUserByEmailRequest, User, UserServiceClient } from "../proto/userservice"
+import { CreateUserRequest, User, UserServiceClient } from "../proto/userservice"
 
 export const $currentDbUser = atom<User | null>(null)
 
@@ -25,12 +25,12 @@ export const userService = new UserServiceClient(
 export const createUserIfNotExists = async (): Promise<User> => {
     try {
         const response = await userService.CreateUserIfNotExists(
-            GetUserByEmailRequest.fromObject({}),
+            CreateUserRequest.fromObject({}),
             {}
         );
 
-        $currentDbUser.set(response);
-        return response;
+        $currentDbUser.set(response.user);
+        return response.user;
     } catch (error) {
         console.error("Error creating/fetching user:", error);
         throw error;
