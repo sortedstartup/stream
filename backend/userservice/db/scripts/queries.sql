@@ -72,3 +72,7 @@ FROM userservice_tenant_users tu
 JOIN userservice_users u ON tu.user_id = u.id
 WHERE tu.tenant_id = @tenant_id
 ORDER BY tu.created_at ASC;
+
+-- name: GetUserRoleInTenant :one
+SELECT role FROM userservice_tenant_users 
+WHERE tenant_id = @tenant_id AND user_id = @user_id;

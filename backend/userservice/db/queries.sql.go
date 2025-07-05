@@ -209,6 +209,23 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Userservice
 	return i, err
 }
 
+const getUserRoleInTenant = `-- name: GetUserRoleInTenant :one
+SELECT role FROM userservice_tenant_users 
+WHERE tenant_id = ?1 AND user_id = ?2
+`
+
+type GetUserRoleInTenantParams struct {
+	TenantID string
+	UserID   string
+}
+
+func (q *Queries) GetUserRoleInTenant(ctx context.Context, arg GetUserRoleInTenantParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserRoleInTenant, arg.TenantID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getUserTenants = `-- name: GetUserTenants :many
 SELECT 
     tu.id as tenant_user_id,

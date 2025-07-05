@@ -236,15 +236,16 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsR
 		return nil, status.Error(codes.Internal, "failed to get user tenants")
 	}
 
-	var tenants []*proto.Tenant
+	var tenants []*proto.TenantWithRole
 	for _, row := range tenantRows {
-		tenant := &proto.Tenant{
+		tenant := &proto.TenantWithRole{
 			Id:          row.TenantID,
 			Name:        row.Name,
 			Description: row.Description.String,
 			IsPersonal:  row.IsPersonal,
 			CreatedAt:   timestamppb.New(row.CreatedAt),
 			CreatedBy:   row.CreatedBy,
+			Role:        row.Role,
 		}
 		tenants = append(tenants, tenant)
 	}
@@ -265,7 +266,7 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsR
 func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenantRequest) (*proto.AddUserToTenantResponse, error) {
 	s.log.Info("AddUserToTenant", "tenantID", req.TenantId, "username", req.Username)
 
-	_, err := interceptors.AuthFromContext(ctx)
+	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
@@ -292,8 +293,25 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 		role = "member"
 	}
 
-	// TODO: Add authorization check - only super_admin/admin can add users
-	// We will add using OPA
+	// Authorization check - only super_admin can add users to tenant
+	userRole, err := s.dbQueries.GetUserRoleInTenant(ctx, db.GetUserRoleInTenantParams{
+		TenantID: req.TenantId,
+		UserID:   authContext.User.ID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.log.Warn("User attempted to add user to tenant they don't belong to", "userID", authContext.User.ID, "tenantID", req.TenantId)
+			return nil, status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
+		}
+		s.log.Error("Failed to check user role in tenant", "error", err)
+		return nil, status.Error(codes.Internal, "failed to check permissions")
+	}
+
+	// Only super_admin can add users to tenant
+	if userRole != "super_admin" {
+		s.log.Warn("Non-super-admin user attempted to add user to tenant", "userID", authContext.User.ID, "role", userRole, "tenantID", req.TenantId)
+		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can add users to tenant")
+	}
 	tenantUserParams := db.CreateTenantUserParams{
 		ID:        uuid.New().String(),
 		TenantID:  req.TenantId,
@@ -315,7 +333,7 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 }
 
 /**
-* GetTenantUsers returns all users in a tenant
+* GetTenantUsers returns all users in a tenant - restricted to super_admin only
 * @param ctx context.Context
 * @param req *proto.GetTenantUsersRequest
 * @return *proto.GetTenantUsersResponse, error
@@ -323,7 +341,7 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetTenantUsersRequest) (*proto.GetTenantUsersResponse, error) {
 	s.log.Info("GetTenantUsers", "tenantID", req.TenantId)
 
-	_, err := interceptors.AuthFromContext(ctx)
+	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
 	}
@@ -333,8 +351,25 @@ func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetTenantUsersR
 		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
-	// TODO: Add authorization check - only tenant members can view users
-	// This will be implemented with OPA
+	// Authorization check - only super_admin can view tenant users
+	userRole, err := s.dbQueries.GetUserRoleInTenant(ctx, db.GetUserRoleInTenantParams{
+		TenantID: req.TenantId,
+		UserID:   authContext.User.ID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.log.Warn("User attempted to access tenant they don't belong to", "userID", authContext.User.ID, "tenantID", req.TenantId)
+			return nil, status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
+		}
+		s.log.Error("Failed to check user role in tenant", "error", err)
+		return nil, status.Error(codes.Internal, "failed to check permissions")
+	}
+
+	// Only super_admin can view tenant users
+	if userRole != "super_admin" {
+		s.log.Warn("Non-super-admin user attempted to view tenant users", "userID", authContext.User.ID, "role", userRole, "tenantID", req.TenantId)
+		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can view tenant members")
+	}
 
 	userRows, err := s.dbQueries.GetTenantUsers(ctx, req.TenantId)
 	if err != nil {
