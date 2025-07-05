@@ -257,13 +257,13 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsR
 }
 
 /**
-* AddUserToTenant adds a user to an existing tenant
+* AddUserToTenant adds a user to an existing tenant using username (email)
 * @param ctx context.Context
 * @param req *proto.AddUserToTenantRequest
 * @return *proto.AddUserToTenantResponse, error
  */
 func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenantRequest) (*proto.AddUserToTenantResponse, error) {
-	s.log.Info("AddUserToTenant", "tenantID", req.TenantId, "userID", req.UserId)
+	s.log.Info("AddUserToTenant", "tenantID", req.TenantId, "username", req.Username)
 
 	_, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -271,8 +271,19 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 	}
 
 	// Validate input
-	if req.TenantId == "" || req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "tenant ID and user ID are required")
+	if req.TenantId == "" || req.Username == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID and username are required")
+	}
+
+	// Validate that the user exists and get their ID
+	user, err := s.dbQueries.GetUserByEmail(ctx, req.Username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.log.Warn("Attempted to add non-existent user to tenant", "username", req.Username, "tenantID", req.TenantId)
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+		s.log.Error("Failed to check if user exists", "error", err, "username", req.Username)
+		return nil, status.Error(codes.Internal, "failed to validate user")
 	}
 
 	// Default role to member if not specified
@@ -286,7 +297,7 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 	tenantUserParams := db.CreateTenantUserParams{
 		ID:        uuid.New().String(),
 		TenantID:  req.TenantId,
-		UserID:    req.UserId,
+		UserID:    user.ID, // Use the user ID from the database lookup
 		Role:      role,
 		CreatedAt: time.Now(),
 	}

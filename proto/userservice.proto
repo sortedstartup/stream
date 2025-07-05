@@ -72,7 +72,7 @@ message GetUserTenantsResponse {
 
 message AddUserToTenantRequest {
   string tenant_id = 1;
-  string user_id = 2;
+  string username = 2; // Email address of the user to add
   string role = 3;
 }
 
