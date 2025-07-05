@@ -27,10 +27,10 @@ Reporsitory structure
 |   |   |   |-- db.go
 |   |   |   |-- migrate.go
 |   |   |   |-- migrations
-|   |   |   |   |-- 1_init.up.sql
-|   |   |   |   |-- 2_add_username_in_comments_table.up.sql
-|   |   |   |   |-- 3_update_comment_foreign_key.up.sql
-|   |   |   |   `-- 4_drop_users_table.up.sql
+|   |   |   |   |-- 1_....sql
+|   |   |   |   |-- 2_.....sql
+|   |   |   |   |-- 3_.....sql
+|   |   |   |   `-- 4.....sql
 |   |   |   |-- models.go
 |   |   |   |-- querier.go
 |   |   |   |-- queries.sql.go
@@ -87,7 +87,7 @@ Reporsitory structure
 |   |   |   |-- db.go
 |   |   |   |-- migrate.go
 |   |   |   |-- migrations
-|   |   |   |   `-- 1_init.up.sql
+|   |   |   |   `-- 1_....sql
 |   |   |   |-- models.go
 |   |   |   |-- queries.sql.go
 |   |   |   `-- scripts
@@ -110,7 +110,7 @@ Reporsitory structure
 |       |   |-- migrate.go
 |       |   |-- migrations
 |       |   |   |-- 1_init.up.sql
-|       |   |   `-- 2_add_uploaded_user.up.sql
+|       |   |   `-- 2_....sql
 |       |   |-- models.go
 |       |   |-- queries.sql.go
 |       |   `-- scripts
@@ -207,41 +207,6 @@ Reporsitory structure
 |   |-- commentservice.proto
 |   `-- videoservice.proto
 
-Existing database tables schema:
-CREATE TABLE userservice_users (
-    id TEXT PRIMARY KEY,
-    username TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
-
-
-CREATE TABLE comment_likes (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    comment_id TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
-
-
-CREATE TABLE "comments" (
-    id TEXT PRIMARY KEY,
-    content TEXT NOT NULL,
-    video_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    parent_comment_id TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    username TEXT
-)
-
-CREATE TABLE videos (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    url TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-, uploaded_user_id TEXT NOT NULL, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)
 
 ---------
 Existing features:
