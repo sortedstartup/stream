@@ -5,8 +5,26 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
+
+type UserserviceTenant struct {
+	ID          string
+	Name        string
+	Description sql.NullString
+	IsPersonal  bool
+	CreatedAt   time.Time
+	CreatedBy   string
+}
+
+type UserserviceTenantUser struct {
+	ID        string
+	TenantID  string
+	UserID    string
+	Role      string
+	CreatedAt time.Time
+}
 
 type UserserviceUser struct {
 	ID        string

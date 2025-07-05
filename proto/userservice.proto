@@ -7,7 +7,15 @@ option go_package = "sortedstartup.com/stream/userservice/proto";
 import "google/protobuf/timestamp.proto";
 
 service UserService {
-  rpc CreateUserIfNotExists(GetUserByEmailRequest) returns (GetUserByEmailResponse);
+  rpc CreateUserIfNotExists(CreateUserRequest) returns (CreateUserResponse);
+  // Get all the tenants which I (current logged in user) am a part of 
+  rpc GetTenants(GetTenantsRequest) returns (GetTenantsResponse);
+}
+
+service TenantService {
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc AddUser(AddUserRequest) returns (AddUserResponse);
+  rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
 }
 
 message User {
@@ -17,11 +25,69 @@ message User {
   google.protobuf.Timestamp created_at = 4;
 }
 
-message GetUserByEmailRequest {
+message Role {
+  string role = 1;
 }
 
-message GetUserByEmailResponse {
+message CreateUserRequest {
+}
+
+message CreateUserResponse {
+  string message = 1;
+  User user = 2; // Optional user data for future use
+}
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool is_personal = 4;
+  google.protobuf.Timestamp created_at = 5;
+  string created_by = 6;
+}
+
+// This is just a helper wrapper to encapsulate the users details + users role in a tenant
+message TenantUser {
+  Tenant tenant = 1;
+  User user = 2;
+  Role role = 3;
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateTenantResponse {
   string message = 1;
   bool success = 2;
-  User user = 3; // Optional user data for future use
+  Tenant tenant = 3;
+}
+
+message GetTenantsRequest {
+  
+}
+
+message GetTenantsResponse {
+  string message = 1;
+  repeated TenantUser tenant_users = 2;
+}
+
+message AddUserRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddUserResponse {
+  string message = 1;
+}
+
+message GetUsersRequest {
+  string tenant_id = 1;
+}
+
+message GetUsersResponse {
+  string message = 1;
+  repeated TenantUser tenant_users = 2;
 }

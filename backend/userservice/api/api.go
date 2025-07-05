@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/userservice/config"
 	"sortedstartup.com/stream/userservice/db"
@@ -22,14 +23,22 @@ type UserAPI struct {
 	proto.UnimplementedUserServiceServer
 }
 
-func NewUserAPI(config config.UserServiceConfig) (*UserAPI, error) {
+type TenantAPI struct {
+	config    config.UserServiceConfig
+	db        *sql.DB
+	log       *slog.Logger
+	dbQueries *db.Queries
+	proto.UnimplementedTenantServiceServer
+}
+
+func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 	slog.Info("NewUserAPI")
 
 	childLogger := slog.With("service", "UserAPI")
 
 	_db, err := sql.Open(config.DB.Driver, config.DB.Url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	dbQueries := db.New(_db)
@@ -40,7 +49,15 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, error) {
 		log:       childLogger,
 		dbQueries: dbQueries,
 	}
-	return userAPI, nil
+
+	tenantAPI := &TenantAPI{
+		config:    config,
+		db:        _db,
+		log:       childLogger,
+		dbQueries: dbQueries,
+	}
+
+	return userAPI, tenantAPI, nil
 }
 
 func (s *UserAPI) Start() error {
@@ -57,7 +74,7 @@ func (s *UserAPI) Init() error {
 	return nil
 }
 
-func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserByEmailRequest) (*proto.GetUserByEmailResponse, error) {
+func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUserRequest) (*proto.CreateUserResponse, error) {
 	s.log.Info("CreateUserIfNotExists")
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -104,8 +121,13 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 	}
 
 	// Return success response with message
-	return &proto.GetUserByEmailResponse{
+	return &proto.CreateUserResponse{
 		Message: successMessage,
-		Success: true,
+		User: &proto.User{
+			Id:        dbUser.ID,
+			Username:  dbUser.Username,
+			Email:     dbUser.Email,
+			CreatedAt: timestamppb.New(dbUser.CreatedAt),
+		},
 	}, nil
 }
