@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -16,4 +17,6 @@ type Video struct {
 	CreatedAt      time.Time
 	UploadedUserID string
 	UpdatedAt      time.Time
+	IsPrivate      sql.NullBool
+	TenantID       sql.NullString
 }

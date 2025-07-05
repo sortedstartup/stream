@@ -28,6 +28,7 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+  string tenant_id = 10;
 }
 
 enum VideoStatus {
@@ -38,9 +39,10 @@ enum VideoStatus {
 }
 
 enum Visibility {
-  VISIBILITY_PRIVATE = 0;
-  VISIBILITY_SHARED = 1;
-  VISIBILITY_PUBLIC = 2;
+  VISIBILITY_UNSPECIFIED = 0;
+  VISIBILITY_PRIVATE = 1;
+  VISIBILITY_SHARED = 2;
+  VISIBILITY_PUBLIC = 3;
 }
 
 message CreateVideoRequest {
@@ -55,15 +57,14 @@ message GetVideoRequest {
 }
 
 message ListVideosRequest {
-  // user id is implicit
-  //string user_id = 1;
+  // user id is implicit from auth context
   int32 pageSize = 2;
   int32 pageNumber = 3;
+  // tenant_id comes from X-Tenant-ID header, not request body
 }
 
 message ListVideosResponse {
   repeated Video videos = 1;
-  int32 next_page_number = 2;
 }
 
 message UpdateVideoRequest {
