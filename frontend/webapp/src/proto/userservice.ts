@@ -147,15 +147,82 @@ export class User extends pb_1.Message {
         return User.deserialize(bytes);
     }
 }
-export class GetUserByEmailRequest extends pb_1.Message {
+export class Role extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        role?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("role" in data && data.role != undefined) {
+                this.role = data.role;
+            }
+        }
+    }
+    get role() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set role(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        role?: string;
+    }): Role {
+        const message = new Role({});
+        if (data.role != null) {
+            message.role = data.role;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            role?: string;
+        } = {};
+        if (this.role != null) {
+            data.role = this.role;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.role.length)
+            writer.writeString(1, this.role);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Role {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Role();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.role = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): Role {
+        return Role.deserialize(bytes);
+    }
+}
+export class CreateUserRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {}) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") { }
     }
-    static fromObject(data: {}): GetUserByEmailRequest {
-        const message = new GetUserByEmailRequest({});
+    static fromObject(data: {}): CreateUserRequest {
+        const message = new CreateUserRequest({});
         return message;
     }
     toObject() {
@@ -169,8 +236,8 @@ export class GetUserByEmailRequest extends pb_1.Message {
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserByEmailRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserByEmailRequest();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateUserRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateUserRequest();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
@@ -183,15 +250,14 @@ export class GetUserByEmailRequest extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): GetUserByEmailRequest {
-        return GetUserByEmailRequest.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): CreateUserRequest {
+        return CreateUserRequest.deserialize(bytes);
     }
 }
-export class GetUserByEmailResponse extends pb_1.Message {
+export class CreateUserResponse extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         message?: string;
-        success?: boolean;
         user?: User;
     }) {
         super();
@@ -199,9 +265,6 @@ export class GetUserByEmailResponse extends pb_1.Message {
         if (!Array.isArray(data) && typeof data == "object") {
             if ("message" in data && data.message != undefined) {
                 this.message = data.message;
-            }
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
             }
             if ("user" in data && data.user != undefined) {
                 this.user = data.user;
@@ -214,32 +277,22 @@ export class GetUserByEmailResponse extends pb_1.Message {
     set message(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 2, value);
-    }
     get user() {
-        return pb_1.Message.getWrapperField(this, User, 3) as User;
+        return pb_1.Message.getWrapperField(this, User, 2) as User;
     }
     set user(value: User) {
-        pb_1.Message.setWrapperField(this, 3, value);
+        pb_1.Message.setWrapperField(this, 2, value);
     }
     get has_user() {
-        return pb_1.Message.getField(this, 3) != null;
+        return pb_1.Message.getField(this, 2) != null;
     }
     static fromObject(data: {
         message?: string;
-        success?: boolean;
         user?: ReturnType<typeof User.prototype.toObject>;
-    }): GetUserByEmailResponse {
-        const message = new GetUserByEmailResponse({});
+    }): CreateUserResponse {
+        const message = new CreateUserResponse({});
         if (data.message != null) {
             message.message = data.message;
-        }
-        if (data.success != null) {
-            message.success = data.success;
         }
         if (data.user != null) {
             message.user = User.fromObject(data.user);
@@ -249,14 +302,10 @@ export class GetUserByEmailResponse extends pb_1.Message {
     toObject() {
         const data: {
             message?: string;
-            success?: boolean;
             user?: ReturnType<typeof User.prototype.toObject>;
         } = {};
         if (this.message != null) {
             data.message = this.message;
-        }
-        if (this.success != null) {
-            data.success = this.success;
         }
         if (this.user != null) {
             data.user = this.user.toObject();
@@ -269,15 +318,13 @@ export class GetUserByEmailResponse extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.message.length)
             writer.writeString(1, this.message);
-        if (this.success != false)
-            writer.writeBool(2, this.success);
         if (this.has_user)
-            writer.writeMessage(3, this.user, () => this.user.serialize(writer));
+            writer.writeMessage(2, this.user, () => this.user.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserByEmailResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserByEmailResponse();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateUserResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateUserResponse();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
@@ -286,9 +333,6 @@ export class GetUserByEmailResponse extends pb_1.Message {
                     message.message = reader.readString();
                     break;
                 case 2:
-                    message.success = reader.readBool();
-                    break;
-                case 3:
                     reader.readMessage(message.user, () => message.user = User.deserialize(reader));
                     break;
                 default: reader.skipField();
@@ -299,8 +343,8 @@ export class GetUserByEmailResponse extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): GetUserByEmailResponse {
-        return GetUserByEmailResponse.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): CreateUserResponse {
+        return CreateUserResponse.deserialize(bytes);
     }
 }
 export class Tenant extends pb_1.Message {
@@ -488,151 +532,85 @@ export class Tenant extends pb_1.Message {
         return Tenant.deserialize(bytes);
     }
 }
-export class TenantWithRole extends pb_1.Message {
+export class TenantUser extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
-        id?: string;
-        name?: string;
-        description?: string;
-        is_personal?: boolean;
-        created_at?: dependency_1.Timestamp;
-        created_by?: string;
-        role?: string;
+        tenant?: Tenant;
+        user?: User;
+        role?: Role;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
-            if ("id" in data && data.id != undefined) {
-                this.id = data.id;
+            if ("tenant" in data && data.tenant != undefined) {
+                this.tenant = data.tenant;
             }
-            if ("name" in data && data.name != undefined) {
-                this.name = data.name;
-            }
-            if ("description" in data && data.description != undefined) {
-                this.description = data.description;
-            }
-            if ("is_personal" in data && data.is_personal != undefined) {
-                this.is_personal = data.is_personal;
-            }
-            if ("created_at" in data && data.created_at != undefined) {
-                this.created_at = data.created_at;
-            }
-            if ("created_by" in data && data.created_by != undefined) {
-                this.created_by = data.created_by;
+            if ("user" in data && data.user != undefined) {
+                this.user = data.user;
             }
             if ("role" in data && data.role != undefined) {
                 this.role = data.role;
             }
         }
     }
-    get id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    get tenant() {
+        return pb_1.Message.getWrapperField(this, Tenant, 1) as Tenant;
     }
-    set id(value: string) {
-        pb_1.Message.setField(this, 1, value);
+    set tenant(value: Tenant) {
+        pb_1.Message.setWrapperField(this, 1, value);
     }
-    get name() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    get has_tenant() {
+        return pb_1.Message.getField(this, 1) != null;
     }
-    set name(value: string) {
-        pb_1.Message.setField(this, 2, value);
+    get user() {
+        return pb_1.Message.getWrapperField(this, User, 2) as User;
     }
-    get description() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    set user(value: User) {
+        pb_1.Message.setWrapperField(this, 2, value);
     }
-    set description(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    get is_personal() {
-        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
-    }
-    set is_personal(value: boolean) {
-        pb_1.Message.setField(this, 4, value);
-    }
-    get created_at() {
-        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
-    }
-    set created_at(value: dependency_1.Timestamp) {
-        pb_1.Message.setWrapperField(this, 5, value);
-    }
-    get has_created_at() {
-        return pb_1.Message.getField(this, 5) != null;
-    }
-    get created_by() {
-        return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
-    }
-    set created_by(value: string) {
-        pb_1.Message.setField(this, 6, value);
+    get has_user() {
+        return pb_1.Message.getField(this, 2) != null;
     }
     get role() {
-        return pb_1.Message.getFieldWithDefault(this, 7, "") as string;
+        return pb_1.Message.getWrapperField(this, Role, 3) as Role;
     }
-    set role(value: string) {
-        pb_1.Message.setField(this, 7, value);
+    set role(value: Role) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_role() {
+        return pb_1.Message.getField(this, 3) != null;
     }
     static fromObject(data: {
-        id?: string;
-        name?: string;
-        description?: string;
-        is_personal?: boolean;
-        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-        created_by?: string;
-        role?: string;
-    }): TenantWithRole {
-        const message = new TenantWithRole({});
-        if (data.id != null) {
-            message.id = data.id;
+        tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+        user?: ReturnType<typeof User.prototype.toObject>;
+        role?: ReturnType<typeof Role.prototype.toObject>;
+    }): TenantUser {
+        const message = new TenantUser({});
+        if (data.tenant != null) {
+            message.tenant = Tenant.fromObject(data.tenant);
         }
-        if (data.name != null) {
-            message.name = data.name;
-        }
-        if (data.description != null) {
-            message.description = data.description;
-        }
-        if (data.is_personal != null) {
-            message.is_personal = data.is_personal;
-        }
-        if (data.created_at != null) {
-            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
-        }
-        if (data.created_by != null) {
-            message.created_by = data.created_by;
+        if (data.user != null) {
+            message.user = User.fromObject(data.user);
         }
         if (data.role != null) {
-            message.role = data.role;
+            message.role = Role.fromObject(data.role);
         }
         return message;
     }
     toObject() {
         const data: {
-            id?: string;
-            name?: string;
-            description?: string;
-            is_personal?: boolean;
-            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-            created_by?: string;
-            role?: string;
+            tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+            user?: ReturnType<typeof User.prototype.toObject>;
+            role?: ReturnType<typeof Role.prototype.toObject>;
         } = {};
-        if (this.id != null) {
-            data.id = this.id;
+        if (this.tenant != null) {
+            data.tenant = this.tenant.toObject();
         }
-        if (this.name != null) {
-            data.name = this.name;
-        }
-        if (this.description != null) {
-            data.description = this.description;
-        }
-        if (this.is_personal != null) {
-            data.is_personal = this.is_personal;
-        }
-        if (this.created_at != null) {
-            data.created_at = this.created_at.toObject();
-        }
-        if (this.created_by != null) {
-            data.created_by = this.created_by;
+        if (this.user != null) {
+            data.user = this.user.toObject();
         }
         if (this.role != null) {
-            data.role = this.role;
+            data.role = this.role.toObject();
         }
         return data;
     }
@@ -640,49 +618,29 @@ export class TenantWithRole extends pb_1.Message {
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.id.length)
-            writer.writeString(1, this.id);
-        if (this.name.length)
-            writer.writeString(2, this.name);
-        if (this.description.length)
-            writer.writeString(3, this.description);
-        if (this.is_personal != false)
-            writer.writeBool(4, this.is_personal);
-        if (this.has_created_at)
-            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
-        if (this.created_by.length)
-            writer.writeString(6, this.created_by);
-        if (this.role.length)
-            writer.writeString(7, this.role);
+        if (this.has_tenant)
+            writer.writeMessage(1, this.tenant, () => this.tenant.serialize(writer));
+        if (this.has_user)
+            writer.writeMessage(2, this.user, () => this.user.serialize(writer));
+        if (this.has_role)
+            writer.writeMessage(3, this.role, () => this.role.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): TenantWithRole {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new TenantWithRole();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): TenantUser {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new TenantUser();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
             switch (reader.getFieldNumber()) {
                 case 1:
-                    message.id = reader.readString();
+                    reader.readMessage(message.tenant, () => message.tenant = Tenant.deserialize(reader));
                     break;
                 case 2:
-                    message.name = reader.readString();
+                    reader.readMessage(message.user, () => message.user = User.deserialize(reader));
                     break;
                 case 3:
-                    message.description = reader.readString();
-                    break;
-                case 4:
-                    message.is_personal = reader.readBool();
-                    break;
-                case 5:
-                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
-                    break;
-                case 6:
-                    message.created_by = reader.readString();
-                    break;
-                case 7:
-                    message.role = reader.readString();
+                    reader.readMessage(message.role, () => message.role = Role.deserialize(reader));
                     break;
                 default: reader.skipField();
             }
@@ -692,140 +650,173 @@ export class TenantWithRole extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): TenantWithRole {
-        return TenantWithRole.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): TenantUser {
+        return TenantUser.deserialize(bytes);
     }
 }
-export class TenantUser extends pb_1.Message {
+export class CreateTenantRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
-        id?: string;
-        tenant_id?: string;
-        user_id?: string;
-        role?: string;
-        created_at?: dependency_1.Timestamp;
-        user?: User;
+        name?: string;
+        description?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
-            if ("id" in data && data.id != undefined) {
-                this.id = data.id;
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
             }
-            if ("tenant_id" in data && data.tenant_id != undefined) {
-                this.tenant_id = data.tenant_id;
-            }
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
-            }
-            if ("role" in data && data.role != undefined) {
-                this.role = data.role;
-            }
-            if ("created_at" in data && data.created_at != undefined) {
-                this.created_at = data.created_at;
-            }
-            if ("user" in data && data.user != undefined) {
-                this.user = data.user;
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
             }
         }
     }
-    get id() {
+    get name() {
         return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
     }
-    set id(value: string) {
+    set name(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get tenant_id() {
+    get description() {
         return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set tenant_id(value: string) {
+    set description(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    get role() {
-        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
-    }
-    set role(value: string) {
-        pb_1.Message.setField(this, 4, value);
-    }
-    get created_at() {
-        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
-    }
-    set created_at(value: dependency_1.Timestamp) {
-        pb_1.Message.setWrapperField(this, 5, value);
-    }
-    get has_created_at() {
-        return pb_1.Message.getField(this, 5) != null;
-    }
-    get user() {
-        return pb_1.Message.getWrapperField(this, User, 6) as User;
-    }
-    set user(value: User) {
-        pb_1.Message.setWrapperField(this, 6, value);
-    }
-    get has_user() {
-        return pb_1.Message.getField(this, 6) != null;
-    }
     static fromObject(data: {
-        id?: string;
-        tenant_id?: string;
-        user_id?: string;
-        role?: string;
-        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-        user?: ReturnType<typeof User.prototype.toObject>;
-    }): TenantUser {
-        const message = new TenantUser({});
-        if (data.id != null) {
-            message.id = data.id;
+        name?: string;
+        description?: string;
+    }): CreateTenantRequest {
+        const message = new CreateTenantRequest({});
+        if (data.name != null) {
+            message.name = data.name;
         }
-        if (data.tenant_id != null) {
-            message.tenant_id = data.tenant_id;
-        }
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
-        if (data.role != null) {
-            message.role = data.role;
-        }
-        if (data.created_at != null) {
-            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
-        }
-        if (data.user != null) {
-            message.user = User.fromObject(data.user);
+        if (data.description != null) {
+            message.description = data.description;
         }
         return message;
     }
     toObject() {
         const data: {
-            id?: string;
-            tenant_id?: string;
-            user_id?: string;
-            role?: string;
-            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-            user?: ReturnType<typeof User.prototype.toObject>;
+            name?: string;
+            description?: string;
         } = {};
-        if (this.id != null) {
-            data.id = this.id;
+        if (this.name != null) {
+            data.name = this.name;
         }
-        if (this.tenant_id != null) {
-            data.tenant_id = this.tenant_id;
+        if (this.description != null) {
+            data.description = this.description;
         }
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.name.length)
+            writer.writeString(1, this.name);
+        if (this.description.length)
+            writer.writeString(2, this.description);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateTenantRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateTenantRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.name = reader.readString();
+                    break;
+                case 2:
+                    message.description = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
         }
-        if (this.role != null) {
-            data.role = this.role;
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CreateTenantRequest {
+        return CreateTenantRequest.deserialize(bytes);
+    }
+}
+export class CreateTenantResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        success?: boolean;
+        tenant?: Tenant;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("tenant" in data && data.tenant != undefined) {
+                this.tenant = data.tenant;
+            }
         }
-        if (this.created_at != null) {
-            data.created_at = this.created_at.toObject();
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get tenant() {
+        return pb_1.Message.getWrapperField(this, Tenant, 3) as Tenant;
+    }
+    set tenant(value: Tenant) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_tenant() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        success?: boolean;
+        tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+    }): CreateTenantResponse {
+        const message = new CreateTenantResponse({});
+        if (data.message != null) {
+            message.message = data.message;
         }
-        if (this.user != null) {
-            data.user = this.user.toObject();
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.tenant != null) {
+            message.tenant = Tenant.fromObject(data.tenant);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            success?: boolean;
+            tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.tenant != null) {
+            data.tenant = this.tenant.toObject();
         }
         return data;
     }
@@ -1090,15 +1081,15 @@ export class CreateTenantResponse extends pb_1.Message {
         return CreateTenantResponse.deserialize(bytes);
     }
 }
-export class GetUserTenantsRequest extends pb_1.Message {
+export class GetTenantsRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {}) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") { }
     }
-    static fromObject(data: {}): GetUserTenantsRequest {
-        const message = new GetUserTenantsRequest({});
+    static fromObject(data: {}): GetTenantsRequest {
+        const message = new GetTenantsRequest({});
         return message;
     }
     toObject() {
@@ -1112,8 +1103,8 @@ export class GetUserTenantsRequest extends pb_1.Message {
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserTenantsRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserTenantsRequest();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetTenantsRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetTenantsRequest();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
@@ -1126,408 +1117,21 @@ export class GetUserTenantsRequest extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): GetUserTenantsRequest {
-        return GetUserTenantsRequest.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): GetTenantsRequest {
+        return GetTenantsRequest.deserialize(bytes);
     }
 }
-export class GetUserTenantsResponse extends pb_1.Message {
+export class GetTenantsResponse extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         message?: string;
-        success?: boolean;
-        tenants?: TenantWithRole[];
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [3], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("message" in data && data.message != undefined) {
-                this.message = data.message;
-            }
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
-            }
-            if ("tenants" in data && data.tenants != undefined) {
-                this.tenants = data.tenants;
-            }
-        }
-    }
-    get message() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set message(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get tenants() {
-        return pb_1.Message.getRepeatedWrapperField(this, TenantWithRole, 3) as TenantWithRole[];
-    }
-    set tenants(value: TenantWithRole[]) {
-        pb_1.Message.setRepeatedWrapperField(this, 3, value);
-    }
-    static fromObject(data: {
-        message?: string;
-        success?: boolean;
-        tenants?: ReturnType<typeof TenantWithRole.prototype.toObject>[];
-    }): GetUserTenantsResponse {
-        const message = new GetUserTenantsResponse({});
-        if (data.message != null) {
-            message.message = data.message;
-        }
-        if (data.success != null) {
-            message.success = data.success;
-        }
-        if (data.tenants != null) {
-            message.tenants = data.tenants.map(item => TenantWithRole.fromObject(item));
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            message?: string;
-            success?: boolean;
-            tenants?: ReturnType<typeof TenantWithRole.prototype.toObject>[];
-        } = {};
-        if (this.message != null) {
-            data.message = this.message;
-        }
-        if (this.success != null) {
-            data.success = this.success;
-        }
-        if (this.tenants != null) {
-            data.tenants = this.tenants.map((item: TenantWithRole) => item.toObject());
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.message.length)
-            writer.writeString(1, this.message);
-        if (this.success != false)
-            writer.writeBool(2, this.success);
-        if (this.tenants.length)
-            writer.writeRepeatedMessage(3, this.tenants, (item: TenantWithRole) => item.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserTenantsResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserTenantsResponse();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.message = reader.readString();
-                    break;
-                case 2:
-                    message.success = reader.readBool();
-                    break;
-                case 3:
-                    reader.readMessage(message.tenants, () => pb_1.Message.addToRepeatedWrapperField(message, 3, TenantWithRole.deserialize(reader), TenantWithRole));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): GetUserTenantsResponse {
-        return GetUserTenantsResponse.deserialize(bytes);
-    }
-}
-export class AddUserToTenantRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        tenant_id?: string;
-        username?: string;
-        role?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("tenant_id" in data && data.tenant_id != undefined) {
-                this.tenant_id = data.tenant_id;
-            }
-            if ("username" in data && data.username != undefined) {
-                this.username = data.username;
-            }
-            if ("role" in data && data.role != undefined) {
-                this.role = data.role;
-            }
-        }
-    }
-    get tenant_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set tenant_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get username() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set username(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get role() {
-        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
-    }
-    set role(value: string) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    static fromObject(data: {
-        tenant_id?: string;
-        username?: string;
-        role?: string;
-    }): AddUserToTenantRequest {
-        const message = new AddUserToTenantRequest({});
-        if (data.tenant_id != null) {
-            message.tenant_id = data.tenant_id;
-        }
-        if (data.username != null) {
-            message.username = data.username;
-        }
-        if (data.role != null) {
-            message.role = data.role;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            tenant_id?: string;
-            username?: string;
-            role?: string;
-        } = {};
-        if (this.tenant_id != null) {
-            data.tenant_id = this.tenant_id;
-        }
-        if (this.username != null) {
-            data.username = this.username;
-        }
-        if (this.role != null) {
-            data.role = this.role;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.tenant_id.length)
-            writer.writeString(1, this.tenant_id);
-        if (this.username.length)
-            writer.writeString(2, this.username);
-        if (this.role.length)
-            writer.writeString(3, this.role);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddUserToTenantRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddUserToTenantRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.tenant_id = reader.readString();
-                    break;
-                case 2:
-                    message.username = reader.readString();
-                    break;
-                case 3:
-                    message.role = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): AddUserToTenantRequest {
-        return AddUserToTenantRequest.deserialize(bytes);
-    }
-}
-export class AddUserToTenantResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        message?: string;
-        success?: boolean;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("message" in data && data.message != undefined) {
-                this.message = data.message;
-            }
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
-            }
-        }
-    }
-    get message() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set message(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    static fromObject(data: {
-        message?: string;
-        success?: boolean;
-    }): AddUserToTenantResponse {
-        const message = new AddUserToTenantResponse({});
-        if (data.message != null) {
-            message.message = data.message;
-        }
-        if (data.success != null) {
-            message.success = data.success;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            message?: string;
-            success?: boolean;
-        } = {};
-        if (this.message != null) {
-            data.message = this.message;
-        }
-        if (this.success != null) {
-            data.success = this.success;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.message.length)
-            writer.writeString(1, this.message);
-        if (this.success != false)
-            writer.writeBool(2, this.success);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddUserToTenantResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddUserToTenantResponse();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.message = reader.readString();
-                    break;
-                case 2:
-                    message.success = reader.readBool();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): AddUserToTenantResponse {
-        return AddUserToTenantResponse.deserialize(bytes);
-    }
-}
-export class GetTenantUsersRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        tenant_id?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("tenant_id" in data && data.tenant_id != undefined) {
-                this.tenant_id = data.tenant_id;
-            }
-        }
-    }
-    get tenant_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set tenant_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    static fromObject(data: {
-        tenant_id?: string;
-    }): GetTenantUsersRequest {
-        const message = new GetTenantUsersRequest({});
-        if (data.tenant_id != null) {
-            message.tenant_id = data.tenant_id;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            tenant_id?: string;
-        } = {};
-        if (this.tenant_id != null) {
-            data.tenant_id = this.tenant_id;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.tenant_id.length)
-            writer.writeString(1, this.tenant_id);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetTenantUsersRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetTenantUsersRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.tenant_id = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): GetTenantUsersRequest {
-        return GetTenantUsersRequest.deserialize(bytes);
-    }
-}
-export class GetTenantUsersResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        message?: string;
-        success?: boolean;
         tenant_users?: TenantUser[];
     }) {
         super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [3], this.#one_of_decls);
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [2], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
             if ("message" in data && data.message != undefined) {
                 this.message = data.message;
-            }
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
             }
             if ("tenant_users" in data && data.tenant_users != undefined) {
                 this.tenant_users = data.tenant_users;
@@ -1540,29 +1144,19 @@ export class GetTenantUsersResponse extends pb_1.Message {
     set message(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 2, value);
-    }
     get tenant_users() {
-        return pb_1.Message.getRepeatedWrapperField(this, TenantUser, 3) as TenantUser[];
+        return pb_1.Message.getRepeatedWrapperField(this, TenantUser, 2) as TenantUser[];
     }
     set tenant_users(value: TenantUser[]) {
-        pb_1.Message.setRepeatedWrapperField(this, 3, value);
+        pb_1.Message.setRepeatedWrapperField(this, 2, value);
     }
     static fromObject(data: {
         message?: string;
-        success?: boolean;
         tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
-    }): GetTenantUsersResponse {
-        const message = new GetTenantUsersResponse({});
+    }): GetTenantsResponse {
+        const message = new GetTenantsResponse({});
         if (data.message != null) {
             message.message = data.message;
-        }
-        if (data.success != null) {
-            message.success = data.success;
         }
         if (data.tenant_users != null) {
             message.tenant_users = data.tenant_users.map(item => TenantUser.fromObject(item));
@@ -1572,14 +1166,10 @@ export class GetTenantUsersResponse extends pb_1.Message {
     toObject() {
         const data: {
             message?: string;
-            success?: boolean;
             tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
         } = {};
         if (this.message != null) {
             data.message = this.message;
-        }
-        if (this.success != null) {
-            data.success = this.success;
         }
         if (this.tenant_users != null) {
             data.tenant_users = this.tenant_users.map((item: TenantUser) => item.toObject());
@@ -1592,15 +1182,13 @@ export class GetTenantUsersResponse extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.message.length)
             writer.writeString(1, this.message);
-        if (this.success != false)
-            writer.writeBool(2, this.success);
         if (this.tenant_users.length)
-            writer.writeRepeatedMessage(3, this.tenant_users, (item: TenantUser) => item.serialize(writer));
+            writer.writeRepeatedMessage(2, this.tenant_users, (item: TenantUser) => item.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetTenantUsersResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetTenantUsersResponse();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetTenantsResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetTenantsResponse();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
@@ -1609,10 +1197,7 @@ export class GetTenantUsersResponse extends pb_1.Message {
                     message.message = reader.readString();
                     break;
                 case 2:
-                    message.success = reader.readBool();
-                    break;
-                case 3:
-                    reader.readMessage(message.tenant_users, () => pb_1.Message.addToRepeatedWrapperField(message, 3, TenantUser.deserialize(reader), TenantUser));
+                    reader.readMessage(message.tenant_users, () => pb_1.Message.addToRepeatedWrapperField(message, 2, TenantUser.deserialize(reader), TenantUser));
                     break;
                 default: reader.skipField();
             }
@@ -1622,8 +1207,345 @@ export class GetTenantUsersResponse extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): GetTenantUsersResponse {
-        return GetTenantUsersResponse.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): GetTenantsResponse {
+        return GetTenantsResponse.deserialize(bytes);
+    }
+}
+export class AddUserRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        tenant_id?: string;
+        user_id?: string;
+        role?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("tenant_id" in data && data.tenant_id != undefined) {
+                this.tenant_id = data.tenant_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("role" in data && data.role != undefined) {
+                this.role = data.role;
+            }
+        }
+    }
+    get tenant_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set tenant_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get role() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set role(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        tenant_id?: string;
+        user_id?: string;
+        role?: string;
+    }): AddUserRequest {
+        const message = new AddUserRequest({});
+        if (data.tenant_id != null) {
+            message.tenant_id = data.tenant_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.role != null) {
+            message.role = data.role;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            tenant_id?: string;
+            user_id?: string;
+            role?: string;
+        } = {};
+        if (this.tenant_id != null) {
+            data.tenant_id = this.tenant_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.role != null) {
+            data.role = this.role;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.tenant_id.length)
+            writer.writeString(1, this.tenant_id);
+        if (this.user_id.length)
+            writer.writeString(2, this.user_id);
+        if (this.role.length)
+            writer.writeString(3, this.role);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddUserRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddUserRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.tenant_id = reader.readString();
+                    break;
+                case 2:
+                    message.user_id = reader.readString();
+                    break;
+                case 3:
+                    message.role = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddUserRequest {
+        return AddUserRequest.deserialize(bytes);
+    }
+}
+export class AddUserResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        message?: string;
+    }): AddUserResponse {
+        const message = new AddUserResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddUserResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddUserResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddUserResponse {
+        return AddUserResponse.deserialize(bytes);
+    }
+}
+export class GetUsersRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        tenant_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("tenant_id" in data && data.tenant_id != undefined) {
+                this.tenant_id = data.tenant_id;
+            }
+        }
+    }
+    get tenant_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set tenant_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        tenant_id?: string;
+    }): GetUsersRequest {
+        const message = new GetUsersRequest({});
+        if (data.tenant_id != null) {
+            message.tenant_id = data.tenant_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            tenant_id?: string;
+        } = {};
+        if (this.tenant_id != null) {
+            data.tenant_id = this.tenant_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.tenant_id.length)
+            writer.writeString(1, this.tenant_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUsersRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUsersRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.tenant_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUsersRequest {
+        return GetUsersRequest.deserialize(bytes);
+    }
+}
+export class GetUsersResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        tenant_users?: TenantUser[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [2], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("tenant_users" in data && data.tenant_users != undefined) {
+                this.tenant_users = data.tenant_users;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get tenant_users() {
+        return pb_1.Message.getRepeatedWrapperField(this, TenantUser, 2) as TenantUser[];
+    }
+    set tenant_users(value: TenantUser[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 2, value);
+    }
+    static fromObject(data: {
+        message?: string;
+        tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
+    }): GetUsersResponse {
+        const message = new GetUsersResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.tenant_users != null) {
+            message.tenant_users = data.tenant_users.map(item => TenantUser.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            tenant_users?: ReturnType<typeof TenantUser.prototype.toObject>[];
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.tenant_users != null) {
+            data.tenant_users = this.tenant_users.map((item: TenantUser) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.tenant_users.length)
+            writer.writeRepeatedMessage(2, this.tenant_users, (item: TenantUser) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUsersResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUsersResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.tenant_users, () => pb_1.Message.addToRepeatedWrapperField(message, 2, TenantUser.deserialize(reader), TenantUser));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUsersResponse {
+        return GetUsersResponse.deserialize(bytes);
     }
 }
 export abstract class UnimplementedUserServiceService {
@@ -1632,54 +1554,24 @@ export abstract class UnimplementedUserServiceService {
             path: "/userservice.UserService/CreateUserIfNotExists",
             requestStream: false,
             responseStream: false,
-            requestSerialize: (message: GetUserByEmailRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => GetUserByEmailRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: GetUserByEmailResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => GetUserByEmailResponse.deserialize(new Uint8Array(bytes))
+            requestSerialize: (message: CreateUserRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateUserRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CreateUserResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CreateUserResponse.deserialize(new Uint8Array(bytes))
         },
-        CreateTenant: {
-            path: "/userservice.UserService/CreateTenant",
+        GetTenants: {
+            path: "/userservice.UserService/GetTenants",
             requestStream: false,
             responseStream: false,
-            requestSerialize: (message: CreateTenantRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => CreateTenantRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: CreateTenantResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => CreateTenantResponse.deserialize(new Uint8Array(bytes))
-        },
-        GetUserTenants: {
-            path: "/userservice.UserService/GetUserTenants",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: GetUserTenantsRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => GetUserTenantsRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: GetUserTenantsResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => GetUserTenantsResponse.deserialize(new Uint8Array(bytes))
-        },
-        AddUserToTenant: {
-            path: "/userservice.UserService/AddUserToTenant",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: AddUserToTenantRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => AddUserToTenantRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: AddUserToTenantResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => AddUserToTenantResponse.deserialize(new Uint8Array(bytes))
-        },
-        GetTenantUsers: {
-            path: "/userservice.UserService/GetTenantUsers",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: GetTenantUsersRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => GetTenantUsersRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: GetTenantUsersResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => GetTenantUsersResponse.deserialize(new Uint8Array(bytes))
+            requestSerialize: (message: GetTenantsRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetTenantsRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetTenantsResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetTenantsResponse.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
-    abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<GetUserByEmailRequest, GetUserByEmailResponse>, callback: grpc_1.sendUnaryData<GetUserByEmailResponse>): void;
-    abstract CreateTenant(call: grpc_1.ServerUnaryCall<CreateTenantRequest, CreateTenantResponse>, callback: grpc_1.sendUnaryData<CreateTenantResponse>): void;
-    abstract GetUserTenants(call: grpc_1.ServerUnaryCall<GetUserTenantsRequest, GetUserTenantsResponse>, callback: grpc_1.sendUnaryData<GetUserTenantsResponse>): void;
-    abstract AddUserToTenant(call: grpc_1.ServerUnaryCall<AddUserToTenantRequest, AddUserToTenantResponse>, callback: grpc_1.sendUnaryData<AddUserToTenantResponse>): void;
-    abstract GetTenantUsers(call: grpc_1.ServerUnaryCall<GetTenantUsersRequest, GetTenantUsersResponse>, callback: grpc_1.sendUnaryData<GetTenantUsersResponse>): void;
+    abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<CreateUserRequest, CreateUserResponse>, callback: grpc_1.sendUnaryData<CreateUserResponse>): void;
+    abstract GetTenants(call: grpc_1.ServerUnaryCall<GetTenantsRequest, GetTenantsResponse>, callback: grpc_1.sendUnaryData<GetTenantsResponse>): void;
 }
 export class UserServiceClient {
     private _address: string;
@@ -1691,24 +1583,70 @@ export class UserServiceClient {
         this._address = address;
         this._client = new grpc_web_1.GrpcWebClientBase(options);
     }
-    private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<GetUserByEmailRequest, GetUserByEmailResponse>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, GetUserByEmailRequest, GetUserByEmailResponse, (message: GetUserByEmailRequest) => message.serialize(), GetUserByEmailResponse.deserialize);
-    CreateUserIfNotExists(message: GetUserByEmailRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetUserByEmailRequest, GetUserByEmailResponse>(this._address + "/userservice.UserService/CreateUserIfNotExists", message, metadata || {}, UserServiceClient.CreateUserIfNotExists);
+    private static CreateUserIfNotExists = new grpc_web_1.MethodDescriptor<CreateUserRequest, CreateUserResponse>("/userservice.UserService/CreateUserIfNotExists", grpc_web_1.MethodType.UNARY, CreateUserRequest, CreateUserResponse, (message: CreateUserRequest) => message.serialize(), CreateUserResponse.deserialize);
+    CreateUserIfNotExists(message: CreateUserRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CreateUserRequest, CreateUserResponse>(this._address + "/userservice.UserService/CreateUserIfNotExists", message, metadata || {}, UserServiceClient.CreateUserIfNotExists);
     }
-    private static CreateTenant = new grpc_web_1.MethodDescriptor<CreateTenantRequest, CreateTenantResponse>("/userservice.UserService/CreateTenant", grpc_web_1.MethodType.UNARY, CreateTenantRequest, CreateTenantResponse, (message: CreateTenantRequest) => message.serialize(), CreateTenantResponse.deserialize);
+    private static GetTenants = new grpc_web_1.MethodDescriptor<GetTenantsRequest, GetTenantsResponse>("/userservice.UserService/GetTenants", grpc_web_1.MethodType.UNARY, GetTenantsRequest, GetTenantsResponse, (message: GetTenantsRequest) => message.serialize(), GetTenantsResponse.deserialize);
+    GetTenants(message: GetTenantsRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetTenantsRequest, GetTenantsResponse>(this._address + "/userservice.UserService/GetTenants", message, metadata || {}, UserServiceClient.GetTenants);
+    }
+}
+export abstract class UnimplementedTenantServiceService {
+    static definition = {
+        CreateTenant: {
+            path: "/userservice.TenantService/CreateTenant",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CreateTenantRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateTenantRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CreateTenantResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CreateTenantResponse.deserialize(new Uint8Array(bytes))
+        },
+        AddUser: {
+            path: "/userservice.TenantService/AddUser",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: AddUserRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => AddUserRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: AddUserResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => AddUserResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetUsers: {
+            path: "/userservice.TenantService/GetUsers",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetUsersRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetUsersRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetUsersResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetUsersResponse.deserialize(new Uint8Array(bytes))
+        }
+    };
+    [method: string]: grpc_1.UntypedHandleCall;
+    abstract CreateTenant(call: grpc_1.ServerUnaryCall<CreateTenantRequest, CreateTenantResponse>, callback: grpc_1.sendUnaryData<CreateTenantResponse>): void;
+    abstract AddUser(call: grpc_1.ServerUnaryCall<AddUserRequest, AddUserResponse>, callback: grpc_1.sendUnaryData<AddUserResponse>): void;
+    abstract GetUsers(call: grpc_1.ServerUnaryCall<GetUsersRequest, GetUsersResponse>, callback: grpc_1.sendUnaryData<GetUsersResponse>): void;
+}
+export class TenantServiceClient {
+    private _address: string;
+    private _client: grpc_web_1.GrpcWebClientBase;
+    constructor(address: string, credentials?: Object, options?: grpc_web_1.GrpcWebClientBaseOptions) {
+        if (!options)
+            options = {};
+        options.format = options.format || "text";
+        this._address = address;
+        this._client = new grpc_web_1.GrpcWebClientBase(options);
+    }
+    private static CreateTenant = new grpc_web_1.MethodDescriptor<CreateTenantRequest, CreateTenantResponse>("/userservice.TenantService/CreateTenant", grpc_web_1.MethodType.UNARY, CreateTenantRequest, CreateTenantResponse, (message: CreateTenantRequest) => message.serialize(), CreateTenantResponse.deserialize);
     CreateTenant(message: CreateTenantRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<CreateTenantRequest, CreateTenantResponse>(this._address + "/userservice.UserService/CreateTenant", message, metadata || {}, UserServiceClient.CreateTenant);
+        return this._client.thenableCall<CreateTenantRequest, CreateTenantResponse>(this._address + "/userservice.TenantService/CreateTenant", message, metadata || {}, TenantServiceClient.CreateTenant);
     }
-    private static GetUserTenants = new grpc_web_1.MethodDescriptor<GetUserTenantsRequest, GetUserTenantsResponse>("/userservice.UserService/GetUserTenants", grpc_web_1.MethodType.UNARY, GetUserTenantsRequest, GetUserTenantsResponse, (message: GetUserTenantsRequest) => message.serialize(), GetUserTenantsResponse.deserialize);
-    GetUserTenants(message: GetUserTenantsRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetUserTenantsRequest, GetUserTenantsResponse>(this._address + "/userservice.UserService/GetUserTenants", message, metadata || {}, UserServiceClient.GetUserTenants);
+    private static AddUser = new grpc_web_1.MethodDescriptor<AddUserRequest, AddUserResponse>("/userservice.TenantService/AddUser", grpc_web_1.MethodType.UNARY, AddUserRequest, AddUserResponse, (message: AddUserRequest) => message.serialize(), AddUserResponse.deserialize);
+    AddUser(message: AddUserRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<AddUserRequest, AddUserResponse>(this._address + "/userservice.TenantService/AddUser", message, metadata || {}, TenantServiceClient.AddUser);
     }
-    private static AddUserToTenant = new grpc_web_1.MethodDescriptor<AddUserToTenantRequest, AddUserToTenantResponse>("/userservice.UserService/AddUserToTenant", grpc_web_1.MethodType.UNARY, AddUserToTenantRequest, AddUserToTenantResponse, (message: AddUserToTenantRequest) => message.serialize(), AddUserToTenantResponse.deserialize);
-    AddUserToTenant(message: AddUserToTenantRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<AddUserToTenantRequest, AddUserToTenantResponse>(this._address + "/userservice.UserService/AddUserToTenant", message, metadata || {}, UserServiceClient.AddUserToTenant);
-    }
-    private static GetTenantUsers = new grpc_web_1.MethodDescriptor<GetTenantUsersRequest, GetTenantUsersResponse>("/userservice.UserService/GetTenantUsers", grpc_web_1.MethodType.UNARY, GetTenantUsersRequest, GetTenantUsersResponse, (message: GetTenantUsersRequest) => message.serialize(), GetTenantUsersResponse.deserialize);
-    GetTenantUsers(message: GetTenantUsersRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<GetTenantUsersRequest, GetTenantUsersResponse>(this._address + "/userservice.UserService/GetTenantUsers", message, metadata || {}, UserServiceClient.GetTenantUsers);
+    private static GetUsers = new grpc_web_1.MethodDescriptor<GetUsersRequest, GetUsersResponse>("/userservice.TenantService/GetUsers", grpc_web_1.MethodType.UNARY, GetUsersRequest, GetUsersResponse, (message: GetUsersRequest) => message.serialize(), GetUsersResponse.deserialize);
+    GetUsers(message: GetUsersRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetUsersRequest, GetUsersResponse>(this._address + "/userservice.TenantService/GetUsers", message, metadata || {}, TenantServiceClient.GetUsers);
     }
 }

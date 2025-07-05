@@ -287,3 +287,65 @@ func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserT
 	}
 	return items, nil
 }
+
+const getUserTenants = `-- name: GetUserTenants :many
+SELECT 
+    tu.id as tenant_user_id,
+    t.id as tenant_id, 
+    t.name, 
+    t.description, 
+    t.is_personal, 
+    t.created_at, 
+    t.created_by,
+    tu.role, 
+    tu.created_at as joined_at
+FROM userservice_tenants t
+JOIN userservice_tenant_users tu ON t.id = tu.tenant_id
+WHERE tu.user_id = ?1
+ORDER BY t.created_at DESC
+`
+
+type GetUserTenantsRow struct {
+	TenantUserID string
+	TenantID     string
+	Name         string
+	Description  sql.NullString
+	IsPersonal   bool
+	CreatedAt    time.Time
+	CreatedBy    string
+	Role         string
+	JoinedAt     time.Time
+}
+
+func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserTenantsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserTenants, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserTenantsRow
+	for rows.Next() {
+		var i GetUserTenantsRow
+		if err := rows.Scan(
+			&i.TenantUserID,
+			&i.TenantID,
+			&i.Name,
+			&i.Description,
+			&i.IsPersonal,
+			&i.CreatedAt,
+			&i.CreatedBy,
+			&i.Role,
+			&i.JoinedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

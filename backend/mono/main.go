@@ -44,6 +44,7 @@ type Monolith struct {
 	VideoAPI   *videoAPI.VideoAPI
 	CommentAPI *commentAPI.CommentAPI
 	UserAPI    *userAPI.UserAPI
+	TenantAPI  *userAPI.TenantAPI
 
 	GRPCServer    *grpc.Server
 	GRPCWebServer *http.Server
@@ -125,7 +126,7 @@ func NewMonolith() (*Monolith, error) {
 	}
 
 	log.Info("Creating userservice API")
-	userAPI, err := userAPI.NewUserAPI(config.UserService)
+	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
 	if err != nil {
 		log.Error("Could not create userservice API", "err", err)
 		return nil, err
@@ -221,6 +222,7 @@ func NewMonolith() (*Monolith, error) {
 		VideoAPI:      videoAPI,
 		CommentAPI:    commentAPI,
 		UserAPI:       userAPI,
+		TenantAPI:     tenantAPI,
 		Firebase:      firebase,
 		GRPCServer:    grpcServer,
 		GRPCWebServer: httpServer,
