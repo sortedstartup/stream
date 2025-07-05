@@ -241,7 +241,7 @@ func (s *UserAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReque
 * @param req *proto.GetUserTenantsRequest
 * @return *proto.GetUserTenantsResponse, error
  */
-func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsRequest) (*proto.GetUserTenantsResponse, error) {
+func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUsersRequest) (*proto.GetUsersResponse, error) {
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -257,24 +257,27 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsR
 		return nil, status.Error(codes.Internal, "failed to get user tenants")
 	}
 
-	var tenants []*proto.TenantWithRole
+	var tenants []*proto.TenantUser
 	for _, row := range tenantRows {
-		tenant := &proto.TenantWithRole{
-			Id:          row.TenantID,
-			Name:        row.Name,
-			Description: row.Description.String,
-			IsPersonal:  row.IsPersonal,
-			CreatedAt:   timestamppb.New(row.CreatedAt),
-			CreatedBy:   row.CreatedBy,
-			Role:        row.Role,
+		tenant := &proto.TenantUser{
+			Tenant: &proto.Tenant{
+				Id:          row.TenantID,
+				Name:        row.Name,
+				Description: row.Description.String,
+				IsPersonal:  row.IsPersonal,
+				CreatedAt:   timestamppb.New(row.CreatedAt),
+				CreatedBy:   row.CreatedBy,
+			},
+			Role: &proto.Role{
+				Role: row.Role,
+			},
 		}
 		tenants = append(tenants, tenant)
 	}
 
-	return &proto.GetUserTenantsResponse{
-		Message: "User tenants retrieved successfully",
-		Success: true,
-		Tenants: tenants,
+	return &proto.GetUsersResponse{
+		Message:     "User tenants retrieved successfully",
+		TenantUsers: tenants,
 	}, nil
 }
 
@@ -284,7 +287,7 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUserTenantsR
 * @param req *proto.AddUserToTenantRequest
 * @return *proto.AddUserToTenantResponse, error
  */
-func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenantRequest) (*proto.AddUserToTenantResponse, error) {
+func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserRequest) (*proto.AddUserResponse, error) {
 	s.log.Info("AddUserToTenant", "tenantID", req.TenantId, "username", req.Username)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
@@ -347,9 +350,8 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 		return nil, status.Error(codes.Internal, "failed to add user to tenant")
 	}
 
-	return &proto.AddUserToTenantResponse{
+	return &proto.AddUserResponse{
 		Message: "User added to tenant successfully",
-		Success: true,
 	}, nil
 }
 
@@ -359,7 +361,7 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserToTenan
 * @param req *proto.GetTenantUsersRequest
 * @return *proto.GetTenantUsersResponse, error
  */
-func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetTenantUsersRequest) (*proto.GetTenantUsersResponse, error) {
+func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetUsersRequest) (*proto.GetUsersResponse, error) {
 	s.log.Info("GetTenantUsers", "tenantID", req.TenantId)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
@@ -392,33 +394,28 @@ func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetTenantUsersR
 		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can view tenant members")
 	}
 
-	userRows, err := s.dbQueries.GetTenantUsers(ctx, req.TenantId)
+	tenantUsers, err := s.dbQueries.GetTenantUsers(ctx, req.TenantId)
 	if err != nil {
 		s.log.Error("Failed to get tenant users", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get tenant users")
 	}
 
-	// Convert to proto response
-	var tenantUsers []*proto.TenantUser
-	for _, row := range userRows {
-		tenantUser := &proto.TenantUser{
-			Id:        row.ID,
-			TenantId:  row.TenantID,
-			UserId:    row.UserID,
-			Role:      row.Role,
-			CreatedAt: timestamppb.New(row.CreatedAt),
+	var tenantUsersProto []*proto.TenantUser
+
+	for _, user := range tenantUsers {
+		tenantUsersProto = append(tenantUsersProto, &proto.TenantUser{
 			User: &proto.User{
-				Id:       row.UserID,
-				Username: row.Username,
-				Email:    row.Email,
+				Username: user.Username,
+				Email:    user.Email,
 			},
-		}
-		tenantUsers = append(tenantUsers, tenantUser)
+			Role: &proto.Role{
+				Role: user.Role,
+			},
+		})
 	}
 
-	return &proto.GetTenantUsersResponse{
+	return &proto.GetUsersResponse{
 		Message:     "Tenant users retrieved successfully",
-		Success:     true,
-		TenantUsers: tenantUsers,
+		TenantUsers: tenantUsersProto,
 	}, nil
 }

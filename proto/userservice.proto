@@ -64,16 +64,6 @@ message CreateTenantResponse {
   Tenant tenant = 3;
 }
 
-message TenantWithRole {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  bool is_personal = 4;
-  google.protobuf.Timestamp created_at = 5;
-  string created_by = 6;
-  string role = 7; // User's role in this tenant
-}
-
 message GetTenantsRequest {
   
 }
@@ -85,12 +75,12 @@ message GetTenantsResponse {
 
 message AddUserRequest {
   string tenant_id = 1;
-  string user_id = 2;
+  string username = 2;
   string role = 3;
 }
 
 message AddUserResponse {
-  string message = 1;
+string message = 1;
 }
 
 message GetUsersRequest {
