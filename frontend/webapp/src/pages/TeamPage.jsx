@@ -21,7 +21,7 @@ export const TeamPage = () => {
   
   // Load tenant users when current tenant changes
   useEffect(() => {
-    if (!currentTenant || currentTenant.is_personal || !canManageMembers) {
+    if (!currentTenant || currentTenant.tenant.is_personal || !canManageMembers) {
       setTenantUsers([])
       return
     }
@@ -29,7 +29,7 @@ export const TeamPage = () => {
     const loadUsers = async () => {
       setLoadingUsers(true)
       try {
-        const users = await getTenantUsers(currentTenant.id)
+        const users = await getTenantUsers(currentTenant.tenant.id)
         setTenantUsers(users)
       } catch (error) {
         console.error('Error loading tenant users:', error)
@@ -52,12 +52,12 @@ export const TeamPage = () => {
   }
 
   const handleAddUser = async (username, role) => {
-    if (username && currentTenant) {
-      const success = await addUserToTenant(currentTenant.id, username, role)
+    if (username && currentTenant && currentTenant.tenant) {
+      const success = await addUserToTenant(currentTenant.tenant.id, username, role)
       if (success) {
         setShowAddUserModal(false)
         // Refresh the user list
-        const users = await getTenantUsers(currentTenant.id)
+        const users = await getTenantUsers(currentTenant.tenant.id)
         setTenantUsers(users)
         return true
       }
@@ -105,27 +105,27 @@ export const TeamPage = () => {
         )}
 
         {/* Current Tenant Info */}
-        {currentTenant && (
+        {currentTenant && currentTenant.tenant &&  (
           <div className="card bg-base-200">
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="card-title flex items-center gap-2">
-                    {currentTenant.is_personal ? (
+                    {currentTenant.tenant.is_personal ? (
                       <User className="w-6 h-6" />
                     ) : (
                       <Users className="w-6 h-6" />
                     )}
-                    {currentTenant.name}
-                    <span className={`badge ${currentTenant.is_personal ? 'badge-info' : 'badge-success'}`}>
-                      {currentTenant.is_personal ? 'Personal' : 'Organization'}
+                    {currentTenant.tenant.name}
+                    <span className={`badge ${currentTenant.tenant.is_personal ? 'badge-info' : 'badge-success'}`}>
+                      {currentTenant.tenant.is_personal ? 'Personal' : 'Organization'}
                     </span>
                   </h2>
-                  {currentTenant.description && (
-                    <p className="text-base-content/70 mt-2">{currentTenant.description}</p>
+                  {currentTenant.tenant.description && (
+                    <p className="text-base-content/70 mt-2">{currentTenant.tenant.description}</p>
                   )}
                 </div>
-                {!currentTenant.is_personal && canManageMembers && (
+                {!currentTenant.tenant.is_personal && canManageMembers && (
                   <button 
                     className="btn btn-outline btn-sm"
                     onClick={() => setShowAddUserModal(true)}
@@ -140,7 +140,7 @@ export const TeamPage = () => {
         )}
 
         {/* Team Members - Only show for super admins */}
-        {canManageMembers && (
+        {canManageMembers && currentTenant && currentTenant.tenant && !currentTenant.tenant.is_personal && (
           <div className="card bg-base-100">
             <div className="card-body">
               <h2 className="card-title flex items-center gap-2">
@@ -159,21 +159,13 @@ export const TeamPage = () => {
                       <tr>
                         <th>Member</th>
                         <th>Role</th>
-                        <th>Joined</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tenantUsers.map((tenantUser) => (
-                        <tr key={tenantUser.id}>
+                      {tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
+                        <tr>
                           <td>
                             <div className="flex items-center gap-3">
-                              <div className="avatar placeholder">
-                                <div className="bg-neutral text-neutral-content w-8 h-8 rounded-full flex items-center justify-center leading-none">
-                                  <span className="text-xs">
-                                    {tenantUser.user?.username?.charAt(0)?.toUpperCase() || '?'}
-                                  </span>
-                                </div>
-                              </div>
                               <div>
                                 <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
                                 <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
@@ -181,11 +173,10 @@ export const TeamPage = () => {
                             </div>
                           </td>
                           <td>
-                            <span className={`badge ${tenantUser.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
-                              {tenantUser.role}
-                            </span>
+                            <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
+                              {tenantUser.role?.role}
+                              </span>
                           </td>
-                          <td>{new Date(tenantUser.created_at?.seconds * 1000).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -195,37 +186,6 @@ export const TeamPage = () => {
             </div>
           </div>
         )}
-
-        {/* All Workspaces */}
-        <div className="card bg-base-100">
-          <div className="card-body">
-            <h3 className="card-title">All Workspaces</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tenants.map((tenant) => (
-                <div key={tenant.id} className="card bg-base-200 shadow-sm">
-                  <div className="card-body p-4">
-                    <h4 className="card-title text-lg flex items-center gap-2">
-                      {tenant.is_personal ? (
-                        <User className="w-5 h-5" />
-                      ) : (
-                        <Users className="w-5 h-5" />
-                      )}
-                      <span className="truncate">{tenant.name}</span>
-                    </h4>
-                    {tenant.description && (
-                      <p className="text-sm text-base-content/70">{tenant.description}</p>
-                    )}
-                    <div className="card-actions justify-end mt-2">
-                      <span className={`badge ${tenant.is_personal ? 'badge-info' : 'badge-success'}`}>
-                        {tenant.is_personal ? 'Personal' : 'Organization'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Modals */}

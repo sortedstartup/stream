@@ -66,10 +66,13 @@ INSERT INTO userservice_tenant_users (
 
 -- name: GetTenantUsers :many
 SELECT 
-     tu.role, tu.created_at,
-    u.username, u.email
+    tu.role, tu.created_at,
+    u.username, u.email,
+    t.created_at as tenant_created_at,
+    t.name as tenant_name
 FROM userservice_tenant_users tu
 JOIN userservice_users u ON tu.user_id = u.id
+JOIN userservice_tenants t ON tu.tenant_id = t.id
 WHERE tu.tenant_id = @tenant_id
 ORDER BY tu.created_at ASC;
 

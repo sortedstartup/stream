@@ -749,7 +749,7 @@ export class CreateTenantResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
-        tenant?: Tenant;
+        tenant_user?: TenantUser;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -760,8 +760,8 @@ export class CreateTenantResponse extends pb_1.Message {
             if ("success" in data && data.success != undefined) {
                 this.success = data.success;
             }
-            if ("tenant" in data && data.tenant != undefined) {
-                this.tenant = data.tenant;
+            if ("tenant_user" in data && data.tenant_user != undefined) {
+                this.tenant_user = data.tenant_user;
             }
         }
     }
@@ -777,19 +777,19 @@ export class CreateTenantResponse extends pb_1.Message {
     set success(value: boolean) {
         pb_1.Message.setField(this, 2, value);
     }
-    get tenant() {
-        return pb_1.Message.getWrapperField(this, Tenant, 3) as Tenant;
+    get tenant_user() {
+        return pb_1.Message.getWrapperField(this, TenantUser, 3) as TenantUser;
     }
-    set tenant(value: Tenant) {
+    set tenant_user(value: TenantUser) {
         pb_1.Message.setWrapperField(this, 3, value);
     }
-    get has_tenant() {
+    get has_tenant_user() {
         return pb_1.Message.getField(this, 3) != null;
     }
     static fromObject(data: {
         message?: string;
         success?: boolean;
-        tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+        tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
     }): CreateTenantResponse {
         const message = new CreateTenantResponse({});
         if (data.message != null) {
@@ -798,8 +798,8 @@ export class CreateTenantResponse extends pb_1.Message {
         if (data.success != null) {
             message.success = data.success;
         }
-        if (data.tenant != null) {
-            message.tenant = Tenant.fromObject(data.tenant);
+        if (data.tenant_user != null) {
+            message.tenant_user = TenantUser.fromObject(data.tenant_user);
         }
         return message;
     }
@@ -807,7 +807,7 @@ export class CreateTenantResponse extends pb_1.Message {
         const data: {
             message?: string;
             success?: boolean;
-            tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+            tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
         } = {};
         if (this.message != null) {
             data.message = this.message;
@@ -815,229 +815,8 @@ export class CreateTenantResponse extends pb_1.Message {
         if (this.success != null) {
             data.success = this.success;
         }
-        if (this.tenant != null) {
-            data.tenant = this.tenant.toObject();
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.id.length)
-            writer.writeString(1, this.id);
-        if (this.tenant_id.length)
-            writer.writeString(2, this.tenant_id);
-        if (this.user_id.length)
-            writer.writeString(3, this.user_id);
-        if (this.role.length)
-            writer.writeString(4, this.role);
-        if (this.has_created_at)
-            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
-        if (this.has_user)
-            writer.writeMessage(6, this.user, () => this.user.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): TenantUser {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new TenantUser();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.id = reader.readString();
-                    break;
-                case 2:
-                    message.tenant_id = reader.readString();
-                    break;
-                case 3:
-                    message.user_id = reader.readString();
-                    break;
-                case 4:
-                    message.role = reader.readString();
-                    break;
-                case 5:
-                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
-                    break;
-                case 6:
-                    reader.readMessage(message.user, () => message.user = User.deserialize(reader));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): TenantUser {
-        return TenantUser.deserialize(bytes);
-    }
-}
-export class CreateTenantRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        name?: string;
-        description?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("name" in data && data.name != undefined) {
-                this.name = data.name;
-            }
-            if ("description" in data && data.description != undefined) {
-                this.description = data.description;
-            }
-        }
-    }
-    get name() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set name(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get description() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set description(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    static fromObject(data: {
-        name?: string;
-        description?: string;
-    }): CreateTenantRequest {
-        const message = new CreateTenantRequest({});
-        if (data.name != null) {
-            message.name = data.name;
-        }
-        if (data.description != null) {
-            message.description = data.description;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            name?: string;
-            description?: string;
-        } = {};
-        if (this.name != null) {
-            data.name = this.name;
-        }
-        if (this.description != null) {
-            data.description = this.description;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.name.length)
-            writer.writeString(1, this.name);
-        if (this.description.length)
-            writer.writeString(2, this.description);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateTenantRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateTenantRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.name = reader.readString();
-                    break;
-                case 2:
-                    message.description = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): CreateTenantRequest {
-        return CreateTenantRequest.deserialize(bytes);
-    }
-}
-export class CreateTenantResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        message?: string;
-        success?: boolean;
-        tenant?: Tenant;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("message" in data && data.message != undefined) {
-                this.message = data.message;
-            }
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
-            }
-            if ("tenant" in data && data.tenant != undefined) {
-                this.tenant = data.tenant;
-            }
-        }
-    }
-    get message() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set message(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get tenant() {
-        return pb_1.Message.getWrapperField(this, Tenant, 3) as Tenant;
-    }
-    set tenant(value: Tenant) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_tenant() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
-    static fromObject(data: {
-        message?: string;
-        success?: boolean;
-        tenant?: ReturnType<typeof Tenant.prototype.toObject>;
-    }): CreateTenantResponse {
-        const message = new CreateTenantResponse({});
-        if (data.message != null) {
-            message.message = data.message;
-        }
-        if (data.success != null) {
-            message.success = data.success;
-        }
-        if (data.tenant != null) {
-            message.tenant = Tenant.fromObject(data.tenant);
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            message?: string;
-            success?: boolean;
-            tenant?: ReturnType<typeof Tenant.prototype.toObject>;
-        } = {};
-        if (this.message != null) {
-            data.message = this.message;
-        }
-        if (this.success != null) {
-            data.success = this.success;
-        }
-        if (this.tenant != null) {
-            data.tenant = this.tenant.toObject();
+        if (this.tenant_user != null) {
+            data.tenant_user = this.tenant_user.toObject();
         }
         return data;
     }
@@ -1049,8 +828,8 @@ export class CreateTenantResponse extends pb_1.Message {
             writer.writeString(1, this.message);
         if (this.success != false)
             writer.writeBool(2, this.success);
-        if (this.has_tenant)
-            writer.writeMessage(3, this.tenant, () => this.tenant.serialize(writer));
+        if (this.has_tenant_user)
+            writer.writeMessage(3, this.tenant_user, () => this.tenant_user.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1067,7 +846,7 @@ export class CreateTenantResponse extends pb_1.Message {
                     message.success = reader.readBool();
                     break;
                 case 3:
-                    reader.readMessage(message.tenant, () => message.tenant = Tenant.deserialize(reader));
+                    reader.readMessage(message.tenant_user, () => message.tenant_user = TenantUser.deserialize(reader));
                     break;
                 default: reader.skipField();
             }

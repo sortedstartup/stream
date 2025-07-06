@@ -143,19 +143,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 
 const getTenantUsers = `-- name: GetTenantUsers :many
 SELECT 
-     tu.role, tu.created_at,
-    u.username, u.email
+    tu.role, tu.created_at,
+    u.username, u.email,
+    t.created_at as tenant_created_at,
+    t.name as tenant_name
 FROM userservice_tenant_users tu
 JOIN userservice_users u ON tu.user_id = u.id
+JOIN userservice_tenants t ON tu.tenant_id = t.id
 WHERE tu.tenant_id = ?1
 ORDER BY tu.created_at ASC
 `
 
 type GetTenantUsersRow struct {
-	Role      string
-	CreatedAt time.Time
-	Username  string
-	Email     string
+	Role            string
+	CreatedAt       time.Time
+	Username        string
+	Email           string
+	TenantCreatedAt time.Time
+	TenantName      string
 }
 
 func (q *Queries) GetTenantUsers(ctx context.Context, tenantID string) ([]GetTenantUsersRow, error) {
@@ -172,6 +177,8 @@ func (q *Queries) GetTenantUsers(ctx context.Context, tenantID string) ([]GetTen
 			&i.CreatedAt,
 			&i.Username,
 			&i.Email,
+			&i.TenantCreatedAt,
+			&i.TenantName,
 		); err != nil {
 			return nil, err
 		}
