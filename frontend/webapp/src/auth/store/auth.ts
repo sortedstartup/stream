@@ -25,7 +25,19 @@ export const initTokenRefreshHandler = () => {
   })
 }
 
+export const initAuthStateHandler = () => {
+  return auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      const token = await user.getIdToken()
+      setAuthState({ user, token })
+    } else {
+      clearAuthState()
+    }
+  })
+}
+
 initTokenRefreshHandler()
+initAuthStateHandler()
 
 interface AuthState {
   user: User | null
