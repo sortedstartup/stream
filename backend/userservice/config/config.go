@@ -1,7 +1,8 @@
 package config
 
 type UserServiceConfig struct {
-	DB DBConfig `json:"db" mapstructure:"db"`
+	DB       DBConfig `json:"db" mapstructure:"db"`
+	CacheSize int      `json:"cacheSize" mapstructure:"cacheSize"`
 }
 
 type DBConfig struct {

@@ -60,6 +60,7 @@ func New() (MonolithConfig, error) {
 
 	viper.SetDefault("userService.db.driver", "sqlite")
 	viper.SetDefault("userService.db.url", "db.sqlite")
+	viper.SetDefault("userService.cacheSize", 10000)
 
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {

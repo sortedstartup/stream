@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -22,6 +23,7 @@ type UserAPI struct {
 	db        *sql.DB
 	log       *slog.Logger
 	dbQueries *db.Queries
+	userCache *lru.Cache
 	proto.UnimplementedUserServiceServer
 	tenantAPI *TenantAPI
 }
@@ -46,6 +48,11 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 
 	dbQueries := db.New(_db)
 
+	cache, err := lru.New(config.CacheSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create user cache: %w", err)
+	}
+
 	tenantAPI := &TenantAPI{
 		config:    config,
 		db:        _db,
@@ -57,6 +64,7 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 		config:    config,
 		db:        _db,
 		log:       childLogger,
+		userCache: cache,
 		dbQueries: dbQueries,
 		tenantAPI: tenantAPI,
 	}
@@ -88,6 +96,17 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 	userEmail := authContext.User.Email
 	s.log.Info("userEmail", "userEmail", userEmail)
 
+	// CACHE CHECK
+	if _, found := s.userCache.Get(userEmail); found {
+		s.log.Info("Cache hit: skipping DB check", "email", userEmail)
+		return &proto.CreateUserResponse{
+			Message: "User already exists (cache)",
+		}, nil
+	}
+
+	s.log.Info("querying DB for email", "email", userEmail)
+
+	// DB CHECK (and fallback to create)
 	dbUser, err := s.dbQueries.GetUserByEmail(ctx, userEmail)
 	s.log.Info("GetUserByEmail result", "error", err, "hasError", err != nil, "isNoRows", err == sql.ErrNoRows)
 
@@ -111,6 +130,8 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			}
 			s.log.Info("User created successfully with email", "email", authContext.User.Email)
 			successMessage = "User created successfully"
+			s.userCache.Add(userEmail, true)
+			s.log.Info("adding email to cache", "email", userEmail)
 
 			err = s.tenantAPI.createPersonalTenant(ctx)
 			if err != nil {
@@ -127,6 +148,11 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 		// Check if the returned user is actually valid (not empty)
 		if dbUser.ID == "" || dbUser.Email == "" {
 			s.log.Warn("User exists but has empty fields, this might indicate a database issue", "dbUser", dbUser)
+		} else {
+			// ADD TO CACHE if user haven't logged in recently (Cache miss) to cache hit in future login
+			s.userCache.Add(userEmail, true)
+			s.log.Info("adding email to cache", "email", userEmail)
+
 		}
 		successMessage = "User already exists"
 	}
