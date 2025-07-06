@@ -104,7 +104,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 		}, nil
 	}
 
-	s.log.Info("DB_CHECK: querying DB for email", "email", userEmail)
+	s.log.Info("querying DB for email", "email", userEmail)
 
 	// DB CHECK (and fallback to create)
 	dbUser, err := s.dbQueries.GetUserByEmail(ctx, userEmail)
