@@ -37,7 +37,7 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, error) {
 
 	dbQueries := db.New(_db)
 
-	cache, err := lru.New(10000) 
+	cache, err := lru.New(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user cache: %w", err)
 	}
@@ -111,6 +111,8 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 			}
 			s.log.Info("User created successfully with email", "email", authContext.User.Email)
 			successMessage = "User created successfully"
+			s.userCache.Add(userEmail, true)
+			s.log.Info("CACHE_ADD: adding email to cache", "email", userEmail)
 		} else {
 			s.log.Error("Database error while getting user", "error", err)
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -124,7 +126,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.GetUserB
 		successMessage = "User already exists"
 	}
 
-	// ADD TO CACHE
+	// ADD TO CACHE if user haven't logged in recently (Cache miss) to cache hit in future login
 	s.userCache.Add(userEmail, true)
 	s.log.Info("CACHE_ADD: adding email to cache", "email", userEmail)
 
