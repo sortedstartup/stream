@@ -1,7 +1,7 @@
 import { atom } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
-import { GetUserByEmailRequest, User, UserServiceClient } from "../proto/userservice"
+import { CreateUserRequest, User, UserServiceClient } from "../proto/userservice"
 
 export const $currentDbUser = atom<User | null>(null)
 
@@ -25,7 +25,7 @@ export const userService = new UserServiceClient(
 export const createUserIfNotExists = async (): Promise<User> => {
     try {
         const response = await userService.CreateUserIfNotExists(
-            GetUserByEmailRequest.fromObject({}),
+            CreateUserRequest.fromObject({}),
             {}
         );
 
