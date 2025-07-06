@@ -15,10 +15,9 @@ export enum VideoStatus {
     STATUS_FAILED = 3
 }
 export enum Visibility {
-    VISIBILITY_UNSPECIFIED = 0,
-    VISIBILITY_PRIVATE = 1,
-    VISIBILITY_SHARED = 2,
-    VISIBILITY_PUBLIC = 3
+    VISIBILITY_PRIVATE = 0,
+    VISIBILITY_SHARED = 1,
+    VISIBILITY_PUBLIC = 2
 }
 export class Video extends pb_1.Message {
     #one_of_decls: number[][] = [];
@@ -32,7 +31,6 @@ export class Video extends pb_1.Message {
         status?: VideoStatus;
         visibility?: Visibility;
         created_at?: dependency_1.Timestamp;
-        tenant_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -63,9 +61,6 @@ export class Video extends pb_1.Message {
             }
             if ("created_at" in data && data.created_at != undefined) {
                 this.created_at = data.created_at;
-            }
-            if ("tenant_id" in data && data.tenant_id != undefined) {
-                this.tenant_id = data.tenant_id;
             }
         }
     }
@@ -112,7 +107,7 @@ export class Video extends pb_1.Message {
         pb_1.Message.setField(this, 7, value);
     }
     get visibility() {
-        return pb_1.Message.getFieldWithDefault(this, 8, Visibility.VISIBILITY_UNSPECIFIED) as Visibility;
+        return pb_1.Message.getFieldWithDefault(this, 8, Visibility.VISIBILITY_PRIVATE) as Visibility;
     }
     set visibility(value: Visibility) {
         pb_1.Message.setField(this, 8, value);
@@ -126,12 +121,6 @@ export class Video extends pb_1.Message {
     get has_created_at() {
         return pb_1.Message.getField(this, 9) != null;
     }
-    get tenant_id() {
-        return pb_1.Message.getFieldWithDefault(this, 10, "") as string;
-    }
-    set tenant_id(value: string) {
-        pb_1.Message.setField(this, 10, value);
-    }
     static fromObject(data: {
         id?: string;
         title?: string;
@@ -142,7 +131,6 @@ export class Video extends pb_1.Message {
         status?: VideoStatus;
         visibility?: Visibility;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-        tenant_id?: string;
     }): Video {
         const message = new Video({});
         if (data.id != null) {
@@ -172,9 +160,6 @@ export class Video extends pb_1.Message {
         if (data.created_at != null) {
             message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
         }
-        if (data.tenant_id != null) {
-            message.tenant_id = data.tenant_id;
-        }
         return message;
     }
     toObject() {
@@ -188,7 +173,6 @@ export class Video extends pb_1.Message {
             status?: VideoStatus;
             visibility?: Visibility;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-            tenant_id?: string;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -217,9 +201,6 @@ export class Video extends pb_1.Message {
         if (this.created_at != null) {
             data.created_at = this.created_at.toObject();
         }
-        if (this.tenant_id != null) {
-            data.tenant_id = this.tenant_id;
-        }
         return data;
     }
     serialize(): Uint8Array;
@@ -240,12 +221,10 @@ export class Video extends pb_1.Message {
             writer.writeString(6, this.thumbnail_url);
         if (this.status != VideoStatus.STATUS_UNSPECIFIED)
             writer.writeEnum(7, this.status);
-        if (this.visibility != Visibility.VISIBILITY_UNSPECIFIED)
+        if (this.visibility != Visibility.VISIBILITY_PRIVATE)
             writer.writeEnum(8, this.visibility);
         if (this.has_created_at)
             writer.writeMessage(9, this.created_at, () => this.created_at.serialize(writer));
-        if (this.tenant_id.length)
-            writer.writeString(10, this.tenant_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -281,9 +260,6 @@ export class Video extends pb_1.Message {
                     break;
                 case 9:
                     reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
-                    break;
-                case 10:
-                    message.tenant_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -341,7 +317,7 @@ export class CreateVideoRequest extends pb_1.Message {
         pb_1.Message.setField(this, 3, value);
     }
     get visibility() {
-        return pb_1.Message.getFieldWithDefault(this, 4, Visibility.VISIBILITY_UNSPECIFIED) as Visibility;
+        return pb_1.Message.getFieldWithDefault(this, 4, Visibility.VISIBILITY_PRIVATE) as Visibility;
     }
     set visibility(value: Visibility) {
         pb_1.Message.setField(this, 4, value);
@@ -398,7 +374,7 @@ export class CreateVideoRequest extends pb_1.Message {
             writer.writeString(2, this.description);
         if (this.url.length)
             writer.writeString(3, this.url);
-        if (this.visibility != Visibility.VISIBILITY_UNSPECIFIED)
+        if (this.visibility != Visibility.VISIBILITY_PRIVATE)
             writer.writeEnum(4, this.visibility);
         if (!w)
             return writer.getResultBuffer();
@@ -701,7 +677,7 @@ export class UpdateVideoRequest extends pb_1.Message {
         pb_1.Message.setField(this, 3, value);
     }
     get visibility() {
-        return pb_1.Message.getFieldWithDefault(this, 4, Visibility.VISIBILITY_UNSPECIFIED) as Visibility;
+        return pb_1.Message.getFieldWithDefault(this, 4, Visibility.VISIBILITY_PRIVATE) as Visibility;
     }
     set visibility(value: Visibility) {
         pb_1.Message.setField(this, 4, value);
@@ -758,7 +734,7 @@ export class UpdateVideoRequest extends pb_1.Message {
             writer.writeString(2, this.title);
         if (this.description.length)
             writer.writeString(3, this.description);
-        if (this.visibility != Visibility.VISIBILITY_UNSPECIFIED)
+        if (this.visibility != Visibility.VISIBILITY_PRIVATE)
             writer.writeEnum(4, this.visibility);
         if (!w)
             return writer.getResultBuffer();

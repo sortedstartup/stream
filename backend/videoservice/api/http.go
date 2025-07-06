@@ -58,8 +58,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Get tenant ID from header
 	tenantID := r.Header.Get("x-tenant-id")
 	if tenantID == "" {
-		http.Error(w, "X-Tenant-ID header is required", http.StatusBadRequest)
-		slog.Error("X-Tenant-ID header is required")
+		http.Error(w, "x-tenant-id header is required", http.StatusBadRequest)
+		slog.Error("x-tenant-id header is required")
 		return
 	}
 
@@ -280,16 +280,17 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Authentication is handled by the cookie middleware
 	authContext, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get tenant ID from header
-	tenantID := r.Header.Get("X-Tenant-ID")
+	// Get tenant ID from query parameter (since HTML5 video elements can include query params)
+	tenantID := r.URL.Query().Get("tenant")
 	if tenantID == "" {
-		http.Error(w, "X-Tenant-ID header is required", http.StatusBadRequest)
+		http.Error(w, "tenant query parameter is required", http.StatusBadRequest)
 		return
 	}
 

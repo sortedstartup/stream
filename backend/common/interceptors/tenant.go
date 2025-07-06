@@ -15,7 +15,7 @@ type contextKey string
 
 const tenantIDKey contextKey = "tenant-id"
 
-// TenantInterceptor extracts the X-Tenant-ID header from gRPC metadata and puts it in context
+// TenantInterceptor extracts the x-tenant-id header from gRPC metadata and puts it in context
 func TenantInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Extract metadata from context
@@ -25,7 +25,7 @@ func TenantInterceptor() grpc.UnaryServerInterceptor {
 			return "", fmt.Errorf("missing metadata")
 		}
 
-		// Look for X-Tenant-ID header (case-insensitive)
+		// Look for x-tenant-id header (case-insensitive)
 		// NOTE: The key is case-insensitive !!
 		// 'x-tenant-id' --received-as-> x-tenant-id
 		tenantIDHeaders, ok := md[TENANT_ID_HEADER]

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"io"
@@ -36,6 +37,20 @@ var (
 	Version   string
 	BuildTime string
 )
+
+// UserServiceClientWrapper wraps the UserAPI to implement the UserServiceClient interface
+// This avoids circular dependency issues in the monolith
+type UserServiceClientWrapper struct {
+	userAPI *userAPI.UserAPI
+}
+
+func (w *UserServiceClientWrapper) CreateUserIfNotExists(ctx context.Context, req *userProto.CreateUserRequest, opts ...grpc.CallOption) (*userProto.CreateUserResponse, error) {
+	return w.userAPI.CreateUserIfNotExists(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) GetTenants(ctx context.Context, req *userProto.GetTenantsRequest, opts ...grpc.CallOption) (*userProto.GetTenantsResponse, error) {
+	return w.userAPI.GetTenants(ctx, req)
+}
 
 type Monolith struct {
 	Config   *config.MonolithConfig
@@ -111,8 +126,17 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
+	log.Info("Creating userservice API")
+	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
+	if err != nil {
+		log.Error("Could not create userservice API", "err", err)
+		return nil, err
+	}
+
 	log.Info("Creating videoservice API")
-	videoAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService)
+	// Create wrapper to avoid circular dependency
+	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
+	videoAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err
@@ -122,13 +146,6 @@ func NewMonolith() (*Monolith, error) {
 	commentAPI, err := commentAPI.NewCommentAPIProduction(config.CommentService)
 	if err != nil {
 		log.Error("Could not create commentservice API", "err", err)
-		return nil, err
-	}
-
-	log.Info("Creating userservice API")
-	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
-	if err != nil {
-		log.Error("Could not create userservice API", "err", err)
 		return nil, err
 	}
 

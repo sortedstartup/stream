@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { $authToken } from '../auth/store/auth';
+import { $currentTenant } from '../stores/tenants';
 import { useNavigate } from 'react-router';
 import { Layout } from '../components/layout/Layout';
 
@@ -12,11 +13,17 @@ export const UploadPage = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const authToken = useStore($authToken);
+  const currentTenant = useStore($currentTenant);
   const navigate = useNavigate();
 
   const handleUpload = async () => {
     if (!videoFile || !title || !description) {
       setStatusMessage('Please provide all required fields.');
+      return;
+    }
+
+    if (!currentTenant?.tenant?.id) {
+      setStatusMessage('No tenant selected. Please select a tenant first.');
       return;
     }
 
@@ -33,6 +40,7 @@ export const UploadPage = () => {
         method: 'POST',
         headers: {
           authorization: authToken,
+          'x-tenant-id': currentTenant.tenant.id,
         },
         body: formData,
       });

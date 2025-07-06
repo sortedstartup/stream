@@ -12,7 +12,7 @@ import (
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
-	userDB "sortedstartup.com/stream/userservice/db"
+	userProto "sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
 	"sortedstartup.com/stream/videoservice/proto"
@@ -23,15 +23,17 @@ type VideoAPI struct {
 	HTTPServerMux *http.ServeMux
 	db            *sql.DB
 
-	log           *slog.Logger
-	dbQueries     *db.Queries
-	userDBQueries *userDB.Queries
+	log       *slog.Logger
+	dbQueries *db.Queries
+
+	// gRPC clients for other services
+	userServiceClient userProto.UserServiceClient
 
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -48,22 +50,15 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 
 	dbQueries := db.New(_db)
 
-	// Also open connection to userservice database for tenant validation
-	userDBConnection, err := sql.Open("sqlite", "backend/userservice/db.sqlite")
-	if err != nil {
-		return nil, err
-	}
-	userDBQueries := userDB.New(userDBConnection)
-
 	ServerMux := http.NewServeMux()
 
 	videoAPI := &VideoAPI{
-		HTTPServerMux: ServerMux,
-		config:        config,
-		db:            _db,
-		log:           childLogger,
-		dbQueries:     dbQueries,
-		userDBQueries: userDBQueries,
+		HTTPServerMux:     ServerMux,
+		config:            config,
+		db:                _db,
+		log:               childLogger,
+		dbQueries:         dbQueries,
+		userServiceClient: userServiceClient,
 	}
 
 	// The authentication is handled in mono/main.go
@@ -89,39 +84,29 @@ func (s *VideoAPI) Init() error {
 }
 
 // isUserInTenant checks if the user is part of the specified tenant
-// TODO: move to policy service
+// by calling the userservice to get user's tenants and checking if the tenant is in the list
 func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
 	if tenantID == "" {
 		return status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
-	// Check if user has access to this tenant
-	_, err := s.userDBQueries.GetUserRoleInTenant(ctx, userDB.GetUserRoleInTenantParams{
-		TenantID: tenantID,
-		UserID:   userID,
-	})
+	// Call userservice to get user's tenants
+	resp, err := s.userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
-		}
-		s.log.Error("Failed to check user role in tenant", "error", err)
+		s.log.Error("Failed to get user tenants from userservice", "error", err, "userID", userID)
 		return status.Error(codes.Internal, "failed to check tenant access")
 	}
 
-	return nil
-}
-
-// TODO: use helper function from inteceptor
-// getTenantIDFromMetadata extracts tenant ID from gRPC metadata
-func (s *VideoAPI) getTenantIDFromMetadata(ctx context.Context) (string, error) {
-	// For gRPC, we need to extract the X-Tenant-ID header from metadata
-	// The grpc-web client should pass this header, and it gets converted to metadata
-
-	if tenantID, ok := ctx.Value("X-Tenant-ID").(string); ok && tenantID != "" {
-		return tenantID, nil
+	// Check if the requested tenant is in the user's tenant list
+	for _, tenantUser := range resp.TenantUsers {
+		if tenantUser.Tenant.Id == tenantID {
+			// User is a member of this tenant
+			return nil
+		}
 	}
 
-	return "", status.Error(codes.InvalidArgument, "tenant ID header (X-Tenant-ID) is required")
+	// User is not a member of this tenant
+	return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
 }
 
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
@@ -161,7 +146,6 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 			Title:       video.Title,
 			Description: video.Description,
 			Url:         video.Url,
-			TenantId:    video.TenantID.String,
 			Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 			CreatedAt:   timestamppb.New(video.CreatedAt),
 		})
@@ -178,7 +162,7 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	}
 
 	// Get tenant ID from headers/metadata
-	tenantID, err := s.getTenantIDFromMetadata(ctx)
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +195,6 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 		Title:       video.Title,
 		Description: video.Description,
 		Url:         video.Url,
-		TenantId:    video.TenantID.String,
 		Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 		CreatedAt:   timestamppb.New(video.CreatedAt),
 	}, nil
