@@ -88,8 +88,9 @@ func (s *VideoAPI) Init() error {
 	return nil
 }
 
-// validateTenantAccess checks if the user has access to the specified tenant
-func (s *VideoAPI) validateTenantAccess(ctx context.Context, tenantID, userID string) error {
+// isUserInTenant checks if the user is part of the specified tenant
+// TODO: move to policy service
+func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
 	if tenantID == "" {
 		return status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
@@ -110,14 +111,11 @@ func (s *VideoAPI) validateTenantAccess(ctx context.Context, tenantID, userID st
 	return nil
 }
 
+// TODO: use helper function from inteceptor
 // getTenantIDFromMetadata extracts tenant ID from gRPC metadata
 func (s *VideoAPI) getTenantIDFromMetadata(ctx context.Context) (string, error) {
 	// For gRPC, we need to extract the X-Tenant-ID header from metadata
 	// The grpc-web client should pass this header, and it gets converted to metadata
-
-	// Import google.golang.org/grpc/metadata if not already imported
-	// For now, we'll implement a simple context value extraction
-	// This assumes the interceptor has already extracted the header and put it in context
 
 	if tenantID, ok := ctx.Value("X-Tenant-ID").(string); ok && tenantID != "" {
 		return tenantID, nil
@@ -134,13 +132,13 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	}
 
 	// Get tenant ID from headers/metadata
-	tenantID, err := s.getTenantIDFromMetadata(ctx)
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
 	// Validate user has access to this tenant
-	err = s.validateTenantAccess(ctx, tenantID, authContext.User.ID)
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +184,7 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	}
 
 	// Validate user has access to this tenant
-	err = s.validateTenantAccess(ctx, tenantID, authContext.User.ID)
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}

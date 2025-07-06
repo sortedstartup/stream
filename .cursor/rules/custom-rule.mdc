@@ -1,14 +1,25 @@
 ---
 description: 
-globs: *.go,*.sql,*.proto,*.toml,*.ts,*.jsx,*.html,*.css
-alwaysApply: false
+globs: 
+alwaysApply: true
 ---
 ---
 description: 
 globs: backend/**,frontend/**
 alwaysApply: false
 ---
-Tech stack: Go, React, sqlite
+This a mono repo containing many microservice, 
+Every microservice has its own proto file
+you MUST follow microservice best practices including 
+1. every microservice has its own db2
+2. microservice talk only using API layers to each other. In this project api is expressed in using proto
+
+We have 3 microservices
+1. videoservice
+2. userservice
+3. commentservice
+
+Tech stack: Go, React, nanostores (state management) sqlite, firebase auth
 Reporsitory structure
 .
 |-- LICENSE
@@ -28,9 +39,7 @@ Reporsitory structure
 |   |   |   |-- migrate.go
 |   |   |   |-- migrations
 |   |   |   |   |-- 1_....sql
-|   |   |   |   |-- 2_.....sql
-|   |   |   |   |-- 3_.....sql
-|   |   |   |   `-- 4.....sql
+                    ....
 |   |   |   |-- models.go
 |   |   |   |-- querier.go
 |   |   |   |-- queries.sql.go
@@ -136,18 +145,6 @@ Reporsitory structure
 |-- frontend
 |   `-- webapp
 |       |-- README.md
-|       |-- dist
-|       |   |-- assets
-|       |   |   |-- index-CvPl-NUa.js
-|       |   |   `-- index-hPH7Cqbi.css
-|       |   |-- index.html
-|       |   `-- vite.svg
-|       |-- eslint.config.js
-|       |-- index.html
-|       |-- package.json
-|       |-- pnpm-lock.yaml
-|       |-- public
-|       |   `-- vite.svg
 |       |-- src
 |       |   |-- App.css
 |       |   |-- App.jsx
@@ -176,14 +173,7 @@ Reporsitory structure
 |       |   |-- main.jsx
 |       |   |-- pages
 |       |   |   |-- HomePage.jsx
-|       |   |   |-- Library.jsx
-|       |   |   |-- ProfilePage.jsx
-|       |   |   |-- RecordPage.jsx
-|       |   |   |-- SettingsPage.jsx
-|       |   |   |-- TeamPage.jsx
-|       |   |   |-- UploadPage.jsx
-|       |   |   |-- VideoPage.jsx
-|       |   |   `-- VideosPage.jsx
+|       |   |   |--.....
 |       |   |-- proto
 |       |   |   |-- commentservice.ts
 |       |   |   |-- google
@@ -206,19 +196,19 @@ Reporsitory structure
 |-- proto
 |   |-- commentservice.proto
 |   `-- videoservice.proto
+    `-- userservice.proto
+        .....
 
----------
-Existing features:
-1. Login using firebase auth
-2. User can record screen and upload
-3. User can upload local videos
-4. List videos
-5. Play video
-6. Add comment to video
+Features can be read from docs/features.md file
 
----------
-When we implement new feature, we can start updating proto files in root level "proto" folder. Once we made proto changes, then we can make changes in respective backend service folder, by adding migrations, scripts/queries.sql. 
-Then ask me to run 'go generate' in respective service folder in backend, I will run, it will auto generate few files. We just have to write code using these auto generated method. Example, we may update api.go etc..
+How to implement a new API 
+- Identity which microservie(s) to make changes in 
+- Update proto files in root level "proto" folder. Once we made proto changes, then we can make changes in respective backend api folder, by adding migrations, scripts/queries.sql. 
+Then ask me to run 'go generate' in respective service folder in backend, I will run, it will auto generate few files.
+`go generate` will generate 
+0. go generate works in the context of a give microservice
+1. server stubs for proto file 
+2. go code for queries.sql under db/queries.sql.go
 
 
 

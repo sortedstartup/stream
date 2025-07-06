@@ -28,6 +28,7 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+  // TODO: probably remove
   string tenant_id = 10;
 }
 
@@ -39,6 +40,7 @@ enum VideoStatus {
 }
 
 enum Visibility {
+  // TODO: check if we really need this
   VISIBILITY_UNSPECIFIED = 0;
   VISIBILITY_PRIVATE = 1;
   VISIBILITY_SHARED = 2;

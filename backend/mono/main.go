@@ -323,7 +323,7 @@ func enableCORS(next http.Handler) http.Handler {
 		// Set necessary headers for CORS
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Adjust in production
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web, X-Tenant-ID, family-id")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web, x-tenant-id")
 
 		// Check for preflight request
 		if r.Method == "OPTIONS" {
