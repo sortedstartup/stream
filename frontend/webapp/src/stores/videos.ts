@@ -1,6 +1,7 @@
 import { atom, onMount } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
+import { $currentTenant } from "./tenants";
 import { GetVideoRequest, ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
 
 export const $videos = atom<Video[]>([])
@@ -14,7 +15,15 @@ const unaryInterceptor: UnaryInterceptor<any, any> = {
     intercept: (request, invoker) => {
       const m = request.getMetadata();
       const token = $authToken.get();
-      m["authorization"] = token; //`${$authContext.get().user.token}`;
+      const currentTenant = $currentTenant.get();
+      
+      m["authorization"] = token;
+      
+      // Add tenant ID header if available
+      if (currentTenant?.tenant?.id) {
+        m["x-tenant-id"] = currentTenant.tenant.id;
+      }
+      
       return invoker(request);
     },
   };
