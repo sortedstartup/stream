@@ -58,6 +58,7 @@ message ListVideosRequest {
   // user id is implicit from auth context
   int32 pageSize = 2;
   int32 pageNumber = 3;
+  string channel_id = 4; // Optional: filter by channel within tenant
   // tenant_id comes from x-tenant-id header, not request body
 }
 

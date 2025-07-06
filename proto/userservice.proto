@@ -18,6 +18,14 @@ service TenantService {
   rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
 }
 
+service ChannelService {
+  rpc Create(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
+  rpc GetMembers(GetChannelMembersRequest) returns (GetChannelMembersResponse);
+  rpc AddMember(AddChannelMemberRequest) returns (AddChannelMemberResponse);
+  rpc RemoveMember(RemoveChannelMemberRequest) returns (RemoveChannelMemberResponse);
+}
+
 message User {
   string id = 1;
   string username = 2;
@@ -90,4 +98,75 @@ message GetUsersRequest {
 message GetUsersResponse {
   string message = 1;
   repeated TenantUser tenant_users = 2;
+}
+
+// Channel messages
+message Channel {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string description = 4;
+  bool is_private = 5;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ChannelMember {
+  Channel channel = 1;
+  User user = 2;
+  Role role = 3;
+  string added_by = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message CreateChannelRequest {
+  string tenant_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message CreateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message GetChannelsRequest {
+  string tenant_id = 1;
+}
+
+message GetChannelsResponse {
+  string message = 1;
+  repeated Channel channels = 2;
+}
+
+message GetChannelMembersRequest {
+  string tenant_id = 1;
+  string channel_id = 2;
+}
+
+message GetChannelMembersResponse {
+  string message = 1;
+  repeated ChannelMember channel_members = 2;
+}
+
+message AddChannelMemberRequest {
+  string tenant_id = 1;
+  string channel_id = 2;
+  string user_id = 3;
+  string role = 4; // owner, uploader, viewer
+}
+
+message AddChannelMemberResponse {
+  string message = 1;
+}
+
+message RemoveChannelMemberRequest {
+  string tenant_id = 1;
+  string channel_id = 2;
+  string user_id = 3;
+}
+
+message RemoveChannelMemberResponse {
+  string message = 1;
 }

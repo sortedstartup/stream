@@ -19,4 +19,5 @@ type Video struct {
 	UpdatedAt      time.Time
 	IsPrivate      sql.NullBool
 	TenantID       sql.NullString
+	ChannelID      sql.NullString
 }

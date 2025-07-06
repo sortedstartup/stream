@@ -11,6 +11,113 @@ import (
 	"time"
 )
 
+const createChannel = `-- name: CreateChannel :one
+INSERT INTO userservice_channels (
+    id,
+    tenant_id,
+    name,
+    description,
+    is_private,
+    created_by,
+    created_at,
+    updated_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?8
+) RETURNING id, tenant_id, name, description, is_private, created_by, created_at, updated_at
+`
+
+type CreateChannelParams struct {
+	ID          string
+	TenantID    string
+	Name        string
+	Description sql.NullString
+	IsPrivate   bool
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// Channel queries
+func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (UserserviceChannel, error) {
+	row := q.db.QueryRowContext(ctx, createChannel,
+		arg.ID,
+		arg.TenantID,
+		arg.Name,
+		arg.Description,
+		arg.IsPrivate,
+		arg.CreatedBy,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i UserserviceChannel
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.Name,
+		&i.Description,
+		&i.IsPrivate,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createChannelMember = `-- name: CreateChannelMember :one
+INSERT INTO userservice_channel_members (
+    id,
+    channel_id,
+    user_id,
+    role,
+    added_by,
+    created_at
+) VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6
+) RETURNING id, channel_id, user_id, role, added_by, created_at
+`
+
+type CreateChannelMemberParams struct {
+	ID        string
+	ChannelID string
+	UserID    string
+	Role      string
+	AddedBy   string
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemberParams) (UserserviceChannelMember, error) {
+	row := q.db.QueryRowContext(ctx, createChannelMember,
+		arg.ID,
+		arg.ChannelID,
+		arg.UserID,
+		arg.Role,
+		arg.AddedBy,
+		arg.CreatedAt,
+	)
+	var i UserserviceChannelMember
+	err := row.Scan(
+		&i.ID,
+		&i.ChannelID,
+		&i.UserID,
+		&i.Role,
+		&i.AddedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createTenant = `-- name: CreateTenant :one
 INSERT INTO userservice_tenants (
     id,
@@ -141,6 +248,156 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 	return i, err
 }
 
+const deleteChannelMember = `-- name: DeleteChannelMember :exec
+DELETE FROM userservice_channel_members 
+WHERE channel_id = ?1 AND user_id = ?2
+`
+
+type DeleteChannelMemberParams struct {
+	ChannelID string
+	UserID    string
+}
+
+func (q *Queries) DeleteChannelMember(ctx context.Context, arg DeleteChannelMemberParams) error {
+	_, err := q.db.ExecContext(ctx, deleteChannelMember, arg.ChannelID, arg.UserID)
+	return err
+}
+
+const getChannelByIDAndTenantID = `-- name: GetChannelByIDAndTenantID :one
+SELECT id, tenant_id, name, description, is_private, created_by, created_at, updated_at FROM userservice_channels 
+WHERE id = ?1 AND tenant_id = ?2
+`
+
+type GetChannelByIDAndTenantIDParams struct {
+	ID       string
+	TenantID string
+}
+
+func (q *Queries) GetChannelByIDAndTenantID(ctx context.Context, arg GetChannelByIDAndTenantIDParams) (UserserviceChannel, error) {
+	row := q.db.QueryRowContext(ctx, getChannelByIDAndTenantID, arg.ID, arg.TenantID)
+	var i UserserviceChannel
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.Name,
+		&i.Description,
+		&i.IsPrivate,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getChannelMembersByChannelIDAndTenantID = `-- name: GetChannelMembersByChannelIDAndTenantID :many
+SELECT 
+    cm.id as channel_member_id,
+    cm.channel_id,
+    cm.user_id,
+    cm.role,
+    cm.added_by,
+    cm.created_at,
+    u.username,
+    u.email,
+    c.name as channel_name,
+    c.tenant_id
+FROM userservice_channel_members cm
+JOIN userservice_users u ON cm.user_id = u.id
+JOIN userservice_channels c ON cm.channel_id = c.id
+WHERE cm.channel_id = ?1 AND c.tenant_id = ?2
+ORDER BY cm.created_at ASC
+`
+
+type GetChannelMembersByChannelIDAndTenantIDParams struct {
+	ChannelID string
+	TenantID  string
+}
+
+type GetChannelMembersByChannelIDAndTenantIDRow struct {
+	ChannelMemberID string
+	ChannelID       string
+	UserID          string
+	Role            string
+	AddedBy         string
+	CreatedAt       time.Time
+	Username        string
+	Email           string
+	ChannelName     string
+	TenantID        string
+}
+
+func (q *Queries) GetChannelMembersByChannelIDAndTenantID(ctx context.Context, arg GetChannelMembersByChannelIDAndTenantIDParams) ([]GetChannelMembersByChannelIDAndTenantIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChannelMembersByChannelIDAndTenantID, arg.ChannelID, arg.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChannelMembersByChannelIDAndTenantIDRow
+	for rows.Next() {
+		var i GetChannelMembersByChannelIDAndTenantIDRow
+		if err := rows.Scan(
+			&i.ChannelMemberID,
+			&i.ChannelID,
+			&i.UserID,
+			&i.Role,
+			&i.AddedBy,
+			&i.CreatedAt,
+			&i.Username,
+			&i.Email,
+			&i.ChannelName,
+			&i.TenantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getChannelsByTenantID = `-- name: GetChannelsByTenantID :many
+SELECT id, tenant_id, name, description, is_private, created_by, created_at, updated_at FROM userservice_channels 
+WHERE tenant_id = ?1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetChannelsByTenantID(ctx context.Context, tenantID string) ([]UserserviceChannel, error) {
+	rows, err := q.db.QueryContext(ctx, getChannelsByTenantID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserserviceChannel
+	for rows.Next() {
+		var i UserserviceChannel
+		if err := rows.Scan(
+			&i.ID,
+			&i.TenantID,
+			&i.Name,
+			&i.Description,
+			&i.IsPrivate,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTenantUsers = `-- name: GetTenantUsers :many
 SELECT 
     tu.role, tu.created_at,
@@ -208,6 +465,25 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Userservice
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUserRoleInChannel = `-- name: GetUserRoleInChannel :one
+SELECT cm.role FROM userservice_channel_members cm
+JOIN userservice_channels c ON cm.channel_id = c.id
+WHERE cm.channel_id = ?1 AND cm.user_id = ?2 AND c.tenant_id = ?3
+`
+
+type GetUserRoleInChannelParams struct {
+	ChannelID string
+	UserID    string
+	TenantID  string
+}
+
+func (q *Queries) GetUserRoleInChannel(ctx context.Context, arg GetUserRoleInChannelParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserRoleInChannel, arg.ChannelID, arg.UserID, arg.TenantID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
 }
 
 const getUserRoleInTenant = `-- name: GetUserRoleInTenant :one

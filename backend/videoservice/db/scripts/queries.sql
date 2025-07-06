@@ -37,3 +37,8 @@ SELECT * FROM videos
 WHERE tenant_id = @tenant_id 
 ORDER BY created_at DESC;
 
+-- name: GetVideosByTenantIDAndChannelID :many
+SELECT * FROM videos 
+WHERE tenant_id = @tenant_id AND channel_id = @channel_id
+ORDER BY created_at DESC;
+

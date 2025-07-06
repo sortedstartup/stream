@@ -481,6 +481,7 @@ export class ListVideosRequest extends pb_1.Message {
     constructor(data?: any[] | {
         pageSize?: number;
         pageNumber?: number;
+        channel_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -490,6 +491,9 @@ export class ListVideosRequest extends pb_1.Message {
             }
             if ("pageNumber" in data && data.pageNumber != undefined) {
                 this.pageNumber = data.pageNumber;
+            }
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
             }
         }
     }
@@ -505,9 +509,16 @@ export class ListVideosRequest extends pb_1.Message {
     set pageNumber(value: number) {
         pb_1.Message.setField(this, 3, value);
     }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
     static fromObject(data: {
         pageSize?: number;
         pageNumber?: number;
+        channel_id?: string;
     }): ListVideosRequest {
         const message = new ListVideosRequest({});
         if (data.pageSize != null) {
@@ -516,18 +527,25 @@ export class ListVideosRequest extends pb_1.Message {
         if (data.pageNumber != null) {
             message.pageNumber = data.pageNumber;
         }
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
         return message;
     }
     toObject() {
         const data: {
             pageSize?: number;
             pageNumber?: number;
+            channel_id?: string;
         } = {};
         if (this.pageSize != null) {
             data.pageSize = this.pageSize;
         }
         if (this.pageNumber != null) {
             data.pageNumber = this.pageNumber;
+        }
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
         }
         return data;
     }
@@ -539,6 +557,8 @@ export class ListVideosRequest extends pb_1.Message {
             writer.writeInt32(2, this.pageSize);
         if (this.pageNumber != 0)
             writer.writeInt32(3, this.pageNumber);
+        if (this.channel_id.length)
+            writer.writeString(4, this.channel_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -553,6 +573,9 @@ export class ListVideosRequest extends pb_1.Message {
                     break;
                 case 3:
                     message.pageNumber = reader.readInt32();
+                    break;
+                case 4:
+                    message.channel_id = reader.readString();
                     break;
                 default: reader.skipField();
             }

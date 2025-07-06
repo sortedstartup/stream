@@ -63,7 +63,7 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 }
 
 const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id FROM videos 
 WHERE uploaded_user_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET ?2
@@ -94,6 +94,7 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 			&i.UpdatedAt,
 			&i.IsPrivate,
 			&i.TenantID,
+			&i.ChannelID,
 		); err != nil {
 			return nil, err
 		}
@@ -109,7 +110,7 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 }
 
 const getVideoByVideoIDAndTenantID = `-- name: GetVideoByVideoIDAndTenantID :one
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id FROM videos 
 WHERE id = ?1 AND tenant_id = ?2
 LIMIT 1
 `
@@ -132,12 +133,13 @@ func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideo
 		&i.UpdatedAt,
 		&i.IsPrivate,
 		&i.TenantID,
+		&i.ChannelID,
 	)
 	return i, err
 }
 
 const getVideosByTenantID = `-- name: GetVideosByTenantID :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id FROM videos 
 WHERE tenant_id = ?1 
 ORDER BY created_at DESC
 `
@@ -161,6 +163,52 @@ func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullStri
 			&i.UpdatedAt,
 			&i.IsPrivate,
 			&i.TenantID,
+			&i.ChannelID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getVideosByTenantIDAndChannelID = `-- name: GetVideosByTenantIDAndChannelID :many
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id FROM videos 
+WHERE tenant_id = ?1 AND channel_id = ?2
+ORDER BY created_at DESC
+`
+
+type GetVideosByTenantIDAndChannelIDParams struct {
+	TenantID  sql.NullString
+	ChannelID sql.NullString
+}
+
+func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVideosByTenantIDAndChannelIDParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getVideosByTenantIDAndChannelID, arg.TenantID, arg.ChannelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
+			&i.ChannelID,
 		); err != nil {
 			return nil, err
 		}
