@@ -36,7 +36,11 @@ export const LoginPage = () => {
 
     try {
       await createUserIfNotExists()
+      // Reload tenants after user creation to ensure personal tenant is loaded
+      const { loadUserTenants } = await import('../../stores/tenants')
+      await loadUserTenants()
     } catch (error) {
+      console.error('Error creating user:', error)
     }
 
     navigate('/')
