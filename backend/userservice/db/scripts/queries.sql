@@ -111,6 +111,15 @@ ORDER BY created_at DESC;
 SELECT * FROM userservice_channels 
 WHERE id = @id AND tenant_id = @tenant_id;
 
+-- name: UpdateChannel :one
+UPDATE userservice_channels 
+SET 
+    name = @name,
+    description = @description,
+    updated_at = @updated_at
+WHERE id = @id AND tenant_id = @tenant_id
+RETURNING *;
+
 -- name: CreateChannelMember :one
 INSERT INTO userservice_channel_members (
     id,

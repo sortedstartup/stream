@@ -564,3 +564,43 @@ func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserT
 	}
 	return items, nil
 }
+
+const updateChannel = `-- name: UpdateChannel :one
+UPDATE userservice_channels 
+SET 
+    name = ?1,
+    description = ?2,
+    updated_at = ?3
+WHERE id = ?4 AND tenant_id = ?5
+RETURNING id, tenant_id, name, description, is_private, created_by, created_at, updated_at
+`
+
+type UpdateChannelParams struct {
+	Name        string
+	Description sql.NullString
+	UpdatedAt   time.Time
+	ID          string
+	TenantID    string
+}
+
+func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (UserserviceChannel, error) {
+	row := q.db.QueryRowContext(ctx, updateChannel,
+		arg.Name,
+		arg.Description,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.TenantID,
+	)
+	var i UserserviceChannel
+	err := row.Scan(
+		&i.ID,
+		&i.TenantID,
+		&i.Name,
+		&i.Description,
+		&i.IsPrivate,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

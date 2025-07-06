@@ -340,6 +340,7 @@ var TenantService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	ChannelService_Create_FullMethodName       = "/userservice.ChannelService/Create"
+	ChannelService_Update_FullMethodName       = "/userservice.ChannelService/Update"
 	ChannelService_GetChannels_FullMethodName  = "/userservice.ChannelService/GetChannels"
 	ChannelService_GetMembers_FullMethodName   = "/userservice.ChannelService/GetMembers"
 	ChannelService_AddMember_FullMethodName    = "/userservice.ChannelService/AddMember"
@@ -351,6 +352,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChannelServiceClient interface {
 	Create(ctx context.Context, in *CreateChannelRequest, opts ...grpc.CallOption) (*CreateChannelResponse, error)
+	Update(ctx context.Context, in *UpdateChannelRequest, opts ...grpc.CallOption) (*UpdateChannelResponse, error)
 	GetChannels(ctx context.Context, in *GetChannelsRequest, opts ...grpc.CallOption) (*GetChannelsResponse, error)
 	GetMembers(ctx context.Context, in *GetChannelMembersRequest, opts ...grpc.CallOption) (*GetChannelMembersResponse, error)
 	AddMember(ctx context.Context, in *AddChannelMemberRequest, opts ...grpc.CallOption) (*AddChannelMemberResponse, error)
@@ -369,6 +371,16 @@ func (c *channelServiceClient) Create(ctx context.Context, in *CreateChannelRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateChannelResponse)
 	err := c.cc.Invoke(ctx, ChannelService_Create_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *channelServiceClient) Update(ctx context.Context, in *UpdateChannelRequest, opts ...grpc.CallOption) (*UpdateChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateChannelResponse)
+	err := c.cc.Invoke(ctx, ChannelService_Update_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -420,6 +432,7 @@ func (c *channelServiceClient) RemoveMember(ctx context.Context, in *RemoveChann
 // for forward compatibility.
 type ChannelServiceServer interface {
 	Create(context.Context, *CreateChannelRequest) (*CreateChannelResponse, error)
+	Update(context.Context, *UpdateChannelRequest) (*UpdateChannelResponse, error)
 	GetChannels(context.Context, *GetChannelsRequest) (*GetChannelsResponse, error)
 	GetMembers(context.Context, *GetChannelMembersRequest) (*GetChannelMembersResponse, error)
 	AddMember(context.Context, *AddChannelMemberRequest) (*AddChannelMemberResponse, error)
@@ -436,6 +449,9 @@ type UnimplementedChannelServiceServer struct{}
 
 func (UnimplementedChannelServiceServer) Create(context.Context, *CreateChannelRequest) (*CreateChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (UnimplementedChannelServiceServer) Update(context.Context, *UpdateChannelRequest) (*UpdateChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedChannelServiceServer) GetChannels(context.Context, *GetChannelsRequest) (*GetChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChannels not implemented")
@@ -484,6 +500,24 @@ func _ChannelService_Create_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ChannelServiceServer).Create(ctx, req.(*CreateChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChannelService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelServiceServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelService_Update_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelServiceServer).Update(ctx, req.(*UpdateChannelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -570,6 +604,10 @@ var ChannelService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Create",
 			Handler:    _ChannelService_Create_Handler,
+		},
+		{
+			MethodName: "Update",
+			Handler:    _ChannelService_Update_Handler,
 		},
 		{
 			MethodName: "GetChannels",

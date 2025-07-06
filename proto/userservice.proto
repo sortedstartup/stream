@@ -20,6 +20,7 @@ service TenantService {
 
 service ChannelService {
   rpc Create(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc Update(UpdateChannelRequest) returns (UpdateChannelResponse);
   rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
   rpc GetMembers(GetChannelMembersRequest) returns (GetChannelMembersResponse);
   rpc AddMember(AddChannelMemberRequest) returns (AddChannelMemberResponse);
@@ -127,6 +128,18 @@ message CreateChannelRequest {
 }
 
 message CreateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message UpdateChannelRequest {
+  string tenant_id = 1;
+  string channel_id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateChannelResponse {
   string message = 1;
   Channel channel = 2;
 }
