@@ -61,7 +61,7 @@ message CreateTenantRequest {
 message CreateTenantResponse {
   string message = 1;
   bool success = 2;
-  Tenant tenant = 3;
+  TenantUser tenant_user = 3;
 }
 
 message GetTenantsRequest {

@@ -23,6 +23,7 @@ type UserAPI struct {
 	log       *slog.Logger
 	dbQueries *db.Queries
 	proto.UnimplementedUserServiceServer
+	tenantAPI *TenantAPI
 }
 
 type TenantAPI struct {
@@ -45,18 +46,19 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 
 	dbQueries := db.New(_db)
 
-	userAPI := &UserAPI{
+	tenantAPI := &TenantAPI{
 		config:    config,
 		db:        _db,
 		log:       childLogger,
 		dbQueries: dbQueries,
 	}
 
-	tenantAPI := &TenantAPI{
+	userAPI := &UserAPI{
 		config:    config,
 		db:        _db,
 		log:       childLogger,
 		dbQueries: dbQueries,
+		tenantAPI: tenantAPI,
 	}
 
 	return userAPI, tenantAPI, nil
@@ -110,7 +112,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			s.log.Info("User created successfully with email", "email", authContext.User.Email)
 			successMessage = "User created successfully"
 
-			err = s.createPersonalTenant(ctx)
+			err = s.tenantAPI.createPersonalTenant(ctx)
 			if err != nil {
 				s.log.Error("Failed to create personal tenant", "error", err)
 				// Don't fail the entire request, just log the error
@@ -146,7 +148,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 * @param ctx context.Context
 * @return error
  */
-func (s *UserAPI) createPersonalTenant(ctx context.Context) error {
+func (s *TenantAPI) createPersonalTenant(ctx context.Context) error {
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -154,17 +156,38 @@ func (s *UserAPI) createPersonalTenant(ctx context.Context) error {
 	}
 	userName := authContext.User.Name
 
-	req := &proto.CreateTenantRequest{
+	// Create personal tenant directly
+	tenantID := uuid.New().String()
+	tenantParams := db.CreateTenantParams{
+		ID:          tenantID,
 		Name:        userName,
-		Description: "Personal workspace",
+		Description: sql.NullString{String: "Personal workspace", Valid: true},
+		IsPersonal:  true,
+		CreatedAt:   time.Now(),
+		CreatedBy:   authContext.User.ID,
 	}
 
-	tenant, err := s.CreateTenant(ctx, req)
+	tenant, err := s.dbQueries.CreateTenant(ctx, tenantParams)
 	if err != nil {
+		s.log.Error("Failed to create personal tenant", "error", err)
 		return fmt.Errorf("failed to create personal tenant: %w", err)
 	}
 
-	tenantID := tenant.Tenant.Id
+	// Add creator to personal tenant as super_admin
+	tenantUserParams := db.CreateTenantUserParams{
+		ID:        uuid.New().String(),
+		TenantID:  tenant.ID,
+		UserID:    authContext.User.ID,
+		Role:      "super_admin",
+		CreatedAt: time.Now(),
+	}
+
+	_, err = s.dbQueries.CreateTenantUser(ctx, tenantUserParams)
+	if err != nil {
+		s.log.Error("Failed to add creator to personal tenant", "error", err)
+		return fmt.Errorf("failed to add creator to personal tenant: %w", err)
+	}
+
 	s.log.Info("Personal tenant created successfully", "tenantID", tenantID, "userName", userName)
 	return nil
 }
@@ -176,7 +199,7 @@ func (s *UserAPI) createPersonalTenant(ctx context.Context) error {
 * @param req *proto.CreateTenantRequest
 * @return *proto.CreateTenantResponse, error
  */
-func (s *UserAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantRequest) (*proto.CreateTenantResponse, error) {
+func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantRequest) (*proto.CreateTenantResponse, error) {
 	s.log.Info("CreateTenant", "name", req.Name)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
@@ -213,7 +236,7 @@ func (s *UserAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReque
 		CreatedAt: time.Now(),
 	}
 
-	_, err = s.dbQueries.CreateTenantUser(ctx, tenantUserParams)
+	tenantUser, err := s.dbQueries.CreateTenantUser(ctx, tenantUserParams)
 	if err != nil {
 		s.log.Error("Failed to add creator to tenant", "error", err)
 		return nil, status.Error(codes.Internal, "failed to add creator to tenant")
@@ -230,8 +253,10 @@ func (s *UserAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReque
 
 	return &proto.CreateTenantResponse{
 		Message: "Tenant created successfully",
-		Success: true,
-		Tenant:  protoTenant,
+		TenantUser: &proto.TenantUser{
+			Tenant: protoTenant,
+			Role:   &proto.Role{Role: tenantUser.Role},
+		},
 	}, nil
 }
 
@@ -241,7 +266,7 @@ func (s *UserAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReque
 * @param req *proto.GetUserTenantsRequest
 * @return *proto.GetUserTenantsResponse, error
  */
-func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUsersRequest) (*proto.GetUsersResponse, error) {
+func (s *UserAPI) GetTenants(ctx context.Context, req *proto.GetTenantsRequest) (*proto.GetTenantsResponse, error) {
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -275,20 +300,20 @@ func (s *UserAPI) GetUserTenants(ctx context.Context, req *proto.GetUsersRequest
 		tenants = append(tenants, tenant)
 	}
 
-	return &proto.GetUsersResponse{
+	return &proto.GetTenantsResponse{
 		Message:     "User tenants retrieved successfully",
 		TenantUsers: tenants,
 	}, nil
 }
 
 /**
-* AddUserToTenant adds a user to an existing tenant using username (email)
+* AddUser adds a user to an existing tenant using username (email)
 * @param ctx context.Context
-* @param req *proto.AddUserToTenantRequest
-* @return *proto.AddUserToTenantResponse, error
+* @param req *proto.AddUserRequest
+* @return *proto.AddUserResponse, error
  */
-func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserRequest) (*proto.AddUserResponse, error) {
-	s.log.Info("AddUserToTenant", "tenantID", req.TenantId, "username", req.Username)
+func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*proto.AddUserResponse, error) {
+	s.log.Info("AddUser", "tenantID", req.TenantId, "username", req.Username)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -361,8 +386,9 @@ func (s *UserAPI) AddUserToTenant(ctx context.Context, req *proto.AddUserRequest
 * @param req *proto.GetTenantUsersRequest
 * @return *proto.GetTenantUsersResponse, error
  */
-func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetUsersRequest) (*proto.GetUsersResponse, error) {
-	s.log.Info("GetTenantUsers", "tenantID", req.TenantId)
+func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*proto.GetUsersResponse, error) {
+
+	s.log.Info("GetUsers", "tenantID", req.TenantId)
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -404,6 +430,10 @@ func (s *UserAPI) GetTenantUsers(ctx context.Context, req *proto.GetUsersRequest
 
 	for _, user := range tenantUsers {
 		tenantUsersProto = append(tenantUsersProto, &proto.TenantUser{
+			Tenant: &proto.Tenant{
+				Name:      user.TenantName,
+				CreatedAt: timestamppb.New(user.TenantCreatedAt),
+			},
 			User: &proto.User{
 				Username: user.Username,
 				Email:    user.Email,

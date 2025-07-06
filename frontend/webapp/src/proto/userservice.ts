@@ -749,7 +749,7 @@ export class CreateTenantResponse extends pb_1.Message {
     constructor(data?: any[] | {
         message?: string;
         success?: boolean;
-        tenant?: Tenant;
+        tenant_user?: TenantUser;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -760,8 +760,8 @@ export class CreateTenantResponse extends pb_1.Message {
             if ("success" in data && data.success != undefined) {
                 this.success = data.success;
             }
-            if ("tenant" in data && data.tenant != undefined) {
-                this.tenant = data.tenant;
+            if ("tenant_user" in data && data.tenant_user != undefined) {
+                this.tenant_user = data.tenant_user;
             }
         }
     }
@@ -777,19 +777,19 @@ export class CreateTenantResponse extends pb_1.Message {
     set success(value: boolean) {
         pb_1.Message.setField(this, 2, value);
     }
-    get tenant() {
-        return pb_1.Message.getWrapperField(this, Tenant, 3) as Tenant;
+    get tenant_user() {
+        return pb_1.Message.getWrapperField(this, TenantUser, 3) as TenantUser;
     }
-    set tenant(value: Tenant) {
+    set tenant_user(value: TenantUser) {
         pb_1.Message.setWrapperField(this, 3, value);
     }
-    get has_tenant() {
+    get has_tenant_user() {
         return pb_1.Message.getField(this, 3) != null;
     }
     static fromObject(data: {
         message?: string;
         success?: boolean;
-        tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+        tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
     }): CreateTenantResponse {
         const message = new CreateTenantResponse({});
         if (data.message != null) {
@@ -798,8 +798,8 @@ export class CreateTenantResponse extends pb_1.Message {
         if (data.success != null) {
             message.success = data.success;
         }
-        if (data.tenant != null) {
-            message.tenant = Tenant.fromObject(data.tenant);
+        if (data.tenant_user != null) {
+            message.tenant_user = TenantUser.fromObject(data.tenant_user);
         }
         return message;
     }
@@ -807,7 +807,7 @@ export class CreateTenantResponse extends pb_1.Message {
         const data: {
             message?: string;
             success?: boolean;
-            tenant?: ReturnType<typeof Tenant.prototype.toObject>;
+            tenant_user?: ReturnType<typeof TenantUser.prototype.toObject>;
         } = {};
         if (this.message != null) {
             data.message = this.message;
@@ -815,8 +815,8 @@ export class CreateTenantResponse extends pb_1.Message {
         if (this.success != null) {
             data.success = this.success;
         }
-        if (this.tenant != null) {
-            data.tenant = this.tenant.toObject();
+        if (this.tenant_user != null) {
+            data.tenant_user = this.tenant_user.toObject();
         }
         return data;
     }
@@ -828,8 +828,8 @@ export class CreateTenantResponse extends pb_1.Message {
             writer.writeString(1, this.message);
         if (this.success != false)
             writer.writeBool(2, this.success);
-        if (this.has_tenant)
-            writer.writeMessage(3, this.tenant, () => this.tenant.serialize(writer));
+        if (this.has_tenant_user)
+            writer.writeMessage(3, this.tenant_user, () => this.tenant_user.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -846,7 +846,7 @@ export class CreateTenantResponse extends pb_1.Message {
                     message.success = reader.readBool();
                     break;
                 case 3:
-                    reader.readMessage(message.tenant, () => message.tenant = Tenant.deserialize(reader));
+                    reader.readMessage(message.tenant_user, () => message.tenant_user = TenantUser.deserialize(reader));
                     break;
                 default: reader.skipField();
             }

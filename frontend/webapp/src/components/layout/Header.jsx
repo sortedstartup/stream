@@ -2,6 +2,7 @@ import React from 'react'
 import { useStore } from '@nanostores/react'
 import { $currentUser, $isLoggedIn, clearAuthState } from '../../auth/store/auth'
 import { useNavigate } from 'react-router'
+import { TenantSwitcher } from '../TenantSwitcher'
 
 const toggleTheme = (e) => {
     const html = document.querySelector('html')
@@ -36,6 +37,7 @@ export const Header = ({ onMenuClick }) => {
       </div>
 
       <div className="flex-none flex items-center gap-4">
+        {isLoggedIn && <TenantSwitcher />}
         <ThemeSelector />
         {isLoggedIn && <UserMenu />}
       </div>
