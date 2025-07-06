@@ -570,16 +570,12 @@ export class ListVideosResponse extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         videos?: Video[];
-        next_page_number?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
             if ("videos" in data && data.videos != undefined) {
                 this.videos = data.videos;
-            }
-            if ("next_page_number" in data && data.next_page_number != undefined) {
-                this.next_page_number = data.next_page_number;
             }
         }
     }
@@ -589,35 +585,21 @@ export class ListVideosResponse extends pb_1.Message {
     set videos(value: Video[]) {
         pb_1.Message.setRepeatedWrapperField(this, 1, value);
     }
-    get next_page_number() {
-        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
-    }
-    set next_page_number(value: number) {
-        pb_1.Message.setField(this, 2, value);
-    }
     static fromObject(data: {
         videos?: ReturnType<typeof Video.prototype.toObject>[];
-        next_page_number?: number;
     }): ListVideosResponse {
         const message = new ListVideosResponse({});
         if (data.videos != null) {
             message.videos = data.videos.map(item => Video.fromObject(item));
-        }
-        if (data.next_page_number != null) {
-            message.next_page_number = data.next_page_number;
         }
         return message;
     }
     toObject() {
         const data: {
             videos?: ReturnType<typeof Video.prototype.toObject>[];
-            next_page_number?: number;
         } = {};
         if (this.videos != null) {
             data.videos = this.videos.map((item: Video) => item.toObject());
-        }
-        if (this.next_page_number != null) {
-            data.next_page_number = this.next_page_number;
         }
         return data;
     }
@@ -627,8 +609,6 @@ export class ListVideosResponse extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.videos.length)
             writer.writeRepeatedMessage(1, this.videos, (item: Video) => item.serialize(writer));
-        if (this.next_page_number != 0)
-            writer.writeInt32(2, this.next_page_number);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -640,9 +620,6 @@ export class ListVideosResponse extends pb_1.Message {
             switch (reader.getFieldNumber()) {
                 case 1:
                     reader.readMessage(message.videos, () => pb_1.Message.addToRepeatedWrapperField(message, 1, Video.deserialize(reader), Video));
-                    break;
-                case 2:
-                    message.next_page_number = reader.readInt32();
                     break;
                 default: reader.skipField();
             }

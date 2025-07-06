@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -17,6 +18,8 @@ INSERT INTO videos (
     description,
     url,
     uploaded_user_id,
+    tenant_id,
+    is_private,
     created_at,
     updated_at
 ) VALUES (
@@ -26,7 +29,9 @@ INSERT INTO videos (
     ?4,
     ?5,
     ?6,
-    ?7
+    ?7,
+    ?8,
+    ?9
 )
 `
 
@@ -36,6 +41,8 @@ type CreateVideoUploadedParams struct {
 	Description    string
 	Url            string
 	UploadedUserID string
+	TenantID       sql.NullString
+	IsPrivate      sql.NullBool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -47,49 +54,16 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 		arg.Description,
 		arg.Url,
 		arg.UploadedUserID,
+		arg.TenantID,
+		arg.IsPrivate,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 	return err
 }
 
-const getAllVideoUploadedByUser = `-- name: GetAllVideoUploadedByUser :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos WHERE uploaded_user_id = ?1 ORDER BY created_at DESC
-`
-
-func (q *Queries) GetAllVideoUploadedByUser(ctx context.Context, id string) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, getAllVideoUploadedByUser, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Video
-	for rows.Next() {
-		var i Video
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.Url,
-			&i.CreatedAt,
-			&i.UploadedUserID,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
 WHERE uploaded_user_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET ?2
@@ -118,6 +92,8 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 			&i.CreatedAt,
 			&i.UploadedUserID,
 			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
 		); err != nil {
 			return nil, err
 		}
@@ -132,12 +108,42 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 	return items, nil
 }
 
-const getAllVideosForAllUsers = `-- name: GetAllVideosForAllUsers :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos ORDER BY created_at DESC
+const getVideoByVideoIDAndTenantID = `-- name: GetVideoByVideoIDAndTenantID :one
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
+WHERE id = ?1 AND tenant_id = ?2
+LIMIT 1
 `
 
-func (q *Queries) GetAllVideosForAllUsers(ctx context.Context) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, getAllVideosForAllUsers)
+type GetVideoByVideoIDAndTenantIDParams struct {
+	ID       string
+	TenantID sql.NullString
+}
+
+func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideoByVideoIDAndTenantIDParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByVideoIDAndTenantID, arg.ID, arg.TenantID)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UploadedUserID,
+		&i.UpdatedAt,
+		&i.IsPrivate,
+		&i.TenantID,
+	)
+	return i, err
+}
+
+const getVideosByTenantID = `-- name: GetVideosByTenantID :many
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id FROM videos 
+WHERE tenant_id = ?1 
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullString) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getVideosByTenantID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,6 +159,8 @@ func (q *Queries) GetAllVideosForAllUsers(ctx context.Context) ([]Video, error) 
 			&i.CreatedAt,
 			&i.UploadedUserID,
 			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
 		); err != nil {
 			return nil, err
 		}
@@ -165,51 +173,4 @@ func (q *Queries) GetAllVideosForAllUsers(ctx context.Context) ([]Video, error) 
 		return nil, err
 	}
 	return items, nil
-}
-
-const getVideoByID = `-- name: GetVideoByID :one
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
-WHERE id = ?1 AND uploaded_user_id = ?2
-LIMIT 1
-`
-
-type GetVideoByIDParams struct {
-	ID     string
-	UserID string
-}
-
-func (q *Queries) GetVideoByID(ctx context.Context, arg GetVideoByIDParams) (Video, error) {
-	row := q.db.QueryRowContext(ctx, getVideoByID, arg.ID, arg.UserID)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Description,
-		&i.Url,
-		&i.CreatedAt,
-		&i.UploadedUserID,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getVideoByIDForAllUsers = `-- name: GetVideoByIDForAllUsers :one
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at FROM videos 
-WHERE id = ?1
-LIMIT 1
-`
-
-func (q *Queries) GetVideoByIDForAllUsers(ctx context.Context, id string) (Video, error) {
-	row := q.db.QueryRowContext(ctx, getVideoByIDForAllUsers, id)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Description,
-		&i.Url,
-		&i.CreatedAt,
-		&i.UploadedUserID,
-		&i.UpdatedAt,
-	)
-	return i, err
 }

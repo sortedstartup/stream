@@ -12,6 +12,7 @@ import (
 	_ "modernc.org/sqlite"
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
+	userProto "sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
 	"sortedstartup.com/stream/videoservice/proto"
@@ -25,11 +26,14 @@ type VideoAPI struct {
 	log       *slog.Logger
 	dbQueries *db.Queries
 
+	// gRPC clients for other services
+	userServiceClient userProto.UserServiceClient
+
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -49,11 +53,12 @@ func NewVideoAPIProduction(config config.VideoServiceConfig) (*VideoAPI, error) 
 	ServerMux := http.NewServeMux()
 
 	videoAPI := &VideoAPI{
-		HTTPServerMux: ServerMux,
-		config:        config,
-		db:            _db,
-		log:           childLogger,
-		dbQueries:     dbQueries,
+		HTTPServerMux:     ServerMux,
+		config:            config,
+		db:                _db,
+		log:               childLogger,
+		dbQueries:         dbQueries,
+		userServiceClient: userServiceClient,
 	}
 
 	// The authentication is handled in mono/main.go
@@ -78,20 +83,59 @@ func (s *VideoAPI) Init() error {
 	return nil
 }
 
-func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
+// isUserInTenant checks if the user is part of the specified tenant
+// by calling the userservice to get user's tenants and checking if the tenant is in the list
+func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
+	if tenantID == "" {
+		return status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
 
-	_, err := interceptors.AuthFromContext(ctx)
+	// Call userservice to get user's tenants
+	resp, err := s.userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
 	if err != nil {
-		slog.Error("Error getting auth from context", "err", err)
+		s.log.Error("Failed to get user tenants from userservice", "error", err, "userID", userID)
+		return status.Error(codes.Internal, "failed to check tenant access")
+	}
+
+	// Check if the requested tenant is in the user's tenant list
+	for _, tenantUser := range resp.TenantUsers {
+		if tenantUser.Tenant.Id == tenantID {
+			// User is a member of this tenant
+			return nil
+		}
+	}
+
+	// User is not a member of this tenant
+	return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
+}
+
+func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		s.log.Error("Error getting auth from context", "err", err)
 		return nil, err
 	}
-	// Note: We still verify authentication, but now show videos from all users
 
-	// Get all videos for all users (since authentication is already verified)
-	videos, err := s.dbQueries.GetAllVideosForAllUsers(ctx)
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
 	if err != nil {
-		slog.Error("Error getting videos", "err", err)
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
 		return nil, err
+	}
+
+	// Get videos for this tenant
+	videos, err := s.dbQueries.GetVideosByTenantID(ctx, sql.NullString{
+		String: tenantID,
+		Valid:  true,
+	})
+	if err != nil {
+		s.log.Error("Error getting videos for tenant", "err", err, "tenantID", tenantID)
+		return nil, status.Error(codes.Internal, "failed to get videos")
 	}
 
 	protoVideos := make([]*proto.Video, 0, len(videos))
@@ -102,6 +146,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 			Title:       video.Title,
 			Description: video.Description,
 			Url:         video.Url,
+			Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 			CreatedAt:   timestamppb.New(video.CreatedAt),
 		})
 	}
@@ -110,15 +155,32 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 }
 
 func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*proto.Video, error) {
-	// Get auth context to verify user is authenticated
-	_, err := interceptors.AuthFromContext(ctx)
+	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
 		return nil, err
 	}
 
-	// Get video from database (now allows any authenticated user to access any video)
-	video, err := s.dbQueries.GetVideoByIDForAllUsers(ctx, req.VideoId)
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get video from database with tenant validation
+	video, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+		ID: req.VideoId,
+		TenantID: sql.NullString{
+			String: tenantID,
+			Valid:  true,
+		},
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "video not found")
@@ -133,6 +195,7 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 		Title:       video.Title,
 		Description: video.Description,
 		Url:         video.Url,
+		Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 		CreatedAt:   timestamppb.New(video.CreatedAt),
 	}, nil
 }

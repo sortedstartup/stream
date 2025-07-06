@@ -55,15 +55,14 @@ message GetVideoRequest {
 }
 
 message ListVideosRequest {
-  // user id is implicit
-  //string user_id = 1;
+  // user id is implicit from auth context
   int32 pageSize = 2;
   int32 pageNumber = 3;
+  // tenant_id comes from x-tenant-id header, not request body
 }
 
 message ListVideosResponse {
   repeated Video videos = 1;
-  int32 next_page_number = 2;
 }
 
 message UpdateVideoRequest {

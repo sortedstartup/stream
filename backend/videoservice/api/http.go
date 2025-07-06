@@ -55,6 +55,22 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := authContext.User.ID
 
+	// Get tenant ID from header
+	tenantID := r.Header.Get("x-tenant-id")
+	if tenantID == "" {
+		http.Error(w, "x-tenant-id header is required", http.StatusBadRequest)
+		slog.Error("x-tenant-id header is required")
+		return
+	}
+
+	// Validate user has access to this tenant
+	err = api.isUserInTenant(r.Context(), tenantID, userID)
+	if err != nil {
+		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
+		slog.Error("Tenant access denied", "tenantID", tenantID, "userID", userID, "err", err)
+		return
+	}
+
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
 		http.Error(w, "File size exceeds the 1024 MB limit", http.StatusRequestEntityTooLarge)
@@ -216,6 +232,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		Description:    description,
 		Url:            fileName,
 		UploadedUserID: userID,
+		TenantID:       sql.NullString{String: tenantID, Valid: true},
+		IsPrivate:      sql.NullBool{Bool: true, Valid: true}, // All videos are private by default
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	})
@@ -262,14 +280,32 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := interceptors.AuthFromContext(r.Context())
+	// Authentication is handled by the cookie middleware
+	authContext, err := interceptors.AuthFromContext(r.Context())
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get video details from database (now allows any authenticated user to access any video)
-	video, err := api.dbQueries.GetVideoByIDForAllUsers(r.Context(), videoID)
+	// Get tenant ID from query parameter (since HTML5 video elements can include query params)
+	tenantID := r.URL.Query().Get("tenant")
+	if tenantID == "" {
+		http.Error(w, "tenant query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate user has access to this tenant
+	err = api.isUserInTenant(r.Context(), tenantID, authContext.User.ID)
+	if err != nil {
+		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
+		return
+	}
+
+	// Get video details from database with tenant validation
+	video, err := api.dbQueries.GetVideoByVideoIDAndTenantID(r.Context(), db.GetVideoByVideoIDAndTenantIDParams{
+		ID:       videoID,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Video not found", http.StatusNotFound)

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
+import { $currentTenant } from "../stores/tenants";
 import { useStore } from "@nanostores/react";
 
 export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
@@ -17,6 +18,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const mediaRecorder = useRef(null);
   const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
+  const currentTenant = useStore($currentTenant);
 
   // --- OPFS Helpers ---
   const fileName = "recording.webm";
@@ -140,6 +142,11 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       return;
     }
 
+    if (!currentTenant?.tenant?.id) {
+      setStatusMessage("No tenant selected. Please select a tenant first.");
+      return;
+    }
+
     setIsUploading(true);
     setUploadFailed(false);
     setStatusMessage("Uploading video...");
@@ -155,6 +162,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         body: formData,
         headers: {
           "authorization": authToken,
+          "x-tenant-id": currentTenant.tenant.id,
         },
       });
 
