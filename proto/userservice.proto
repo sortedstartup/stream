@@ -75,12 +75,12 @@ message GetTenantsResponse {
 
 message AddUserRequest {
   string tenant_id = 1;
-  string user_id = 2;
+  string username = 2;
   string role = 3;
 }
 
 message AddUserResponse {
-  string message = 1;
+string message = 1;
 }
 
 message GetUsersRequest {

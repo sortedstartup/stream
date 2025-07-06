@@ -143,7 +143,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 
 const getTenantUsers = `-- name: GetTenantUsers :many
 SELECT 
-    tu.id, tu.tenant_id, tu.user_id, tu.role, tu.created_at,
+     tu.role, tu.created_at,
     u.username, u.email
 FROM userservice_tenant_users tu
 JOIN userservice_users u ON tu.user_id = u.id
@@ -152,9 +152,6 @@ ORDER BY tu.created_at ASC
 `
 
 type GetTenantUsersRow struct {
-	ID        string
-	TenantID  string
-	UserID    string
 	Role      string
 	CreatedAt time.Time
 	Username  string
@@ -171,9 +168,6 @@ func (q *Queries) GetTenantUsers(ctx context.Context, tenantID string) ([]GetTen
 	for rows.Next() {
 		var i GetTenantUsersRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.TenantID,
-			&i.UserID,
 			&i.Role,
 			&i.CreatedAt,
 			&i.Username,
@@ -207,6 +201,23 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Userservice
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUserRoleInTenant = `-- name: GetUserRoleInTenant :one
+SELECT role FROM userservice_tenant_users 
+WHERE tenant_id = ?1 AND user_id = ?2
+`
+
+type GetUserRoleInTenantParams struct {
+	TenantID string
+	UserID   string
+}
+
+func (q *Queries) GetUserRoleInTenant(ctx context.Context, arg GetUserRoleInTenantParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserRoleInTenant, arg.TenantID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
 }
 
 const getUserTenants = `-- name: GetUserTenants :many

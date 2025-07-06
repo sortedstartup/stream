@@ -994,7 +994,7 @@ export class AddUserRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         tenant_id?: string;
-        user_id?: string;
+        username?: string;
         role?: string;
     }) {
         super();
@@ -1003,8 +1003,8 @@ export class AddUserRequest extends pb_1.Message {
             if ("tenant_id" in data && data.tenant_id != undefined) {
                 this.tenant_id = data.tenant_id;
             }
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
+            if ("username" in data && data.username != undefined) {
+                this.username = data.username;
             }
             if ("role" in data && data.role != undefined) {
                 this.role = data.role;
@@ -1017,10 +1017,10 @@ export class AddUserRequest extends pb_1.Message {
     set tenant_id(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get user_id() {
+    get username() {
         return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set user_id(value: string) {
+    set username(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
     get role() {
@@ -1031,15 +1031,15 @@ export class AddUserRequest extends pb_1.Message {
     }
     static fromObject(data: {
         tenant_id?: string;
-        user_id?: string;
+        username?: string;
         role?: string;
     }): AddUserRequest {
         const message = new AddUserRequest({});
         if (data.tenant_id != null) {
             message.tenant_id = data.tenant_id;
         }
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
+        if (data.username != null) {
+            message.username = data.username;
         }
         if (data.role != null) {
             message.role = data.role;
@@ -1049,14 +1049,14 @@ export class AddUserRequest extends pb_1.Message {
     toObject() {
         const data: {
             tenant_id?: string;
-            user_id?: string;
+            username?: string;
             role?: string;
         } = {};
         if (this.tenant_id != null) {
             data.tenant_id = this.tenant_id;
         }
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
+        if (this.username != null) {
+            data.username = this.username;
         }
         if (this.role != null) {
             data.role = this.role;
@@ -1069,8 +1069,8 @@ export class AddUserRequest extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.tenant_id.length)
             writer.writeString(1, this.tenant_id);
-        if (this.user_id.length)
-            writer.writeString(2, this.user_id);
+        if (this.username.length)
+            writer.writeString(2, this.username);
         if (this.role.length)
             writer.writeString(3, this.role);
         if (!w)
@@ -1086,7 +1086,7 @@ export class AddUserRequest extends pb_1.Message {
                     message.tenant_id = reader.readString();
                     break;
                 case 2:
-                    message.user_id = reader.readString();
+                    message.username = reader.readString();
                     break;
                 case 3:
                     message.role = reader.readString();

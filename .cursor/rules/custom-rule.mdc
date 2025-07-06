@@ -207,7 +207,6 @@ Reporsitory structure
 |   |-- commentservice.proto
 |   `-- videoservice.proto
 
-
 ---------
 Existing features:
 1. Login using firebase auth
