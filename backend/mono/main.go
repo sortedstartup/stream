@@ -253,20 +253,22 @@ func NewMonolith() (*Monolith, error) {
 
 func (m *Monolith) InitServices() error {
 
-	m.log.Info("Initializing Task Service")
-	err := m.VideoAPI.Init()
+	m.log.Info("Initializing User Service")
+	err := m.UserAPI.Init()
+	if err != nil {
+		return err
+	}
+
+	// Video service depends on user service
+
+	m.log.Info("Initializing Video Service")
+	err = m.VideoAPI.Init()
 	if err != nil {
 		return err
 	}
 
 	m.log.Info("Initializing Comment Service")
 	err = m.CommentAPI.Init()
-	if err != nil {
-		return err
-	}
-
-	m.log.Info("Initializing User Service")
-	err = m.UserAPI.Init()
 	if err != nil {
 		return err
 	}
