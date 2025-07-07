@@ -210,5 +210,7 @@ Then ask me to run 'go generate' in respective service folder in backend, I will
 1. server stubs for proto file 
 2. go code for queries.sql under db/queries.sql.go
 
+Note: Make sure we never bypass tenant security. No cross tenant leaks. This is important. 
+
 
 

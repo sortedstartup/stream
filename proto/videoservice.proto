@@ -5,6 +5,8 @@ package videoservice;
 option go_package = "sortedstartup.com/stream/videoservice/proto";
 
 import "google/protobuf/timestamp.proto";
+// please ignore import error, go generate will run properly
+import "userservice.proto";
 
 service VideoService {
   // Core video operations
@@ -16,6 +18,15 @@ service VideoService {
 
   // Sharing
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
+}
+
+service ChannelService {
+  rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse);
+  rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
+  rpc GetMembers(GetChannelMembersRequest) returns (GetChannelMembersResponse);
+  rpc AddMember(AddChannelMemberRequest) returns (AddChannelMemberResponse);
+  rpc RemoveMember(RemoveChannelMemberRequest) returns (RemoveChannelMemberResponse);
 }
 
 message Video {
@@ -58,6 +69,7 @@ message ListVideosRequest {
   // user id is implicit from auth context
   int32 pageSize = 2;
   int32 pageNumber = 3;
+  string channel_id = 4; // Optional: filter by channel within tenant
   // tenant_id comes from x-tenant-id header, not request body
 }
 
@@ -86,3 +98,78 @@ message ShareLink {
 }
 
 message Empty {}
+
+message Channel {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string description = 4;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ChannelMember {
+  Channel channel = 1;
+  userservice.User user = 2;
+  userservice.Role role = 3;
+  string added_by = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message CreateChannelRequest {
+  string name = 2;
+  string description = 3;
+}
+
+message CreateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message UpdateChannelRequest {
+  string channel_id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message GetChannelsRequest {
+}
+
+message GetChannelsResponse {
+  string message = 1;
+  repeated Channel channels = 2;
+}
+
+message GetChannelMembersRequest {
+  string channel_id = 2;
+}
+
+message GetChannelMembersResponse {
+  string message = 1;
+  repeated ChannelMember channel_members = 2;
+}
+
+message AddChannelMemberRequest {
+  string channel_id = 2;
+  string user_id = 3;
+  string role = 4; // owner, uploader, viewer
+}
+
+message AddChannelMemberResponse {
+  string message = 1;
+}
+
+message RemoveChannelMemberRequest {
+  string channel_id = 2;
+  string user_id = 3;
+}
+
+message RemoveChannelMemberResponse {
+  string message = 1;
+}

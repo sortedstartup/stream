@@ -9,6 +9,25 @@ import (
 	"time"
 )
 
+type Channel struct {
+	ID          string
+	TenantID    string
+	Name        string
+	Description sql.NullString
+	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ChannelMember struct {
+	ID        string
+	ChannelID string
+	UserID    string
+	Role      string
+	AddedBy   string
+	CreatedAt time.Time
+}
+
 type Video struct {
 	ID             string
 	Title          string
@@ -19,4 +38,6 @@ type Video struct {
 	UpdatedAt      time.Time
 	IsPrivate      sql.NullBool
 	TenantID       sql.NullString
+	ChannelID      sql.NullString
+	CONSTRAINT     interface{}
 }
