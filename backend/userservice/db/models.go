@@ -9,26 +9,6 @@ import (
 	"time"
 )
 
-type UserserviceChannel struct {
-	ID          string
-	TenantID    string
-	Name        string
-	Description sql.NullString
-	IsPrivate   bool
-	CreatedBy   string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
-
-type UserserviceChannelMember struct {
-	ID        string
-	ChannelID string
-	UserID    string
-	Role      string
-	AddedBy   string
-	CreatedAt time.Time
-}
-
 type UserserviceTenant struct {
 	ID          string
 	Name        string

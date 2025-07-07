@@ -8,5 +8,7 @@ ALTER TABLE videos ADD COLUMN channel_id TEXT;
 CREATE INDEX idx_videos_channel ON videos(channel_id);
 CREATE INDEX idx_videos_tenant_channel ON videos(tenant_id, channel_id);
 
--- Note: channel_id references userservice_channels(id) but we don't add
--- a foreign key constraint since it's across databases 
+-- Note: channel_id references channels(id) within this database
+-- We can add a foreign key constraint since both tables are in videoservice
+ALTER TABLE videos ADD CONSTRAINT fk_videos_channel 
+    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE SET NULL; 
