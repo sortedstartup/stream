@@ -35,6 +35,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     } catch (_) {
       // file may not exist; that's fine
     }
+     // Also clear URL in case we still have it
+      setVideoUrl(null);
+      setCurrentVideoBlob(null);
+      setShowForm(false);
   };
 
   const loadPreviousRecording = async () => {
@@ -189,6 +193,8 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       onUploadSuccess && onUploadSuccess({ message });
 
       await deleteRecordingFromOPFS();
+      setTitle("");
+      setDescription("");
       setShowForm(false);
       setVideoUrl(null);
       setCurrentVideoBlob(null);
