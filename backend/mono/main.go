@@ -308,6 +308,7 @@ func (m *Monolith) startServer() error {
 	}
 
 	videoProto.RegisterVideoServiceServer(m.GRPCServer, m.VideoAPI)
+	videoProto.RegisterChannelServiceServer(m.GRPCServer, m.VideoAPI)
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
 	userProto.RegisterTenantServiceServer(m.GRPCServer, m.TenantAPI)

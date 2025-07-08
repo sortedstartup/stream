@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -31,6 +33,7 @@ type VideoAPI struct {
 
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
+	proto.UnimplementedChannelServiceServer
 }
 
 func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, error) {
@@ -197,5 +200,418 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 		Url:         video.Url,
 		Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 		CreatedAt:   timestamppb.New(video.CreatedAt),
+	}, nil
+}
+
+// ===== CHANNEL API METHODS =====
+
+// validateChannelRole validates that the role is one of the allowed channel roles
+func (s *VideoAPI) validateChannelRole(role string) error {
+	validRoles := []string{"owner", "uploader", "viewer"}
+	for _, validRole := range validRoles {
+		if role == validRole {
+			return nil
+		}
+	}
+	return status.Error(codes.InvalidArgument, "invalid role. Valid roles are: owner, uploader, viewer")
+}
+
+// getUserRoleInChannel checks if user has access to channel and returns their role
+func (s *VideoAPI) getUserRoleInChannel(ctx context.Context, channelID, userID, tenantID string) (string, error) {
+	role, err := s.dbQueries.GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+		ChannelID: channelID,
+		UserID:    userID,
+		TenantID:  tenantID,
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", status.Error(codes.PermissionDenied, "access denied: you are not a member of this channel")
+		}
+		return "", status.Error(codes.Internal, "failed to check channel access")
+	}
+	return role, nil
+}
+
+// Create creates a new channel
+func (s *VideoAPI) Create(ctx context.Context, req *proto.CreateChannelRequest) (*proto.CreateChannelResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate input
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel name is required")
+	}
+
+	// Create channel
+	channelID := uuid.New().String()
+	now := time.Now()
+
+	channel, err := s.dbQueries.CreateChannel(ctx, db.CreateChannelParams{
+		ID:          channelID,
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: sql.NullString{String: req.Description, Valid: req.Description != ""},
+		CreatedBy:   authContext.User.ID,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	})
+	if err != nil {
+		s.log.Error("Failed to create channel", "error", err)
+		return nil, status.Error(codes.Internal, "failed to create channel")
+	}
+
+	// Add creator as owner
+	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+		ID:        uuid.New().String(),
+		ChannelID: channelID,
+		UserID:    authContext.User.ID,
+		Role:      "owner",
+		AddedBy:   authContext.User.ID,
+		CreatedAt: now,
+	})
+	if err != nil {
+		s.log.Error("Failed to add creator as channel owner", "error", err)
+		return nil, status.Error(codes.Internal, "failed to create channel")
+	}
+
+	return &proto.CreateChannelResponse{
+		Message: "Channel created successfully",
+		Channel: &proto.Channel{
+			Id:          channel.ID,
+			TenantId:    channel.TenantID,
+			Name:        channel.Name,
+			Description: channel.Description.String,
+			CreatedBy:   channel.CreatedBy,
+			CreatedAt:   timestamppb.New(channel.CreatedAt),
+			UpdatedAt:   timestamppb.New(channel.UpdatedAt),
+		},
+	}, nil
+}
+
+// GetChannels lists all channels in the tenant that the user has access to
+func (s *VideoAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequest) (*proto.GetChannelsResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all channels in tenant
+	channels, err := s.dbQueries.GetChannelsByTenantID(ctx, tenantID)
+	if err != nil {
+		s.log.Error("Failed to get channels", "error", err)
+		return nil, status.Error(codes.Internal, "failed to get channels")
+	}
+
+	// Filter channels where user is a member
+	var userChannels []*proto.Channel
+	for _, channel := range channels {
+		// Check if user is a member of this channel
+		_, err := s.getUserRoleInChannel(ctx, channel.ID, authContext.User.ID, tenantID)
+		if err == nil {
+			// User is a member, include this channel
+			userChannels = append(userChannels, &proto.Channel{
+				Id:          channel.ID,
+				TenantId:    channel.TenantID,
+				Name:        channel.Name,
+				Description: channel.Description.String,
+				CreatedBy:   channel.CreatedBy,
+				CreatedAt:   timestamppb.New(channel.CreatedAt),
+				UpdatedAt:   timestamppb.New(channel.UpdatedAt),
+			})
+		}
+	}
+
+	return &proto.GetChannelsResponse{
+		Message:  "Channels retrieved successfully",
+		Channels: userChannels,
+	}, nil
+}
+
+// Update updates a channel's name and description
+func (s *VideoAPI) Update(ctx context.Context, req *proto.UpdateChannelRequest) (*proto.UpdateChannelResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate input
+	if req.ChannelId == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel ID is required")
+	}
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel name is required")
+	}
+
+	// Check if user is owner of the channel
+	role, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if role != "owner" {
+		return nil, status.Error(codes.PermissionDenied, "access denied: only channel owners can update channels")
+	}
+
+	// Update channel
+	channel, err := s.dbQueries.UpdateChannel(ctx, db.UpdateChannelParams{
+		ID:          req.ChannelId,
+		TenantID:    tenantID,
+		Name:        req.Name,
+		Description: sql.NullString{String: req.Description, Valid: req.Description != ""},
+		UpdatedAt:   time.Now(),
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "channel not found")
+		}
+		s.log.Error("Failed to update channel", "error", err)
+		return nil, status.Error(codes.Internal, "failed to update channel")
+	}
+
+	return &proto.UpdateChannelResponse{
+		Message: "Channel updated successfully",
+		Channel: &proto.Channel{
+			Id:          channel.ID,
+			TenantId:    channel.TenantID,
+			Name:        channel.Name,
+			Description: channel.Description.String,
+			CreatedBy:   channel.CreatedBy,
+			CreatedAt:   timestamppb.New(channel.CreatedAt),
+			UpdatedAt:   timestamppb.New(channel.UpdatedAt),
+		},
+	}, nil
+}
+
+// GetMembers lists all members of a channel
+func (s *VideoAPI) GetMembers(ctx context.Context, req *proto.GetChannelMembersRequest) (*proto.GetChannelMembersResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate input
+	if req.ChannelId == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel ID is required")
+	}
+
+	// Check if user is a member of the channel
+	_, err = s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get channel members
+	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+		ChannelID: req.ChannelId,
+		TenantID:  tenantID,
+	})
+	if err != nil {
+		s.log.Error("Failed to get channel members", "error", err)
+		return nil, status.Error(codes.Internal, "failed to get channel members")
+	}
+
+	// Convert to proto format
+	var protoMembers []*proto.ChannelMember
+	for _, member := range members {
+		protoMembers = append(protoMembers, &proto.ChannelMember{
+			Channel: &proto.Channel{
+				Id:          member.ChannelID,
+				TenantId:    member.TenantID,
+				Name:        member.ChannelName,
+				Description: "",  // Not available in the query result
+				CreatedBy:   "",  // Not available in the query result
+				CreatedAt:   nil, // Not available in the query result
+				UpdatedAt:   nil, // Not available in the query result
+			},
+			User: &userProto.User{
+				Id: member.UserID,
+				// Username and Email would need to be fetched from userservice
+			},
+			Role: &userProto.Role{
+				Role: member.Role,
+			},
+			AddedBy:   member.AddedBy,
+			CreatedAt: timestamppb.New(member.CreatedAt),
+		})
+	}
+
+	return &proto.GetChannelMembersResponse{
+		Message:        "Channel members retrieved successfully",
+		ChannelMembers: protoMembers,
+	}, nil
+}
+
+// AddMember adds a user to a channel
+func (s *VideoAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberRequest) (*proto.AddChannelMemberResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate input
+	if req.ChannelId == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel ID is required")
+	}
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+	}
+
+	// Default role to viewer if not specified
+	role := req.Role
+	if role == "" {
+		role = "viewer"
+	}
+
+	// Validate role
+	err = s.validateChannelRole(role)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user is owner of the channel
+	userRole, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if userRole != "owner" {
+		return nil, status.Error(codes.PermissionDenied, "access denied: only channel owners can add members")
+	}
+
+	// TODO: Validate that the user being added is a member of the tenant
+	// This would require calling userservice to check tenant membership
+
+	// Add member to channel
+	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+		ID:        uuid.New().String(),
+		ChannelID: req.ChannelId,
+		UserID:    req.UserId,
+		Role:      role,
+		AddedBy:   authContext.User.ID,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		s.log.Error("Failed to add channel member", "error", err)
+		return nil, status.Error(codes.Internal, "failed to add channel member")
+	}
+
+	return &proto.AddChannelMemberResponse{
+		Message: "Member added to channel successfully",
+	}, nil
+}
+
+// RemoveMember removes a user from a channel
+func (s *VideoAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelMemberRequest) (*proto.RemoveChannelMemberResponse, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	}
+
+	// Get tenant ID from headers/metadata
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// Validate user has access to this tenant
+	err = s.isUserInTenant(ctx, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate input
+	if req.ChannelId == "" {
+		return nil, status.Error(codes.InvalidArgument, "channel ID is required")
+	}
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+	}
+
+	// Check if user is owner of the channel
+	userRole, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if userRole != "owner" {
+		return nil, status.Error(codes.PermissionDenied, "access denied: only channel owners can remove members")
+	}
+
+	// Prevent owner from removing themselves
+	if req.UserId == authContext.User.ID {
+		return nil, status.Error(codes.InvalidArgument, "channel owners cannot remove themselves")
+	}
+
+	// Remove member from channel
+	err = s.dbQueries.DeleteChannelMember(ctx, db.DeleteChannelMemberParams{
+		ChannelID: req.ChannelId,
+		UserID:    req.UserId,
+	})
+	if err != nil {
+		s.log.Error("Failed to remove channel member", "error", err)
+		return nil, status.Error(codes.Internal, "failed to remove channel member")
+	}
+
+	return &proto.RemoveChannelMemberResponse{
+		Message: "Member removed from channel successfully",
 	}, nil
 }
