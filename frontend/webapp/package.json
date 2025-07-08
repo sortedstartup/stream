@@ -20,6 +20,7 @@
     "daisyui": "5.0.0-beta.2",
     "firebase": "^10.0.0",
     "firebaseui": "^6.1.0",
+    "fix-webm-duration": "^1.0.6",
     "google-protobuf": "^3.21.4",
     "grpc-web": "^1.5.0",
     "nanostores": "^0.11.3",

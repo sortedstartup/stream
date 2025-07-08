@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { $currentTenant } from "../stores/tenants";
 import { useStore } from "@nanostores/react";
+import fixWebmDuration from 'fix-webm-duration';
 
 export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,6 +17,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [statusType, setStatusType] = useState("info");
 
   const mediaRecorder = useRef(null);
+  const startTimeRef = useRef(null);
   const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
   const currentTenant = useStore($currentTenant);
@@ -35,6 +37,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     } catch (_) {
       // file may not exist; that's fine
     }
+     // Also clear URL in case we still have it
+      setVideoUrl(null);
+      setCurrentVideoBlob(null);
+      setShowForm(false);
   };
 
   const loadPreviousRecording = async () => {
@@ -62,7 +68,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         setStatusMessage("Please upload or download the current recording before starting a new one.");
         return;
       }
-
+      startTimeRef.current = Date.now();
       await deleteRecordingFromOPFS();
 
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -97,10 +103,27 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         }
 
         const file = await fileHandle.getFile();
-        setCurrentVideoBlob(file);
-        setVideoUrl(URL.createObjectURL(file));
+        const durationSec = (Date.now() - startTimeRef.current) / 1000;
+
+        try {
+          const fixedBlob = await fixWebmDuration(file, durationSec);
+          // save fixedBlob back to OPFS
+          const handle = await getRecordingFileHandle();
+          const writable = await handle.createWritable();
+          await writable.write(fixedBlob);
+          await writable.close();
+          setCurrentVideoBlob(fixedBlob);
+          setVideoUrl(URL.createObjectURL(fixedBlob));
+          setStatusMessage("Recording ready (duration fixed).");
+        } catch (err) {
+          console.error("Failed to fix WebM duration:", err);
+          // Fallback to original
+          setCurrentVideoBlob(file);
+          setVideoUrl(URL.createObjectURL(file));
+          setStatusMessage("Recording ready (unfixed).");
+        }
+
         setShowForm(true);
-        setStatusMessage(null);
       };
 
       mediaRecorder.current.start();
@@ -178,6 +201,8 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       onUploadSuccess && onUploadSuccess({ message });
 
       await deleteRecordingFromOPFS();
+      setTitle("");
+      setDescription("");
       setShowForm(false);
       setVideoUrl(null);
       setCurrentVideoBlob(null);
