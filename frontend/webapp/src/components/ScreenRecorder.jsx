@@ -37,6 +37,21 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     }
   };
 
+    const discardRecording = async () => {
+    try {
+      await deleteRecordingFromOPFS();
+      setCurrentVideoBlob(null);
+      setVideoUrl(null);
+      setShowForm(false);
+      setTitle("");
+      setDescription("");
+      setStatusMessage("Recording discarded.");
+    } catch (error) {
+      console.error("Error discarding recording:", error);
+      setStatusMessage("Failed to discard recording.");
+    }
+  };
+
   const loadPreviousRecording = async () => {
     try {
       const root = await navigator.storage.getDirectory();
@@ -255,6 +270,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
           <div className="flex justify-center gap-4 mt-4">
             <button className="btn btn-secondary" onClick={downloadRecording} disabled={isUploading}>
               Download Video
+            </button>
+
+            <button className="btn btn-warning" onClick={discardRecording} disabled={isUploading}>
+              Discard Recording
             </button>
 
             {uploadFailed && !isUploading && (
