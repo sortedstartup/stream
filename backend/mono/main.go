@@ -56,11 +56,11 @@ type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI   *videoAPI.VideoAPI
-	CommentAPI *commentAPI.CommentAPI
-	UserAPI    *userAPI.UserAPI
-	TenantAPI  *userAPI.TenantAPI
-
+	VideoAPI      *videoAPI.VideoAPI
+	CommentAPI    *commentAPI.CommentAPI
+	UserAPI       *userAPI.UserAPI
+	TenantAPI     *userAPI.TenantAPI
+	ChannelAPI    *videoAPI.ChannelAPI
 	GRPCServer    *grpc.Server
 	GRPCWebServer *http.Server
 
@@ -136,7 +136,7 @@ func NewMonolith() (*Monolith, error) {
 	log.Info("Creating videoservice API")
 	// Create wrapper to avoid circular dependency
 	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
-	videoAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper)
+	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err
@@ -241,6 +241,7 @@ func NewMonolith() (*Monolith, error) {
 	return &Monolith{
 		Config:        &config,
 		VideoAPI:      videoAPI,
+		ChannelAPI:    channelAPI,
 		CommentAPI:    commentAPI,
 		UserAPI:       userAPI,
 		TenantAPI:     tenantAPI,
@@ -308,7 +309,7 @@ func (m *Monolith) startServer() error {
 	}
 
 	videoProto.RegisterVideoServiceServer(m.GRPCServer, m.VideoAPI)
-	videoProto.RegisterChannelServiceServer(m.GRPCServer, m.VideoAPI)
+	videoProto.RegisterChannelServiceServer(m.GRPCServer, m.ChannelAPI)
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
 	userProto.RegisterTenantServiceServer(m.GRPCServer, m.TenantAPI)
