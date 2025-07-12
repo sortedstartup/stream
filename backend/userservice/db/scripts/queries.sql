@@ -67,7 +67,7 @@ INSERT INTO userservice_tenant_users (
 -- name: GetTenantUsers :many
 SELECT 
     tu.role, tu.created_at,
-    u.username, u.email,
+    u.id as user_id, u.username, u.email,
     t.created_at as tenant_created_at,
     t.name as tenant_name
 FROM userservice_tenant_users tu
