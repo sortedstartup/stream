@@ -2,9 +2,35 @@ import React, { useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
+import { useLocation } from "react-router";
+import { useRecordingController } from '../../context/RecordingContext'
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  function FloatingRecorderButton() {
+    const { isRecording, startRecording, stopRecording } = useRecordingController();
+    const location = useLocation();
+
+    // Don't show on /record page
+    if (location.pathname === "/record") {
+      return null;
+    }
+    
+    return (
+      <div className="fixed bottom-4 right-4 p-4 rounded-lg bg-white shadow-lg z-50">
+        {!isRecording ? (
+          <button className="btn btn-primary" onClick={startRecording}>
+            Start Recording
+          </button>
+        ) : (
+          <button className="btn btn-error" onClick={stopRecording}>
+            Stop Recording
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -44,6 +70,7 @@ export const Layout = ({ children }) => {
       <footer className="bg-base-200 text-center py-4 md:ml-16">
         <Footer />
       </footer>
+      <FloatingRecorderButton />
     </div>
   )
 }

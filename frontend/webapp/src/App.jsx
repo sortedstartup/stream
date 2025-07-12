@@ -10,9 +10,11 @@ import { ProfilePage } from './pages/ProfilePage'
 import ProtectedRoute from './auth/components/ProtectedRoute'
 import { VideoPage } from './pages/VideoPage'
 import { UploadPage } from './pages/UploadPage';
+import { RecordingProvider } from "./context/RecordingContext";
 
 function App() {
   return (
+    <RecordingProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -34,6 +36,7 @@ function App() {
         } />
       </Routes>
     </BrowserRouter>
+    </RecordingProvider>
   )
 }
 
