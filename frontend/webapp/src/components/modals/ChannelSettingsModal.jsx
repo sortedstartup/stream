@@ -188,49 +188,6 @@ const ChannelSettingsModal = ({ isOpen, onClose, channel, onChannelUpdated }) =>
             </button>
           </div>
         </form>
-
-        {/* Channel Info */}
-        <div className="bg-base-200 rounded-lg p-4 mt-4">
-          <div className="flex items-start gap-3">
-            <div className="text-info">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div className="text-sm">
-              <p className="font-medium mb-1">Channel Statistics</p>
-              <ul className="text-base-content/70 space-y-1">
-                <li>• Created: {channel?.created_at ? new Date(channel.created_at.seconds * 1000).toLocaleDateString() : 'Unknown'}</li>
-                <li>• Videos: {channel?.videoCount || 0}</li>
-                <li>• Members: {channel?.memberCount || 0}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-error/10 border border-error/20 rounded-lg p-4 mt-4">
-          <div className="flex items-start gap-3">
-            <div className="text-error">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div className="text-sm">
-              <p className="font-medium mb-1 text-error">Danger Zone</p>
-              <p className="text-base-content/70 mb-3">
-                Permanently delete this channel and all its videos. This action cannot be undone.
-              </p>
-              <button 
-                className="btn btn-error btn-sm"
-                disabled={loading}
-                onClick={() => alert('Channel deletion will be implemented in a future update.')}
-              >
-                Delete Channel
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
