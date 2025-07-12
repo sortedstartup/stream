@@ -10,6 +10,8 @@ import { ProfilePage } from './pages/ProfilePage'
 import ProtectedRoute from './auth/components/ProtectedRoute'
 import { VideoPage } from './pages/VideoPage'
 import { UploadPage } from './pages/UploadPage';
+import { ChannelDashboardPage } from './pages/ChannelDashboard';
+import ChannelPage from './pages/ChannelPage';
 
 function App() {
   return (
@@ -30,6 +32,16 @@ function App() {
         <Route path="/video/:id" element={
           <ProtectedRoute>
             <VideoPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/channels" element={
+          <ProtectedRoute>
+            <ChannelDashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/channels/:channelId" element={
+          <ProtectedRoute>
+            <ChannelPage />
           </ProtectedRoute>
         } />
       </Routes>
