@@ -1067,6 +1067,8 @@ export class Channel extends pb_1.Message {
         created_by?: string;
         created_at?: dependency_1.Timestamp;
         updated_at?: dependency_1.Timestamp;
+        user_role?: string;
+        member_count?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -1091,6 +1093,12 @@ export class Channel extends pb_1.Message {
             }
             if ("updated_at" in data && data.updated_at != undefined) {
                 this.updated_at = data.updated_at;
+            }
+            if ("user_role" in data && data.user_role != undefined) {
+                this.user_role = data.user_role;
+            }
+            if ("member_count" in data && data.member_count != undefined) {
+                this.member_count = data.member_count;
             }
         }
     }
@@ -1142,6 +1150,18 @@ export class Channel extends pb_1.Message {
     get has_updated_at() {
         return pb_1.Message.getField(this, 8) != null;
     }
+    get user_role() {
+        return pb_1.Message.getFieldWithDefault(this, 9, "") as string;
+    }
+    set user_role(value: string) {
+        pb_1.Message.setField(this, 9, value);
+    }
+    get member_count() {
+        return pb_1.Message.getFieldWithDefault(this, 10, 0) as number;
+    }
+    set member_count(value: number) {
+        pb_1.Message.setField(this, 10, value);
+    }
     static fromObject(data: {
         id?: string;
         tenant_id?: string;
@@ -1150,6 +1170,8 @@ export class Channel extends pb_1.Message {
         created_by?: string;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        user_role?: string;
+        member_count?: number;
     }): Channel {
         const message = new Channel({});
         if (data.id != null) {
@@ -1173,6 +1195,12 @@ export class Channel extends pb_1.Message {
         if (data.updated_at != null) {
             message.updated_at = dependency_1.Timestamp.fromObject(data.updated_at);
         }
+        if (data.user_role != null) {
+            message.user_role = data.user_role;
+        }
+        if (data.member_count != null) {
+            message.member_count = data.member_count;
+        }
         return message;
     }
     toObject() {
@@ -1184,6 +1212,8 @@ export class Channel extends pb_1.Message {
             created_by?: string;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
             updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            user_role?: string;
+            member_count?: number;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -1206,6 +1236,12 @@ export class Channel extends pb_1.Message {
         if (this.updated_at != null) {
             data.updated_at = this.updated_at.toObject();
         }
+        if (this.user_role != null) {
+            data.user_role = this.user_role;
+        }
+        if (this.member_count != null) {
+            data.member_count = this.member_count;
+        }
         return data;
     }
     serialize(): Uint8Array;
@@ -1226,6 +1262,10 @@ export class Channel extends pb_1.Message {
             writer.writeMessage(7, this.created_at, () => this.created_at.serialize(writer));
         if (this.has_updated_at)
             writer.writeMessage(8, this.updated_at, () => this.updated_at.serialize(writer));
+        if (this.user_role.length)
+            writer.writeString(9, this.user_role);
+        if (this.member_count != 0)
+            writer.writeInt32(10, this.member_count);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1256,6 +1296,12 @@ export class Channel extends pb_1.Message {
                 case 8:
                     reader.readMessage(message.updated_at, () => message.updated_at = dependency_1.Timestamp.deserialize(reader));
                     break;
+                case 9:
+                    message.user_role = reader.readString();
+                    break;
+                case 10:
+                    message.member_count = reader.readInt32();
+                    break;
                 default: reader.skipField();
             }
         }
@@ -1271,18 +1317,14 @@ export class Channel extends pb_1.Message {
 export class ChannelMember extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
-        channel?: Channel;
         user?: dependency_2.User;
-        role?: dependency_2.Role;
+        role?: string;
         added_by?: string;
         created_at?: dependency_1.Timestamp;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
-            if ("channel" in data && data.channel != undefined) {
-                this.channel = data.channel;
-            }
             if ("user" in data && data.user != undefined) {
                 this.user = data.user;
             }
@@ -1297,64 +1339,48 @@ export class ChannelMember extends pb_1.Message {
             }
         }
     }
-    get channel() {
-        return pb_1.Message.getWrapperField(this, Channel, 1) as Channel;
-    }
-    set channel(value: Channel) {
-        pb_1.Message.setWrapperField(this, 1, value);
-    }
-    get has_channel() {
-        return pb_1.Message.getField(this, 1) != null;
-    }
     get user() {
-        return pb_1.Message.getWrapperField(this, dependency_2.User, 2) as dependency_2.User;
+        return pb_1.Message.getWrapperField(this, dependency_2.User, 1) as dependency_2.User;
     }
     set user(value: dependency_2.User) {
-        pb_1.Message.setWrapperField(this, 2, value);
+        pb_1.Message.setWrapperField(this, 1, value);
     }
     get has_user() {
-        return pb_1.Message.getField(this, 2) != null;
+        return pb_1.Message.getField(this, 1) != null;
     }
     get role() {
-        return pb_1.Message.getWrapperField(this, dependency_2.Role, 3) as dependency_2.Role;
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set role(value: dependency_2.Role) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_role() {
-        return pb_1.Message.getField(this, 3) != null;
+    set role(value: string) {
+        pb_1.Message.setField(this, 2, value);
     }
     get added_by() {
-        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
     }
     set added_by(value: string) {
-        pb_1.Message.setField(this, 4, value);
+        pb_1.Message.setField(this, 3, value);
     }
     get created_at() {
-        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 5) as dependency_1.Timestamp;
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 4) as dependency_1.Timestamp;
     }
     set created_at(value: dependency_1.Timestamp) {
-        pb_1.Message.setWrapperField(this, 5, value);
+        pb_1.Message.setWrapperField(this, 4, value);
     }
     get has_created_at() {
-        return pb_1.Message.getField(this, 5) != null;
+        return pb_1.Message.getField(this, 4) != null;
     }
     static fromObject(data: {
-        channel?: ReturnType<typeof Channel.prototype.toObject>;
         user?: ReturnType<typeof dependency_2.User.prototype.toObject>;
-        role?: ReturnType<typeof dependency_2.Role.prototype.toObject>;
+        role?: string;
         added_by?: string;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
     }): ChannelMember {
         const message = new ChannelMember({});
-        if (data.channel != null) {
-            message.channel = Channel.fromObject(data.channel);
-        }
         if (data.user != null) {
             message.user = dependency_2.User.fromObject(data.user);
         }
         if (data.role != null) {
-            message.role = dependency_2.Role.fromObject(data.role);
+            message.role = data.role;
         }
         if (data.added_by != null) {
             message.added_by = data.added_by;
@@ -1366,20 +1392,16 @@ export class ChannelMember extends pb_1.Message {
     }
     toObject() {
         const data: {
-            channel?: ReturnType<typeof Channel.prototype.toObject>;
             user?: ReturnType<typeof dependency_2.User.prototype.toObject>;
-            role?: ReturnType<typeof dependency_2.Role.prototype.toObject>;
+            role?: string;
             added_by?: string;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         } = {};
-        if (this.channel != null) {
-            data.channel = this.channel.toObject();
-        }
         if (this.user != null) {
             data.user = this.user.toObject();
         }
         if (this.role != null) {
-            data.role = this.role.toObject();
+            data.role = this.role;
         }
         if (this.added_by != null) {
             data.added_by = this.added_by;
@@ -1393,16 +1415,14 @@ export class ChannelMember extends pb_1.Message {
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.has_channel)
-            writer.writeMessage(1, this.channel, () => this.channel.serialize(writer));
         if (this.has_user)
-            writer.writeMessage(2, this.user, () => this.user.serialize(writer));
-        if (this.has_role)
-            writer.writeMessage(3, this.role, () => this.role.serialize(writer));
+            writer.writeMessage(1, this.user, () => this.user.serialize(writer));
+        if (this.role.length)
+            writer.writeString(2, this.role);
         if (this.added_by.length)
-            writer.writeString(4, this.added_by);
+            writer.writeString(3, this.added_by);
         if (this.has_created_at)
-            writer.writeMessage(5, this.created_at, () => this.created_at.serialize(writer));
+            writer.writeMessage(4, this.created_at, () => this.created_at.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1413,18 +1433,15 @@ export class ChannelMember extends pb_1.Message {
                 break;
             switch (reader.getFieldNumber()) {
                 case 1:
-                    reader.readMessage(message.channel, () => message.channel = Channel.deserialize(reader));
-                    break;
-                case 2:
                     reader.readMessage(message.user, () => message.user = dependency_2.User.deserialize(reader));
                     break;
-                case 3:
-                    reader.readMessage(message.role, () => message.role = dependency_2.Role.deserialize(reader));
+                case 2:
+                    message.role = reader.readString();
                     break;
-                case 4:
+                case 3:
                     message.added_by = reader.readString();
                     break;
-                case 5:
+                case 4:
                     reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
                     break;
                 default: reader.skipField();

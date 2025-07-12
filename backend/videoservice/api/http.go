@@ -64,7 +64,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = api.isUserInTenant(r.Context(), tenantID, userID)
+	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, userID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		slog.Error("Tenant access denied", "tenantID", tenantID, "userID", userID, "err", err)
@@ -295,7 +295,7 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = api.isUserInTenant(r.Context(), tenantID, authContext.User.ID)
+	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, authContext.User.ID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		return

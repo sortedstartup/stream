@@ -112,6 +112,21 @@ JOIN channels c ON cm.channel_id = c.id
 WHERE cm.channel_id = @channel_id AND c.tenant_id = @tenant_id
 ORDER BY cm.created_at ASC;
 
+-- name: GetChannelMembersByChannelIDExcludingUser :many
+SELECT 
+    cm.id as channel_member_id,
+    cm.channel_id,
+    cm.user_id,
+    cm.role,
+    cm.added_by,
+    cm.created_at,
+    c.name as channel_name,
+    c.tenant_id
+FROM channel_members cm
+JOIN channels c ON cm.channel_id = c.id
+WHERE cm.channel_id = @channel_id AND c.tenant_id = @tenant_id AND cm.user_id != @user_id
+ORDER BY cm.created_at ASC;
+
 -- name: GetUserRoleInChannel :one
 SELECT cm.role FROM channel_members cm
 JOIN channels c ON cm.channel_id = c.id

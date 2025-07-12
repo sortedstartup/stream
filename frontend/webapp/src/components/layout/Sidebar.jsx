@@ -1,11 +1,12 @@
 import React from 'react'
-import { Home, Settings, Users, Video, Circle, Upload as UploadIcon } from 'react-feather'
+import { Home, Settings, Users, Video, Circle, Upload as UploadIcon, Folder } from 'react-feather'
 import { Link } from 'react-router'
 
 export const Sidebar = ({ onItemClick }) => {
   const navItems = [
     { to: '/team', icon: Users, label: 'Team' },
     { to: '/', icon: Home, label: 'Home' },
+    { to: '/channels', icon: Folder, label: 'Channels', className: 'text-blue-500' },
     { to: '/record', icon: Circle, label: 'Record', className: 'text-red-500' },
     { to: '/upload', icon: UploadIcon, label: 'Upload' },
     { to: '/videos', icon: Video, label: 'Videos' },
