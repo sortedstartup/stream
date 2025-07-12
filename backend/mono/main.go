@@ -52,6 +52,23 @@ func (w *UserServiceClientWrapper) GetTenants(ctx context.Context, req *userProt
 	return w.userAPI.GetTenants(ctx, req)
 }
 
+// TenantServiceClientWrapper wraps the TenantAPI to implement the TenantServiceClient interface
+type TenantServiceClientWrapper struct {
+	tenantAPI *userAPI.TenantAPI
+}
+
+func (w *TenantServiceClientWrapper) CreateTenant(ctx context.Context, req *userProto.CreateTenantRequest, opts ...grpc.CallOption) (*userProto.CreateTenantResponse, error) {
+	return w.tenantAPI.CreateTenant(ctx, req)
+}
+
+func (w *TenantServiceClientWrapper) AddUser(ctx context.Context, req *userProto.AddUserRequest, opts ...grpc.CallOption) (*userProto.AddUserResponse, error) {
+	return w.tenantAPI.AddUser(ctx, req)
+}
+
+func (w *TenantServiceClientWrapper) GetUsers(ctx context.Context, req *userProto.GetUsersRequest, opts ...grpc.CallOption) (*userProto.GetUsersResponse, error) {
+	return w.tenantAPI.GetUsers(ctx, req)
+}
+
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
@@ -136,7 +153,8 @@ func NewMonolith() (*Monolith, error) {
 	log.Info("Creating videoservice API")
 	// Create wrapper to avoid circular dependency
 	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
-	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper)
+	tenantServiceClientWrapper := &TenantServiceClientWrapper{tenantAPI: tenantAPI}
+	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err

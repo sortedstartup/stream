@@ -46,13 +46,14 @@ type ChannelAPI struct {
 	dbQueries *db.Queries
 
 	// gRPC clients for other services
-	userServiceClient userProto.UserServiceClient
+	userServiceClient   userProto.UserServiceClient
+	tenantServiceClient userProto.TenantServiceClient
 
 	//implemented proto server
 	proto.UnimplementedChannelServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, *ChannelAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient) (*VideoAPI, *ChannelAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -72,12 +73,13 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 	ServerMux := http.NewServeMux()
 
 	channelAPI := &ChannelAPI{
-		HTTPServerMux:     ServerMux,
-		config:            config,
-		db:                _db,
-		log:               childLogger,
-		dbQueries:         dbQueries,
-		userServiceClient: userServiceClient,
+		HTTPServerMux:       ServerMux,
+		config:              config,
+		db:                  _db,
+		log:                 childLogger,
+		dbQueries:           dbQueries,
+		userServiceClient:   userServiceClient,
+		tenantServiceClient: tenantServiceClient,
 	}
 
 	videoAPI := &VideoAPI{
@@ -283,6 +285,18 @@ func (s *ChannelAPI) getUserRoleInChannel(ctx context.Context, channelID, userID
 	return role, nil
 }
 
+// getChannelMemberCount returns the number of members in a channel
+func (s *ChannelAPI) getChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
+	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+		ChannelID: channelID,
+		TenantID:  tenantID,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return int32(len(members)), nil
+}
+
 func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannelRequest) (*proto.CreateChannelResponse, error) {
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
@@ -345,17 +359,22 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		return nil, status.Error(codes.Internal, "failed to create channel")
 	}
 
+	// Create response channel proto
+	channelProto := &proto.Channel{
+		Id:          channel.ID,
+		TenantId:    channel.TenantID,
+		Name:        channel.Name,
+		Description: channel.Description.String,
+		CreatedBy:   channel.CreatedBy,
+		CreatedAt:   timestamppb.New(channel.CreatedAt),
+		UpdatedAt:   timestamppb.New(channel.UpdatedAt),
+		UserRole:    constants.ChannelRoleOwner, // Creator is always owner
+		MemberCount: 1,                          // Creator is the first member
+	}
+
 	return &proto.CreateChannelResponse{
 		Message: "Channel created successfully",
-		Channel: &proto.Channel{
-			Id:          channel.ID,
-			TenantId:    channel.TenantID,
-			Name:        channel.Name,
-			Description: channel.Description.String,
-			CreatedBy:   channel.CreatedBy,
-			CreatedAt:   timestamppb.New(channel.CreatedAt),
-			UpdatedAt:   timestamppb.New(channel.UpdatedAt),
-		},
+		Channel: channelProto,
 	}, nil
 }
 
@@ -384,14 +403,14 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 		return nil, status.Error(codes.Internal, "failed to get channels")
 	}
 
-	// Filter channels where user is a member
+	// Filter channels where user is a member and include their role
 	var userChannels []*proto.Channel
 	for _, channel := range channels {
-		// Check if user is a member of this channel
-		_, err := s.getUserRoleInChannel(ctx, channel.ID, authContext.User.ID, tenantID)
+		// Check if user is a member of this channel and get their role
+		userRole, err := s.getUserRoleInChannel(ctx, channel.ID, authContext.User.ID, tenantID)
 		if err == nil {
-			// User is a member, include this channel
-			userChannels = append(userChannels, &proto.Channel{
+			// Create channel proto
+			channelProto := &proto.Channel{
 				Id:          channel.ID,
 				TenantId:    channel.TenantID,
 				Name:        channel.Name,
@@ -399,7 +418,21 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 				CreatedBy:   channel.CreatedBy,
 				CreatedAt:   timestamppb.New(channel.CreatedAt),
 				UpdatedAt:   timestamppb.New(channel.UpdatedAt),
-			})
+				UserRole:    userRole, // Include the user's role in this channel
+			}
+
+			// Only include member count for channel owners
+			if userRole == constants.ChannelRoleOwner {
+				memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+				if err != nil {
+					s.log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
+					memberCount = 0 // Default to 0 if we can't get the count
+				}
+				channelProto.MemberCount = memberCount
+			}
+
+			// User is a member, include this channel
+			userChannels = append(userChannels, channelProto)
 		}
 	}
 
@@ -460,17 +493,29 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 		return nil, status.Error(codes.Internal, "failed to update channel")
 	}
 
+	// Create response channel proto
+	channelProto := &proto.Channel{
+		Id:          channel.ID,
+		TenantId:    channel.TenantID,
+		Name:        channel.Name,
+		Description: channel.Description.String,
+		CreatedBy:   channel.CreatedBy,
+		CreatedAt:   timestamppb.New(channel.CreatedAt),
+		UpdatedAt:   timestamppb.New(channel.UpdatedAt),
+		UserRole:    role, // Include the user's role in the response
+	}
+
+	// Include member count since only owners can update channels
+	memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+	if err != nil {
+		s.log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
+		memberCount = 0 // Default to 0 if we can't get the count
+	}
+	channelProto.MemberCount = memberCount
+
 	return &proto.UpdateChannelResponse{
 		Message: "Channel updated successfully",
-		Channel: &proto.Channel{
-			Id:          channel.ID,
-			TenantId:    channel.TenantID,
-			Name:        channel.Name,
-			Description: channel.Description.String,
-			CreatedBy:   channel.CreatedBy,
-			CreatedAt:   timestamppb.New(channel.CreatedAt),
-			UpdatedAt:   timestamppb.New(channel.UpdatedAt),
-		},
+		Channel: channelProto,
 	}, nil
 }
 
@@ -492,47 +537,60 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		return nil, err
 	}
 
-	// Validate input
-	if req.ChannelId == "" {
-		return nil, status.Error(codes.InvalidArgument, "channel ID is required")
-	}
-
-	// Check if user is a member of the channel
-	_, err = s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	// Get user's role in the channel
+	userRole, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	// Get channel members
+	// Only owners can view members
+	if userRole != constants.ChannelRoleOwner {
+		return nil, status.Error(codes.PermissionDenied, "only channel owners can view members")
+	}
+
+	// Get all channel members from database
 	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: req.ChannelId,
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		s.log.Error("Failed to get channel members", "error", err)
+		s.log.Error("failed to get channel members", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channel members")
 	}
 
-	// Convert to proto format
+	// Get all tenant users to lookup user details for the channel members
+	tenantUsersResp, err := s.tenantServiceClient.GetUsers(ctx, &userProto.GetUsersRequest{
+		TenantId: tenantID,
+	})
+	if err != nil {
+		s.log.Error("failed to get tenant users", "error", err)
+		return nil, status.Error(codes.Internal, "failed to get user details")
+	}
+
+	// Create a map for quick user lookup
+	userMap := make(map[string]*userProto.User)
+	for _, tenantUser := range tenantUsersResp.TenantUsers {
+		userMap[tenantUser.User.Id] = tenantUser.User
+	}
+
+	// Convert to proto format, excluding current user
 	var protoMembers []*proto.ChannelMember
 	for _, member := range members {
+		// Skip current user - they shouldn't see themselves in the members list
+		if member.UserID == authContext.User.ID {
+			continue
+		}
+
+		// Get user details from the map
+		user, exists := userMap[member.UserID]
+		if !exists {
+			s.log.Warn("user not found in tenant users", "user_id", member.UserID)
+			continue // Skip members whose user details we can't find
+		}
+
 		protoMembers = append(protoMembers, &proto.ChannelMember{
-			Channel: &proto.Channel{
-				Id:          member.ChannelID,
-				TenantId:    member.TenantID,
-				Name:        member.ChannelName,
-				Description: "",  // Not available in the query result
-				CreatedBy:   "",  // Not available in the query result
-				CreatedAt:   nil, // Not available in the query result
-				UpdatedAt:   nil, // Not available in the query result
-			},
-			User: &userProto.User{
-				Id: member.UserID,
-				// Username and Email would need to be fetched from userservice
-			},
-			Role: &userProto.Role{
-				Role: member.Role,
-			},
+			User:      user,
+			Role:      member.Role,
 			AddedBy:   member.AddedBy,
 			CreatedAt: timestamppb.New(member.CreatedAt),
 		})

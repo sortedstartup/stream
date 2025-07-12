@@ -107,14 +107,15 @@ message Channel {
   string created_by = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
+  string user_role = 9; // Current user's role in this channel: owner, uploader, viewer
+  int32 member_count = 10; // Number of members (only populated for owners)
 }
 
 message ChannelMember {
-  Channel channel = 1;
-  userservice.User user = 2;
-  userservice.Role role = 3;
-  string added_by = 4;
-  google.protobuf.Timestamp created_at = 5;
+  userservice.User user = 1;
+  string role = 2; // owner, uploader, viewer
+  string added_by = 3;
+  google.protobuf.Timestamp created_at = 4;
 }
 
 message CreateChannelRequest {

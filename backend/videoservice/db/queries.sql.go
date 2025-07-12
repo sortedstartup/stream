@@ -315,6 +315,71 @@ func (q *Queries) GetChannelMembersByChannelIDAndTenantID(ctx context.Context, a
 	return items, nil
 }
 
+const getChannelMembersByChannelIDExcludingUser = `-- name: GetChannelMembersByChannelIDExcludingUser :many
+SELECT 
+    cm.id as channel_member_id,
+    cm.channel_id,
+    cm.user_id,
+    cm.role,
+    cm.added_by,
+    cm.created_at,
+    c.name as channel_name,
+    c.tenant_id
+FROM channel_members cm
+JOIN channels c ON cm.channel_id = c.id
+WHERE cm.channel_id = ?1 AND c.tenant_id = ?2 AND cm.user_id != ?3
+ORDER BY cm.created_at ASC
+`
+
+type GetChannelMembersByChannelIDExcludingUserParams struct {
+	ChannelID string
+	TenantID  string
+	UserID    string
+}
+
+type GetChannelMembersByChannelIDExcludingUserRow struct {
+	ChannelMemberID string
+	ChannelID       string
+	UserID          string
+	Role            string
+	AddedBy         string
+	CreatedAt       time.Time
+	ChannelName     string
+	TenantID        string
+}
+
+func (q *Queries) GetChannelMembersByChannelIDExcludingUser(ctx context.Context, arg GetChannelMembersByChannelIDExcludingUserParams) ([]GetChannelMembersByChannelIDExcludingUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChannelMembersByChannelIDExcludingUser, arg.ChannelID, arg.TenantID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChannelMembersByChannelIDExcludingUserRow
+	for rows.Next() {
+		var i GetChannelMembersByChannelIDExcludingUserRow
+		if err := rows.Scan(
+			&i.ChannelMemberID,
+			&i.ChannelID,
+			&i.UserID,
+			&i.Role,
+			&i.AddedBy,
+			&i.CreatedAt,
+			&i.ChannelName,
+			&i.TenantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChannelsByTenantID = `-- name: GetChannelsByTenantID :many
 SELECT id, tenant_id, name, description, created_by, created_at, updated_at FROM channels 
 WHERE tenant_id = ?1
