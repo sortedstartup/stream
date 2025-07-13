@@ -39,5 +39,4 @@ type Video struct {
 	IsPrivate      sql.NullBool
 	TenantID       sql.NullString
 	ChannelID      sql.NullString
-	CONSTRAINT     interface{}
 }

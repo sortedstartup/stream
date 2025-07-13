@@ -1,5 +1,6 @@
 import React from 'react'
 import { useStore } from '@nanostores/react'
+import { useNavigate, useLocation } from 'react-router'
 import { $tenants, $currentTenant, switchTenant } from '../stores/tenants'
 import { Briefcase, ChevronDown, User, Users, Check } from 'react-feather'
 import { TenantUser } from '../proto/userservice'
@@ -7,6 +8,8 @@ import { TenantUser } from '../proto/userservice'
 export const TenantSwitcher = () => {
   const tenants = useStore($tenants)
   const currentTenant = useStore($currentTenant)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   if (!tenants.length || !currentTenant) {
     return null 
@@ -14,6 +17,11 @@ export const TenantSwitcher = () => {
 
   const handleTenantChange = (tenant: TenantUser) => {
     switchTenant(tenant)
+    
+    // If user is on a channel-related page, navigate to channels dashboard
+    if (location.pathname.startsWith('/')) {
+      navigate('/channels')
+    }
   }
 
   return (

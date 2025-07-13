@@ -2,9 +2,17 @@ import React from 'react'
 import { Layout } from "../components/layout/Layout";
 import ScreenRecorder from "../components/ScreenRecorder";
 import { useState } from "react";
+import { useLocation } from 'react-router';
+import { useStore } from '@nanostores/react';
+import { $channels } from '../stores/channels';
 
 export const RecordPage = () => {
   const [uploadStatus, setUploadStatus] = useState({ type: null, message: null });
+  const location = useLocation();
+  const channels = useStore($channels);
+
+  // Get channel context from navigation state (if coming from channel page)
+  const contextChannelId = location.state?.channelId;
 
   const handleUploadSuccess = () => {
     setUploadStatus({
@@ -40,7 +48,12 @@ export const RecordPage = () => {
       <div className="space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">Record</h1>
-          <p className="mb-4">Start recording your screen or camera</p>
+          <p className="mb-4">
+            {contextChannelId 
+              ? `Recording for channel: ${channels.find(c => c.id === contextChannelId)?.name || 'Selected Channel'}`
+              : 'Start recording your screen or camera'
+            }
+          </p>
           
           {/* Status Messages */}
           {uploadStatus.message && (
@@ -74,6 +87,7 @@ export const RecordPage = () => {
             <ScreenRecorder 
               onUploadSuccess={handleUploadSuccess}
               onUploadError={handleUploadError}
+              contextChannelId={contextChannelId}
             />
           </div>
         </div>
