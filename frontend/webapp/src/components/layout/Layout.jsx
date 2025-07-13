@@ -16,19 +16,19 @@ export const Layout = ({ children }) => {
     if (location.pathname === "/record") {
       return null;
     }
-    
+
+    // Only show if recording is active
+    if (!isRecording) {
+      return null;
+    }
+
     return (
-      <div className="fixed bottom-4 right-4 p-4 rounded-lg bg-white shadow-lg z-50">
-        {!isRecording ? (
-          <button className="btn btn-primary" onClick={startRecording}>
-            Start Recording
-          </button>
-        ) : (
-          <button className="btn btn-error" onClick={stopRecording}>
-            Stop Recording
-          </button>
-        )}
-      </div>
+      <button
+        className="fixed bottom-6 right-6 btn btn-error shadow-lg z-50"
+        onClick={stopRecording}
+      >
+        Stop Recording
+      </button>
     );
   }
 
