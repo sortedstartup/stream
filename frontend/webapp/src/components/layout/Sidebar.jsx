@@ -6,10 +6,9 @@ export const Sidebar = ({ onItemClick }) => {
   const navItems = [
     { to: '/team', icon: Users, label: 'Team' },
     { to: '/', icon: Home, label: 'Home' },
-    { to: '/channels', icon: Folder, label: 'Channels', className: 'text-blue-500' },
+    { to: '/channels', icon: Folder, label: 'Dashboard', className: 'text-blue-500' },
     { to: '/record', icon: Circle, label: 'Record', className: 'text-red-500' },
     { to: '/upload', icon: UploadIcon, label: 'Upload' },
-    { to: '/videos', icon: Video, label: 'Videos' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ]
 

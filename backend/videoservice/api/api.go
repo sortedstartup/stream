@@ -187,13 +187,25 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 		return nil, err
 	}
 
-	// Get videos for this tenant
-	videos, err := s.dbQueries.GetVideosByTenantID(ctx, sql.NullString{
-		String: tenantID,
-		Valid:  true,
-	})
+	var videos []db.Video
+
+	// Filter videos based on channel_id parameter
+	if req.ChannelId != "" {
+		// Get videos for specific channel
+		videos, err = s.dbQueries.GetVideosByTenantIDAndChannelID(ctx, db.GetVideosByTenantIDAndChannelIDParams{
+			TenantID:  sql.NullString{String: tenantID, Valid: true},
+			ChannelID: sql.NullString{String: req.ChannelId, Valid: true},
+		})
+	} else {
+		// Get all videos user has access to (their private videos + channel videos they're member of)
+		videos, err = s.dbQueries.GetAllAccessibleVideosByTenantID(ctx, db.GetAllAccessibleVideosByTenantIDParams{
+			TenantID: sql.NullString{String: tenantID, Valid: true},
+			UserID:   authContext.User.ID,
+		})
+	}
+
 	if err != nil {
-		s.log.Error("Error getting videos for tenant", "err", err, "tenantID", tenantID)
+		s.log.Error("Error getting videos", "err", err, "tenantID", tenantID, "channelID", req.ChannelId)
 		return nil, status.Error(codes.Internal, "failed to get videos")
 	}
 
@@ -205,6 +217,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 			Title:       video.Title,
 			Description: video.Description,
 			Url:         video.Url,
+			ChannelId:   video.ChannelID.String,              // Include channel_id in response
 			Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 			CreatedAt:   timestamppb.New(video.CreatedAt),
 		})

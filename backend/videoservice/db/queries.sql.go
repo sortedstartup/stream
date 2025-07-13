@@ -121,6 +121,7 @@ INSERT INTO videos (
     url,
     uploaded_user_id,
     tenant_id,
+    channel_id,
     is_private,
     created_at,
     updated_at
@@ -133,7 +134,8 @@ INSERT INTO videos (
     ?6,
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10
 )
 `
 
@@ -144,6 +146,7 @@ type CreateVideoUploadedParams struct {
 	Url            string
 	UploadedUserID string
 	TenantID       sql.NullString
+	ChannelID      sql.NullString
 	IsPrivate      sql.NullBool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -157,6 +160,7 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 		arg.Url,
 		arg.UploadedUserID,
 		arg.TenantID,
+		arg.ChannelID,
 		arg.IsPrivate,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -177,6 +181,60 @@ type DeleteChannelMemberParams struct {
 func (q *Queries) DeleteChannelMember(ctx context.Context, arg DeleteChannelMemberParams) error {
 	_, err := q.db.ExecContext(ctx, deleteChannelMember, arg.ChannelID, arg.UserID)
 	return err
+}
+
+const getAllAccessibleVideosByTenantID = `-- name: GetAllAccessibleVideosByTenantID :many
+SELECT DISTINCT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at, v.is_private, v.tenant_id, v.channel_id FROM videos v
+LEFT JOIN channels c ON v.channel_id = c.id
+LEFT JOIN channel_members cm ON c.id = cm.channel_id
+WHERE v.tenant_id = ?1 
+  AND (
+    -- User's own videos (private)
+    (v.uploaded_user_id = ?2 AND (v.channel_id IS NULL OR v.channel_id = ''))
+    OR 
+    -- Videos in channels user is member of
+    (v.channel_id IS NOT NULL AND v.channel_id != '' AND cm.user_id = ?2)
+  )
+ORDER BY v.created_at DESC
+`
+
+type GetAllAccessibleVideosByTenantIDParams struct {
+	TenantID sql.NullString
+	UserID   string
+}
+
+func (q *Queries) GetAllAccessibleVideosByTenantID(ctx context.Context, arg GetAllAccessibleVideosByTenantIDParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAccessibleVideosByTenantID, arg.TenantID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Video
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
+			&i.ChannelID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
