@@ -58,10 +58,8 @@ func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 	t.Log("Start TestUploadHandlerContentLengthExceedsLimit:", time.Now())
 
 	api := createTestVideoAPI()
-
-	// Mock the global IsUserInTenantFunc to always allow
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	reqBody := bytes.NewReader(make([]byte, maxUploadSize+1)) // maxUploadSize + 1
@@ -88,9 +86,8 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 
 	api := createTestVideoAPI()
 
-	// Mock IsUserInTenantFunc to always allow access
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	body := &bytes.Buffer{}
@@ -217,11 +214,11 @@ func TestUploadHandler_UserNotInTenant(t *testing.T) {
 	req = req.WithContext(authCtx())
 	req.Header.Set("x-tenant-id", "tenant-1")
 	rec := httptest.NewRecorder()
-
+    
 	// Override isUserInTenant to return error (simulate user not in tenant)
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-        return errors.New("not a member")
-    }
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+		return errors.New("not a member")
+	}
 
 	api.uploadHandler(rec, req)
 
@@ -249,8 +246,8 @@ func TestUploadHandler_MissingTitlePart(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	body := &bytes.Buffer{}
@@ -279,8 +276,8 @@ func TestUploadHandler_EmptyTitle(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	body, contentType := prepareMultipartBody(t, "   ", "desc", "test.mp4", []byte("dummy"))
@@ -301,8 +298,8 @@ func TestUploadHandler_UnsupportedFileExtension(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	body, contentType := prepareMultipartBody(t, "title", "desc", "test.exe", []byte("dummy"))
@@ -323,9 +320,8 @@ func TestUploadHandler_FileCreationFailure(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	// Simulate isUserInTenant success
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil 
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	// Setup mockDB CreateVideoUploaded to succeed
@@ -355,8 +351,8 @@ func TestUploadHandler_DBError(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil 
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	// Setup mockDB CreateVideoUploaded to return error
@@ -446,9 +442,9 @@ func TestServeVideoHandler_UserNotInTenant(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	// Simulate IsUserInTenantFunc failing
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return errors.New("not in tenant")
+	// Simulate user NOT in tenant to prevent DB call
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+		return errors.New("not a member")
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
@@ -458,7 +454,7 @@ func TestServeVideoHandler_UserNotInTenant(t *testing.T) {
 	api.serveVideoHandler(rec, req)
 
 	if rec.Code != http.StatusForbidden {
-		t.Errorf("Expected 403, got %d", rec.Code)
+		t.Errorf("Expected 403 Forbidden, got %d", rec.Code)
 	}
 }
 
@@ -466,8 +462,8 @@ func TestServeVideoHandler_VideoNotFound(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	mockDB.EXPECT().
@@ -490,8 +486,8 @@ func TestServeVideoHandler_DBError(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	mockDB.EXPECT().
@@ -514,8 +510,8 @@ func TestServeVideoHandler_FileNotFound(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	mockDB.EXPECT().
@@ -538,8 +534,8 @@ func TestServeVideoHandler_Success(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-		return nil
+	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
+    return nil // or any error you want to simulate
 	}
 
 	// Create dummy file to serve

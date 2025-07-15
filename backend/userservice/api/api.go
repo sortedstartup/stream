@@ -22,8 +22,7 @@ type UserAPI struct {
 	config    config.UserServiceConfig
 	db        *sql.DB
 	log       *slog.Logger
-	// dbQueries *db.Queries
-	dbQueries db.Querier // for test
+	dbQueries db.Querier 
 	userCache *lru.Cache
 	proto.UnimplementedUserServiceServer
 	tenantAPI *TenantAPI
@@ -33,8 +32,7 @@ type TenantAPI struct {
 	config    config.UserServiceConfig
 	db        *sql.DB
 	log       *slog.Logger
-	// dbQueries *db.Queries
-	dbQueries db.Querier // for test
+	dbQueries db.Querier
 	proto.UnimplementedTenantServiceServer
 }
 

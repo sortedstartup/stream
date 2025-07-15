@@ -24,24 +24,14 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	// dbQueries *db.Queries
-	dbQueries  db.DBQuerier // for test
+	dbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
 	userServiceClient userProto.UserServiceClient
 
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
-}
-
-// Package-level function variable for tenant check, default unimplemented
-var IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-	return status.Error(codes.Unimplemented, "IsUserInTenantFunc not implemented")
-}
-
-// isUserInTenant method calls the package-level function variable
-func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
-	return IsUserInTenantFunc(ctx, tenantID, userID)
+	TenantCheckFunc func(ctx context.Context, tenantID, userID string) error
 }
 
 func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, error) {
@@ -72,27 +62,6 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		userServiceClient: userServiceClient,
 	}
 
-	// Assign the real tenant check function
-    IsUserInTenantFunc = func(ctx context.Context, tenantID, userID string) error {
-        if tenantID == "" {
-            return status.Error(codes.InvalidArgument, "tenant ID is required")
-        }
-
-        resp, err := videoAPI.userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
-        if err != nil {
-            videoAPI.log.Error("Failed to get user tenants from userservice", "error", err, "userID", userID)
-            return status.Error(codes.Internal, "failed to check tenant access")
-        }
-
-        for _, tenantUser := range resp.TenantUsers {
-            if tenantUser.Tenant.Id == tenantID {
-                return nil
-            }
-        }
-
-        return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
-    }
-
 	// The authentication is handled in mono/main.go
 	ServerMux.Handle("/upload", interceptors.FirebaseHTTPHeaderAuthMiddleware(fbAuth, http.HandlerFunc(videoAPI.uploadHandler)))
 	//the cookie auth middleware is just to allow if the user is logged in
@@ -117,29 +86,34 @@ func (s *VideoAPI) Init() error {
 
 // isUserInTenant checks if the user is part of the specified tenant
 // by calling the userservice to get user's tenants and checking if the tenant is in the list
-// func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
-// 	if tenantID == "" {
-// 		return status.Error(codes.InvalidArgument, "tenant ID is required")
-// 	}
+func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
+	if s.TenantCheckFunc != nil {
+        return s.TenantCheckFunc(ctx, tenantID, userID)
+    }
 
-// 	// Call userservice to get user's tenants
-// 	resp, err := s.userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
-// 	if err != nil {
-// 		s.log.Error("Failed to get user tenants from userservice", "error", err, "userID", userID)
-// 		return status.Error(codes.Internal, "failed to check tenant access")
-// 	}
+	// Default tenant check implementation
+	if tenantID == "" {
+		return status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
 
-// 	// Check if the requested tenant is in the user's tenant list
-// 	for _, tenantUser := range resp.TenantUsers {
-// 		if tenantUser.Tenant.Id == tenantID {
-// 			// User is a member of this tenant
-// 			return nil
-// 		}
-// 	}
+	// Call userservice to get user's tenants
+	resp, err := s.userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
+	if err != nil {
+		s.log.Error("Failed to get user tenants from userservice", "error", err, "userID", userID)
+		return status.Error(codes.Internal, "failed to check tenant access")
+	}
 
-// 	// User is not a member of this tenant
-// 	return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
-// }
+	// Check if the requested tenant is in the user's tenant list
+	for _, tenantUser := range resp.TenantUsers {
+		if tenantUser.Tenant.Id == tenantID {
+			// User is a member of this tenant
+			return nil
+		}
+	}
+
+	// User is not a member of this tenant
+	return status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
+}
 
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
 	authContext, err := interceptors.AuthFromContext(ctx)

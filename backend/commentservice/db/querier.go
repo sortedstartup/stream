@@ -22,9 +22,9 @@ type Querier interface {
 	GetCommentsByVideoPaginated(ctx context.Context, arg GetCommentsByVideoPaginatedParams) ([]Comment, error)
 	GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]Comment, error)
 	LikeComment(ctx context.Context, arg LikeCommentParams) error
+	ListComments(ctx context.Context) ([]Comment, error)
 	UnlikeComment(ctx context.Context, arg UnlikeCommentParams) error
 	UpdateComment(ctx context.Context, arg UpdateCommentParams) error
-	test(ctx context.Context) ([]Comment, error)
 }
 
 var _ Querier = (*Queries)(nil)
