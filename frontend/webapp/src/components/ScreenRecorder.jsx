@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import { useRecordingController } from "../context/RecordingContext";
+import { useStore } from "@nanostores/react";
+import {
+  recordingState,
+  startRecording,
+  stopRecording,
+  uploadRecording,
+  downloadRecording,
+  handleReupload,
+} from "../stores/recordingStore";
 
 export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
-  const {
-    isRecording,
-    videoUrl,
-    statusMessage,
-    startRecording,
-    stopRecording,
-    uploadRecording,
-    downloadRecording,
-    handleReupload
-  } = useRecordingController();
+  const recorder = useStore(recordingState);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -47,19 +46,19 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
 
   return (
     <div className="space-y-4">
-     {statusMessage && statusMessage !== "Video uploaded successfully!" && (
+     {recorder.statusMessage && recorder.statusMessage !== "Video uploaded successfully!" && (
         <div
           className={`alert ${
-            statusMessage.toLowerCase().includes("failed")
+            recorder.statusMessage.toLowerCase().includes("failed")
               ? "alert-error"
               : "alert-info"
           } shadow-lg`}
         >
-          <span>{statusMessage}</span>
+          <span>{recorder.statusMessage}</span>
         </div>
       )}
       <div className="flex justify-center gap-4">
-        {!isRecording ? (
+        {!recorder.isRecording ? (
           <button
             className="btn btn-primary"
             onClick={startRecording}
@@ -78,12 +77,12 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         )}
       </div>
 
-      {videoUrl && (
+      {recorder.videoUrl && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Recording Preview:</h3>
           <video
             controls
-            src={videoUrl}
+            src={recorder.videoUrl}
             className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
           />
 

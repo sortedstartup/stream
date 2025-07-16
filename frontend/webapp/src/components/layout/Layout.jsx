@@ -3,22 +3,22 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
 import { useLocation } from "react-router";
-import { useRecordingController } from '../../context/RecordingContext'
+import { useStore } from '@nanostores/react';
+import { recordingState, stopRecording } from "../../stores/recordingStore";
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const location = useLocation();
+  const recorder = useStore(recordingState);
 
   function FloatingRecorderButton() {
-    const { isRecording, startRecording, stopRecording } = useRecordingController();
-    const location = useLocation();
-
     // Don't show on /record page
     if (location.pathname === "/record") {
       return null;
     }
 
     // Only show if recording is active
-    if (!isRecording) {
+    if (!recorder.isRecording) {
       return null;
     }
 
