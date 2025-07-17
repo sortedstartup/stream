@@ -1,4 +1,4 @@
--- name: test :many
+-- name: ListComments :many
 select * from comments;
 
 -- name: CreateComment :exec
