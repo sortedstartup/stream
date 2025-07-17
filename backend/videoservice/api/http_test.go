@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"sortedstartup.com/stream/common/auth"
+	"sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
 	"sortedstartup.com/stream/videoservice/db/mocks"
@@ -32,7 +33,7 @@ func createTestVideoAPI() *VideoAPI {
 
 	// Add a dummy slog.Logger that discards all logs in tests
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	
+
 	api := &VideoAPI{
 		config: cfg,
 		log:    logger,
@@ -56,16 +57,28 @@ func createAuthContext() context.Context {
 
 func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 	t.Log("Start TestUploadHandlerContentLengthExceedsLimit:", time.Now())
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		AnyTimes()
 
 	api := createTestVideoAPI()
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+
+	api.userServiceClient = mockUser
 
 	reqBody := bytes.NewReader(make([]byte, maxUploadSize+1)) // maxUploadSize + 1
 	req := httptest.NewRequest(http.MethodPost, "/upload", reqBody)
 	req.Header.Set("Content-Length", "524288001") // maxUploadSize + 1 (500MB + 1)
-	req.Header.Set("x-tenant-id", "test-tenant-id")
+	req.Header.Set("x-tenant-id", "tenant-1")     // match mocked tenant
 	req = req.WithContext(createAuthContext())
 	rec := httptest.NewRecorder()
 
@@ -84,11 +97,21 @@ func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 func TestUploadHandlerMaxBytesReader(t *testing.T) {
 	t.Log("Start TestUploadHandlerMaxBytesReader:", time.Now())
 
-	api := createTestVideoAPI()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		AnyTimes()
+
+	api := createTestVideoAPI()
+	api.userServiceClient = mockUser
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -103,7 +126,7 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("x-tenant-id", "test-tenant-id")
+	req.Header.Set("x-tenant-id", "tenant-1") // match mocked tenant
 	req = req.WithContext(createAuthContext())
 
 	rec := httptest.NewRecorder()
@@ -207,18 +230,27 @@ func TestUploadHandler_MissingTenantHeader(t *testing.T) {
 }
 
 func TestUploadHandler_UserNotInTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	// Return empty tenant list simulating user NOT in tenant
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{},
+		}, nil).
+		Times(1)
+
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
+
+	api.userServiceClient = mockUser
 
 	req := httptest.NewRequest(http.MethodPost, "/upload", nil)
 	req = req.WithContext(authCtx())
 	req.Header.Set("x-tenant-id", "tenant-1")
 	rec := httptest.NewRecorder()
-    
-	// Override isUserInTenant to return error (simulate user not in tenant)
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-		return errors.New("not a member")
-	}
 
 	api.uploadHandler(rec, req)
 
@@ -243,12 +275,22 @@ func TestUploadHandler_MethodNotAllowed(t *testing.T) {
 }
 
 func TestUploadHandler_MissingTitlePart(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
-
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -273,12 +315,22 @@ func TestUploadHandler_MissingTitlePart(t *testing.T) {
 }
 
 func TestUploadHandler_EmptyTitle(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		Times(1)
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	body, contentType := prepareMultipartBody(t, "   ", "desc", "test.mp4", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
@@ -295,12 +347,23 @@ func TestUploadHandler_EmptyTitle(t *testing.T) {
 }
 
 func TestUploadHandler_UnsupportedFileExtension(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	body, contentType := prepareMultipartBody(t, "title", "desc", "test.exe", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
@@ -317,12 +380,23 @@ func TestUploadHandler_UnsupportedFileExtension(t *testing.T) {
 }
 
 func TestUploadHandler_FileCreationFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	// Setup mockDB CreateVideoUploaded to succeed
 	mockDB.EXPECT().
@@ -348,12 +422,22 @@ func TestUploadHandler_FileCreationFailure(t *testing.T) {
 }
 
 func TestUploadHandler_DBError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "tenant-1"}},
+			},
+		}, nil).
+		Times(1)
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	// Setup mockDB CreateVideoUploaded to return error
 	mockDB.EXPECT().
@@ -439,13 +523,20 @@ func TestServeVideoHandler_MissingTenantQuery(t *testing.T) {
 }
 
 func TestServeVideoHandler_UserNotInTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{},
+		}, nil).
+		Times(1)
+
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
-
-	// Simulate user NOT in tenant to prevent DB call
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-		return errors.New("not a member")
-	}
+	api.userServiceClient = mockUser
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
 	req = req.WithContext(authCtx())
@@ -459,12 +550,22 @@ func TestServeVideoHandler_UserNotInTenant(t *testing.T) {
 }
 
 func TestServeVideoHandler_VideoNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "test-tenant"}},
+			},
+		}, nil).
+		Times(1)
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -483,12 +584,23 @@ func TestServeVideoHandler_VideoNotFound(t *testing.T) {
 }
 
 func TestServeVideoHandler_DBError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "test-tenant"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -507,12 +619,23 @@ func TestServeVideoHandler_DBError(t *testing.T) {
 }
 
 func TestServeVideoHandler_FileNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "test-tenant"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -531,12 +654,23 @@ func TestServeVideoHandler_FileNotFound(t *testing.T) {
 }
 
 func TestServeVideoHandler_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUser := proto.NewMockUserServiceClient(ctrl)
+	mockUser.EXPECT().
+		GetTenants(gomock.Any(), gomock.Any()).
+		Return(&proto.GetTenantsResponse{
+			TenantUsers: []*proto.TenantUser{
+				{Tenant: &proto.Tenant{Id: "test-tenant"}},
+			},
+		}, nil).
+		Times(1)
+
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.TenantCheckFunc = func(ctx context.Context, tenantID, userID string) error {
-    return nil // or any error you want to simulate
-	}
+	api.userServiceClient = mockUser
 
 	// Create dummy file to serve
 	uploadDir := "./test_uploads"

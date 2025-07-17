@@ -31,7 +31,6 @@ type VideoAPI struct {
 
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
-	TenantCheckFunc func(ctx context.Context, tenantID, userID string) error
 }
 
 func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient) (*VideoAPI, error) {
@@ -87,11 +86,6 @@ func (s *VideoAPI) Init() error {
 // isUserInTenant checks if the user is part of the specified tenant
 // by calling the userservice to get user's tenants and checking if the tenant is in the list
 func (s *VideoAPI) isUserInTenant(ctx context.Context, tenantID, userID string) error {
-	if s.TenantCheckFunc != nil {
-        return s.TenantCheckFunc(ctx, tenantID, userID)
-    }
-
-	// Default tenant check implementation
 	if tenantID == "" {
 		return status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
