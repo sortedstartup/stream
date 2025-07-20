@@ -7,6 +7,7 @@ import { $videos, fetchVideos } from '../stores/videos';
 import { $currentTenant } from '../stores/tenants';
 import ManageMembersModal from '../components/modals/ManageMembersModal';
 import ChannelSettingsModal from '../components/modals/ChannelSettingsModal';
+import VideoActionsMenu from '../components/VideoActionsMenu';
 
 const ChannelPage = () => {
   const { id } = useParams();
@@ -23,6 +24,10 @@ const ChannelPage = () => {
   // Modal states
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
+  // Status message state
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [statusType, setStatusType] = useState('info');
 
   useEffect(() => {
     if (id) {
@@ -73,6 +78,24 @@ const ChannelPage = () => {
   const handleRecordVideo = () => {
     // Navigate to record page with channel context
     navigate('/record', { state: { channelId: id } });
+  };
+
+  // Video action handlers
+  const handleVideoActionStart = (message) => {
+    setStatusMessage(message);
+    setStatusType('info');
+  };
+
+  const handleVideoActionComplete = (message) => {
+    setStatusMessage(message);
+    setStatusType('success');
+    setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  const handleVideoActionError = (message) => {
+    setStatusMessage(message);
+    setStatusType('error');
+    setTimeout(() => setStatusMessage(null), 5000);
   };
 
   // Filter videos that belong to this channel (if video has channel_id)
@@ -140,6 +163,22 @@ const ChannelPage = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
+      {/* Status Message */}
+      {statusMessage && (
+        <div className={`alert mb-6 ${
+          statusType === 'success' ? 'alert-success' : 
+          statusType === 'error' ? 'alert-error' : 'alert-info'
+        }`}>
+          <span>{statusMessage}</span>
+          <button 
+            onClick={() => setStatusMessage(null)}
+            className="btn btn-ghost btn-sm"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-6 text-sm text-base-content/60">
         <button 
@@ -342,7 +381,16 @@ const ChannelPage = () => {
                 )}
               </figure>
               <div className="card-body">
-                <h2 className="card-title text-sm">{video.title}</h2>
+                <div className="flex items-start justify-between mb-2">
+                  <h2 className="card-title text-sm flex-1">{video.title}</h2>
+                  <VideoActionsMenu
+                    video={video}
+                    userRole={userRole}
+                    onActionStart={handleVideoActionStart}
+                    onActionComplete={handleVideoActionComplete}
+                    onActionError={handleVideoActionError}
+                  />
+                </div>
                 <div className="text-xs text-base-content/60 space-y-1">
                   <p>{video.duration || 'Unknown duration'}</p>
                   <p>{new Date(video.createdAt).toLocaleDateString()}</p>

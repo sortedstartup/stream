@@ -2,7 +2,15 @@ import { atom, onMount } from "nanostores"
 import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
 import { $currentTenant } from "./tenants";
-import { GetVideoRequest, ListVideosRequest, Video, VideoServiceClient } from "../proto/videoservice"
+import { 
+    GetVideoRequest, 
+    ListVideosRequest, 
+    Video, 
+    VideoServiceClient,
+    MoveVideoToChannelRequest,
+    RemoveVideoFromChannelRequest,
+    DeleteVideoRequest
+} from "../proto/videoservice"
 
 export const $videos = atom<Video[]>([])
 export const $tenantVideos = atom<Video[]>([]) // Videos not assigned to any channel
@@ -82,6 +90,53 @@ export const fetchTenantVideos = async () => {
     } catch (error) {
         console.error("Error fetching tenant videos:", error)
         $tenantVideos.set([])
+        throw error
+    }
+}
+
+// Video management functions
+export const moveVideoToChannel = async (videoId: string, channelId: string): Promise<void> => {
+    try {
+        await videoService.MoveVideoToChannel(MoveVideoToChannelRequest.fromObject({
+            video_id: videoId,
+            channel_id: channelId
+        }), {})
+        
+        // Refresh videos to reflect the change
+        await fetchVideos()
+        await fetchTenantVideos()
+    } catch (error) {
+        console.error("Error moving video to channel:", error)
+        throw error
+    }
+}
+
+export const removeVideoFromChannel = async (videoId: string): Promise<void> => {
+    try {
+        await videoService.RemoveVideoFromChannel(RemoveVideoFromChannelRequest.fromObject({
+            video_id: videoId
+        }), {})
+        
+        // Refresh videos to reflect the change
+        await fetchVideos()
+        await fetchTenantVideos()
+    } catch (error) {
+        console.error("Error removing video from channel:", error)
+        throw error
+    }
+}
+
+export const deleteVideo = async (videoId: string): Promise<void> => {
+    try {
+        await videoService.DeleteVideo(DeleteVideoRequest.fromObject({
+            video_id: videoId
+        }), {})
+        
+        // Refresh videos to reflect the change
+        await fetchVideos()
+        await fetchTenantVideos()
+    } catch (error) {
+        console.error("Error deleting video:", error)
         throw error
     }
 }
