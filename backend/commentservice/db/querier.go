@@ -13,18 +13,18 @@ type Querier interface {
 	CheckUserLikedComment(ctx context.Context, arg CheckUserLikedCommentParams) (int64, error)
 	CreateComment(ctx context.Context, arg CreateCommentParams) error
 	DeleteComment(ctx context.Context, arg DeleteCommentParams) error
-	GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllCommentsByUserPaginatedParams) ([]Comment, error)
+	GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllCommentsByUserPaginatedParams) ([]CommentserviceComment, error)
 	GetComentsAndRepliesForVideoID(ctx context.Context, videoID string) ([]GetComentsAndRepliesForVideoIDRow, error)
-	GetCommentByID(ctx context.Context, arg GetCommentByIDParams) (Comment, error)
+	GetCommentByID(ctx context.Context, arg GetCommentByIDParams) (CommentserviceComment, error)
 	GetCommentCount(ctx context.Context, videoID string) (int64, error)
 	GetCommentLikesCount(ctx context.Context, commentID string) (int64, error)
-	GetCommentsByVideo(ctx context.Context, videoID string) ([]Comment, error)
-	GetCommentsByVideoPaginated(ctx context.Context, arg GetCommentsByVideoPaginatedParams) ([]Comment, error)
-	GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]Comment, error)
+	GetCommentsByVideo(ctx context.Context, videoID string) ([]CommentserviceComment, error)
+	GetCommentsByVideoPaginated(ctx context.Context, arg GetCommentsByVideoPaginatedParams) ([]CommentserviceComment, error)
+	GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]CommentserviceComment, error)
 	LikeComment(ctx context.Context, arg LikeCommentParams) error
 	UnlikeComment(ctx context.Context, arg UnlikeCommentParams) error
 	UpdateComment(ctx context.Context, arg UpdateCommentParams) error
-	test(ctx context.Context) ([]Comment, error)
+	test(ctx context.Context) ([]CommentserviceComment, error)
 }
 
 var _ Querier = (*Queries)(nil)

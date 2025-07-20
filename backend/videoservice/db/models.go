@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Channel struct {
+type VideoserviceChannel struct {
 	ID          string
 	TenantID    string
 	Name        string
@@ -19,7 +19,7 @@ type Channel struct {
 	UpdatedAt   time.Time
 }
 
-type ChannelMember struct {
+type VideoserviceChannelMember struct {
 	ID        string
 	ChannelID string
 	UserID    string
@@ -28,7 +28,7 @@ type ChannelMember struct {
 	CreatedAt time.Time
 }
 
-type Video struct {
+type VideoserviceVideo struct {
 	ID             string
 	Title          string
 	Description    string
