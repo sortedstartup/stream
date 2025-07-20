@@ -1,6 +1,6 @@
 -- name: GetAllVideoUploadedByUserPaginated :many
 SELECT * FROM videoservice_videos 
-WHERE uploaded_user_id = @user_id
+WHERE uploaded_user_id = @user_id AND is_deleted = FALSE
 ORDER BY created_at DESC
 LIMIT @page_size OFFSET @page_number;
 
@@ -14,6 +14,7 @@ INSERT INTO videoservice_videos (
     tenant_id,
     channel_id,
     is_private,
+    is_deleted,
     created_at,
     updated_at
 ) VALUES (
@@ -25,30 +26,31 @@ INSERT INTO videoservice_videos (
     @tenant_id,
     @channel_id,
     @is_private,
+    @is_deleted,
     @created_at,
     @updated_at
 );
 
 -- name: GetVideoByVideoIDAndTenantID :one
 SELECT * FROM videoservice_videos 
-WHERE id = @id AND tenant_id = @tenant_id
+WHERE id = @id AND tenant_id = @tenant_id AND is_deleted = FALSE
 LIMIT 1;
 
 -- name: GetVideosByTenantID :many
 SELECT * FROM videoservice_videos 
-WHERE tenant_id = @tenant_id 
+WHERE tenant_id = @tenant_id AND is_deleted = FALSE
 ORDER BY created_at DESC;
 
 -- name: GetVideosByTenantIDAndChannelID :many
 SELECT * FROM videoservice_videos 
-WHERE tenant_id = @tenant_id AND channel_id = @channel_id
+WHERE tenant_id = @tenant_id AND channel_id = @channel_id AND is_deleted = FALSE
 ORDER BY created_at DESC;
 
 -- name: GetAllAccessibleVideosByTenantID :many
 SELECT DISTINCT v.* FROM videoservice_videos v
 LEFT JOIN videoservice_channels c ON v.channel_id = c.id
 LEFT JOIN videoservice_channel_members cm ON c.id = cm.channel_id
-WHERE v.tenant_id = @tenant_id 
+WHERE v.tenant_id = @tenant_id AND v.is_deleted = FALSE
   AND (
     -- User's own videos (private)
     (v.uploaded_user_id = @user_id AND (v.channel_id IS NULL OR v.channel_id = ''))
@@ -156,7 +158,7 @@ WHERE channel_id = @channel_id AND user_id = @user_id;
 -- name: UpdateVideoChannel :exec
 UPDATE videoservice_videos 
 SET channel_id = @channel_id, updated_at = @updated_at
-WHERE id = @video_id AND tenant_id = @tenant_id 
+WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE
   AND (
     -- For tenant-level videos: validate uploader ownership
     (channel_id IS NULL OR channel_id = '') AND uploaded_user_id = @uploaded_user_id
@@ -168,5 +170,10 @@ WHERE id = @video_id AND tenant_id = @tenant_id
 -- name: RemoveVideoFromChannel :exec
 UPDATE videoservice_videos 
 SET channel_id = NULL, updated_at = @updated_at
-WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id;
+WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id AND is_deleted = FALSE;
+
+-- name: SoftDeleteVideo :exec
+UPDATE videoservice_videos 
+SET is_deleted = TRUE, updated_at = @updated_at
+WHERE id = @video_id AND tenant_id = @tenant_id AND uploaded_user_id = @user_id AND is_deleted = FALSE;
 

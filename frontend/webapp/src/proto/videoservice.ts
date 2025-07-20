@@ -883,6 +883,73 @@ export class DeleteVideoRequest extends pb_1.Message {
         return DeleteVideoRequest.deserialize(bytes);
     }
 }
+export class DeleteVideoResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        message?: string;
+    }): DeleteVideoResponse {
+        const message = new DeleteVideoResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): DeleteVideoResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new DeleteVideoResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): DeleteVideoResponse {
+        return DeleteVideoResponse.deserialize(bytes);
+    }
+}
 export class ShareVideoRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
@@ -2879,8 +2946,8 @@ export abstract class UnimplementedVideoServiceService {
             responseStream: false,
             requestSerialize: (message: DeleteVideoRequest) => Buffer.from(message.serialize()),
             requestDeserialize: (bytes: Buffer) => DeleteVideoRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
+            responseSerialize: (message: DeleteVideoResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => DeleteVideoResponse.deserialize(new Uint8Array(bytes))
         },
         MoveVideoToChannel: {
             path: "/videoservice.VideoService/MoveVideoToChannel",
@@ -2915,7 +2982,7 @@ export abstract class UnimplementedVideoServiceService {
     abstract GetVideo(call: grpc_1.ServerUnaryCall<GetVideoRequest, Video>, callback: grpc_1.sendUnaryData<Video>): void;
     abstract ListVideos(call: grpc_1.ServerUnaryCall<ListVideosRequest, ListVideosResponse>, callback: grpc_1.sendUnaryData<ListVideosResponse>): void;
     abstract UpdateVideo(call: grpc_1.ServerUnaryCall<UpdateVideoRequest, Video>, callback: grpc_1.sendUnaryData<Video>): void;
-    abstract DeleteVideo(call: grpc_1.ServerUnaryCall<DeleteVideoRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract DeleteVideo(call: grpc_1.ServerUnaryCall<DeleteVideoRequest, DeleteVideoResponse>, callback: grpc_1.sendUnaryData<DeleteVideoResponse>): void;
     abstract MoveVideoToChannel(call: grpc_1.ServerUnaryCall<MoveVideoToChannelRequest, MoveVideoToChannelResponse>, callback: grpc_1.sendUnaryData<MoveVideoToChannelResponse>): void;
     abstract RemoveVideoFromChannel(call: grpc_1.ServerUnaryCall<RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse>, callback: grpc_1.sendUnaryData<RemoveVideoFromChannelResponse>): void;
     abstract ShareVideo(call: grpc_1.ServerUnaryCall<ShareVideoRequest, ShareLink>, callback: grpc_1.sendUnaryData<ShareLink>): void;
@@ -2946,9 +3013,9 @@ export class VideoServiceClient {
     UpdateVideo(message: UpdateVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<UpdateVideoRequest, Video>(this._address + "/videoservice.VideoService/UpdateVideo", message, metadata || {}, VideoServiceClient.UpdateVideo);
     }
-    private static DeleteVideo = new grpc_web_1.MethodDescriptor<DeleteVideoRequest, Empty>("/videoservice.VideoService/DeleteVideo", grpc_web_1.MethodType.UNARY, DeleteVideoRequest, Empty, (message: DeleteVideoRequest) => message.serialize(), Empty.deserialize);
+    private static DeleteVideo = new grpc_web_1.MethodDescriptor<DeleteVideoRequest, DeleteVideoResponse>("/videoservice.VideoService/DeleteVideo", grpc_web_1.MethodType.UNARY, DeleteVideoRequest, DeleteVideoResponse, (message: DeleteVideoRequest) => message.serialize(), DeleteVideoResponse.deserialize);
     DeleteVideo(message: DeleteVideoRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<DeleteVideoRequest, Empty>(this._address + "/videoservice.VideoService/DeleteVideo", message, metadata || {}, VideoServiceClient.DeleteVideo);
+        return this._client.thenableCall<DeleteVideoRequest, DeleteVideoResponse>(this._address + "/videoservice.VideoService/DeleteVideo", message, metadata || {}, VideoServiceClient.DeleteVideo);
     }
     private static MoveVideoToChannel = new grpc_web_1.MethodDescriptor<MoveVideoToChannelRequest, MoveVideoToChannelResponse>("/videoservice.VideoService/MoveVideoToChannel", grpc_web_1.MethodType.UNARY, MoveVideoToChannelRequest, MoveVideoToChannelResponse, (message: MoveVideoToChannelRequest) => message.serialize(), MoveVideoToChannelResponse.deserialize);
     MoveVideoToChannel(message: MoveVideoToChannelRequest, metadata: grpc_web_1.Metadata | null) {

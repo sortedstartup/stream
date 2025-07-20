@@ -38,7 +38,7 @@ type VideoServiceClient interface {
 	GetVideo(ctx context.Context, in *GetVideoRequest, opts ...grpc.CallOption) (*Video, error)
 	ListVideos(ctx context.Context, in *ListVideosRequest, opts ...grpc.CallOption) (*ListVideosResponse, error)
 	UpdateVideo(ctx context.Context, in *UpdateVideoRequest, opts ...grpc.CallOption) (*Video, error)
-	DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*Empty, error)
+	DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*DeleteVideoResponse, error)
 	// Video-Channel Management
 	MoveVideoToChannel(ctx context.Context, in *MoveVideoToChannelRequest, opts ...grpc.CallOption) (*MoveVideoToChannelResponse, error)
 	RemoveVideoFromChannel(ctx context.Context, in *RemoveVideoFromChannelRequest, opts ...grpc.CallOption) (*RemoveVideoFromChannelResponse, error)
@@ -94,9 +94,9 @@ func (c *videoServiceClient) UpdateVideo(ctx context.Context, in *UpdateVideoReq
 	return out, nil
 }
 
-func (c *videoServiceClient) DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*Empty, error) {
+func (c *videoServiceClient) DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*DeleteVideoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
+	out := new(DeleteVideoResponse)
 	err := c.cc.Invoke(ctx, VideoService_DeleteVideo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ type VideoServiceServer interface {
 	GetVideo(context.Context, *GetVideoRequest) (*Video, error)
 	ListVideos(context.Context, *ListVideosRequest) (*ListVideosResponse, error)
 	UpdateVideo(context.Context, *UpdateVideoRequest) (*Video, error)
-	DeleteVideo(context.Context, *DeleteVideoRequest) (*Empty, error)
+	DeleteVideo(context.Context, *DeleteVideoRequest) (*DeleteVideoResponse, error)
 	// Video-Channel Management
 	MoveVideoToChannel(context.Context, *MoveVideoToChannelRequest) (*MoveVideoToChannelResponse, error)
 	RemoveVideoFromChannel(context.Context, *RemoveVideoFromChannelRequest) (*RemoveVideoFromChannelResponse, error)
@@ -171,7 +171,7 @@ func (UnimplementedVideoServiceServer) ListVideos(context.Context, *ListVideosRe
 func (UnimplementedVideoServiceServer) UpdateVideo(context.Context, *UpdateVideoRequest) (*Video, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVideo not implemented")
 }
-func (UnimplementedVideoServiceServer) DeleteVideo(context.Context, *DeleteVideoRequest) (*Empty, error) {
+func (UnimplementedVideoServiceServer) DeleteVideo(context.Context, *DeleteVideoRequest) (*DeleteVideoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVideo not implemented")
 }
 func (UnimplementedVideoServiceServer) MoveVideoToChannel(context.Context, *MoveVideoToChannelRequest) (*MoveVideoToChannelResponse, error) {

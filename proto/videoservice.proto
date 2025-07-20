@@ -14,7 +14,7 @@ service VideoService {
   rpc GetVideo(GetVideoRequest) returns (Video);
   rpc ListVideos(ListVideosRequest) returns (ListVideosResponse);
   rpc UpdateVideo(UpdateVideoRequest) returns (Video);
-  rpc DeleteVideo(DeleteVideoRequest) returns (Empty);
+  rpc DeleteVideo(DeleteVideoRequest) returns (DeleteVideoResponse);
 
   // Video-Channel Management
   rpc MoveVideoToChannel(MoveVideoToChannelRequest) returns (MoveVideoToChannelResponse);
@@ -89,6 +89,10 @@ message UpdateVideoRequest {
 
 message DeleteVideoRequest {
   string video_id = 1;
+}
+
+message DeleteVideoResponse {
+  string message = 1;
 }
 
 message ShareVideoRequest {
