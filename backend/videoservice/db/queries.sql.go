@@ -608,58 +608,6 @@ func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVi
 	return items, nil
 }
 
-const moveVideoFromChannelToChannel = `-- name: MoveVideoFromChannelToChannel :exec
-UPDATE videoservice_videos 
-SET channel_id = ?1, updated_at = ?2
-WHERE id = ?3 AND tenant_id = ?4 AND channel_id = ?5
-`
-
-type MoveVideoFromChannelToChannelParams struct {
-	NewChannelID sql.NullString
-	UpdatedAt    time.Time
-	VideoID      string
-	TenantID     sql.NullString
-	OldChannelID sql.NullString
-}
-
-func (q *Queries) MoveVideoFromChannelToChannel(ctx context.Context, arg MoveVideoFromChannelToChannelParams) error {
-	_, err := q.db.ExecContext(ctx, moveVideoFromChannelToChannel,
-		arg.NewChannelID,
-		arg.UpdatedAt,
-		arg.VideoID,
-		arg.TenantID,
-		arg.OldChannelID,
-	)
-	return err
-}
-
-const moveVideoToChannel = `-- name: MoveVideoToChannel :exec
-UPDATE videoservice_videos 
-SET channel_id = ?1, updated_at = ?2
-WHERE id = ?3 AND tenant_id = ?4 AND uploaded_user_id = ?5 
-  AND (channel_id IS NULL OR channel_id = '')
-`
-
-type MoveVideoToChannelParams struct {
-	ChannelID sql.NullString
-	UpdatedAt time.Time
-	VideoID   string
-	TenantID  sql.NullString
-	UserID    string
-}
-
-// Video-Channel Management Queries
-func (q *Queries) MoveVideoToChannel(ctx context.Context, arg MoveVideoToChannelParams) error {
-	_, err := q.db.ExecContext(ctx, moveVideoToChannel,
-		arg.ChannelID,
-		arg.UpdatedAt,
-		arg.VideoID,
-		arg.TenantID,
-		arg.UserID,
-	)
-	return err
-}
-
 const removeVideoFromChannel = `-- name: RemoveVideoFromChannel :exec
 UPDATE videoservice_videos 
 SET channel_id = NULL, updated_at = ?1
@@ -720,4 +668,39 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (V
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateVideoChannel = `-- name: UpdateVideoChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = ?1, updated_at = ?2
+WHERE id = ?3 AND tenant_id = ?4 
+  AND (
+    -- For tenant-level videos: validate uploader ownership
+    (channel_id IS NULL OR channel_id = '') AND uploaded_user_id = ?5
+    OR
+    -- For channel videos: validate current channel (permission checked in API)
+    channel_id = ?6
+  )
+`
+
+type UpdateVideoChannelParams struct {
+	ChannelID        sql.NullString
+	UpdatedAt        time.Time
+	VideoID          string
+	TenantID         sql.NullString
+	UploadedUserID   string
+	CurrentChannelID sql.NullString
+}
+
+// Video-Channel Management Queries
+func (q *Queries) UpdateVideoChannel(ctx context.Context, arg UpdateVideoChannelParams) error {
+	_, err := q.db.ExecContext(ctx, updateVideoChannel,
+		arg.ChannelID,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.UploadedUserID,
+		arg.CurrentChannelID,
+	)
+	return err
 }

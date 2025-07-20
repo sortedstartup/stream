@@ -153,19 +153,20 @@ DELETE FROM videoservice_channel_members
 WHERE channel_id = @channel_id AND user_id = @user_id;
 
 -- Video-Channel Management Queries
--- name: MoveVideoToChannel :exec
+-- name: UpdateVideoChannel :exec
 UPDATE videoservice_videos 
 SET channel_id = @channel_id, updated_at = @updated_at
-WHERE id = @video_id AND tenant_id = @tenant_id AND uploaded_user_id = @user_id 
-  AND (channel_id IS NULL OR channel_id = '');
+WHERE id = @video_id AND tenant_id = @tenant_id 
+  AND (
+    -- For tenant-level videos: validate uploader ownership
+    (channel_id IS NULL OR channel_id = '') AND uploaded_user_id = @uploaded_user_id
+    OR
+    -- For channel videos: validate current channel (permission checked in API)
+    channel_id = @current_channel_id
+  );
 
 -- name: RemoveVideoFromChannel :exec
 UPDATE videoservice_videos 
 SET channel_id = NULL, updated_at = @updated_at
 WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id;
-
--- name: MoveVideoFromChannelToChannel :exec
-UPDATE videoservice_videos 
-SET channel_id = @new_channel_id, updated_at = @updated_at
-WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @old_channel_id;
 
