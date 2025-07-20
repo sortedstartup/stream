@@ -5,6 +5,8 @@ package videoservice;
 option go_package = "sortedstartup.com/stream/videoservice/proto";
 
 import "google/protobuf/timestamp.proto";
+// please ignore import error, go generate will run properly
+import "userservice.proto";
 
 service VideoService {
   // Core video operations
@@ -18,6 +20,15 @@ service VideoService {
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
 }
 
+service ChannelService {
+  rpc CreateChannel(CreateChannelRequest) returns (CreateChannelResponse);
+  rpc UpdateChannel(UpdateChannelRequest) returns (UpdateChannelResponse);
+  rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
+  rpc GetMembers(GetChannelMembersRequest) returns (GetChannelMembersResponse);
+  rpc AddMember(AddChannelMemberRequest) returns (AddChannelMemberResponse);
+  rpc RemoveMember(RemoveChannelMemberRequest) returns (RemoveChannelMemberResponse);
+}
+
 message Video {
   string id = 1;
   string title = 2;
@@ -28,6 +39,7 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+  string channel_id = 10; // Optional: channel this video belongs to
 }
 
 enum VideoStatus {
@@ -55,15 +67,13 @@ message GetVideoRequest {
 }
 
 message ListVideosRequest {
-  // user id is implicit
-  //string user_id = 1;
-  int32 pageSize = 2;
-  int32 pageNumber = 3;
+  int32 page_number = 1;
+  int32 page_size = 2;
+  string channel_id = 3; // Optional: filter by channel
 }
 
 message ListVideosResponse {
   repeated Video videos = 1;
-  int32 next_page_number = 2;
 }
 
 message UpdateVideoRequest {
@@ -87,3 +97,79 @@ message ShareLink {
 }
 
 message Empty {}
+
+message Channel {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string description = 4;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  string user_role = 9; // Current user's role in this channel: owner, uploader, viewer
+  int32 member_count = 10; // Number of members (only populated for owners)
+}
+
+message ChannelMember {
+  userservice.User user = 1;
+  string role = 2; // owner, uploader, viewer
+  string added_by = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message CreateChannelRequest {
+  string name = 2;
+  string description = 3;
+}
+
+message CreateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message UpdateChannelRequest {
+  string channel_id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateChannelResponse {
+  string message = 1;
+  Channel channel = 2;
+}
+
+message GetChannelsRequest {
+}
+
+message GetChannelsResponse {
+  string message = 1;
+  repeated Channel channels = 2;
+}
+
+message GetChannelMembersRequest {
+  string channel_id = 2;
+}
+
+message GetChannelMembersResponse {
+  string message = 1;
+  repeated ChannelMember channel_members = 2;
+}
+
+message AddChannelMemberRequest {
+  string channel_id = 2;
+  string user_id = 3;
+  string role = 4; // owner, uploader, viewer
+}
+
+message AddChannelMemberResponse {
+  string message = 1;
+}
+
+message RemoveChannelMemberRequest {
+  string channel_id = 2;
+  string user_id = 3;
+}
+
+message RemoveChannelMemberResponse {
+  string message = 1;
+}

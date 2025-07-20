@@ -5,6 +5,7 @@
  * source: videoservice.proto
  * git: https://github.com/thesayyn/protoc-gen-ts */
 import * as dependency_1 from "./google/protobuf/timestamp";
+import * as dependency_2 from "./userservice";
 import * as pb_1 from "google-protobuf";
 import * as grpc_1 from "grpc-web";
 import * as grpc_web_1 from "grpc-web";
@@ -31,6 +32,7 @@ export class Video extends pb_1.Message {
         status?: VideoStatus;
         visibility?: Visibility;
         created_at?: dependency_1.Timestamp;
+        channel_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -61,6 +63,9 @@ export class Video extends pb_1.Message {
             }
             if ("created_at" in data && data.created_at != undefined) {
                 this.created_at = data.created_at;
+            }
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
             }
         }
     }
@@ -121,6 +126,12 @@ export class Video extends pb_1.Message {
     get has_created_at() {
         return pb_1.Message.getField(this, 9) != null;
     }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 10, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 10, value);
+    }
     static fromObject(data: {
         id?: string;
         title?: string;
@@ -131,6 +142,7 @@ export class Video extends pb_1.Message {
         status?: VideoStatus;
         visibility?: Visibility;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        channel_id?: string;
     }): Video {
         const message = new Video({});
         if (data.id != null) {
@@ -160,6 +172,9 @@ export class Video extends pb_1.Message {
         if (data.created_at != null) {
             message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
         }
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
         return message;
     }
     toObject() {
@@ -173,6 +188,7 @@ export class Video extends pb_1.Message {
             status?: VideoStatus;
             visibility?: Visibility;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            channel_id?: string;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -201,6 +217,9 @@ export class Video extends pb_1.Message {
         if (this.created_at != null) {
             data.created_at = this.created_at.toObject();
         }
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
         return data;
     }
     serialize(): Uint8Array;
@@ -225,6 +244,8 @@ export class Video extends pb_1.Message {
             writer.writeEnum(8, this.visibility);
         if (this.has_created_at)
             writer.writeMessage(9, this.created_at, () => this.created_at.serialize(writer));
+        if (this.channel_id.length)
+            writer.writeString(10, this.channel_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -260,6 +281,9 @@ export class Video extends pb_1.Message {
                     break;
                 case 9:
                     reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 10:
+                    message.channel_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -479,55 +503,73 @@ export class GetVideoRequest extends pb_1.Message {
 export class ListVideosRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
-        pageSize?: number;
-        pageNumber?: number;
+        page_number?: number;
+        page_size?: number;
+        channel_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
-            if ("pageSize" in data && data.pageSize != undefined) {
-                this.pageSize = data.pageSize;
+            if ("page_number" in data && data.page_number != undefined) {
+                this.page_number = data.page_number;
             }
-            if ("pageNumber" in data && data.pageNumber != undefined) {
-                this.pageNumber = data.pageNumber;
+            if ("page_size" in data && data.page_size != undefined) {
+                this.page_size = data.page_size;
+            }
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
             }
         }
     }
-    get pageSize() {
+    get page_number() {
+        return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
+    }
+    set page_number(value: number) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get page_size() {
         return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
     }
-    set pageSize(value: number) {
+    set page_size(value: number) {
         pb_1.Message.setField(this, 2, value);
     }
-    get pageNumber() {
-        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
     }
-    set pageNumber(value: number) {
+    set channel_id(value: string) {
         pb_1.Message.setField(this, 3, value);
     }
     static fromObject(data: {
-        pageSize?: number;
-        pageNumber?: number;
+        page_number?: number;
+        page_size?: number;
+        channel_id?: string;
     }): ListVideosRequest {
         const message = new ListVideosRequest({});
-        if (data.pageSize != null) {
-            message.pageSize = data.pageSize;
+        if (data.page_number != null) {
+            message.page_number = data.page_number;
         }
-        if (data.pageNumber != null) {
-            message.pageNumber = data.pageNumber;
+        if (data.page_size != null) {
+            message.page_size = data.page_size;
+        }
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
         }
         return message;
     }
     toObject() {
         const data: {
-            pageSize?: number;
-            pageNumber?: number;
+            page_number?: number;
+            page_size?: number;
+            channel_id?: string;
         } = {};
-        if (this.pageSize != null) {
-            data.pageSize = this.pageSize;
+        if (this.page_number != null) {
+            data.page_number = this.page_number;
         }
-        if (this.pageNumber != null) {
-            data.pageNumber = this.pageNumber;
+        if (this.page_size != null) {
+            data.page_size = this.page_size;
+        }
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
         }
         return data;
     }
@@ -535,10 +577,12 @@ export class ListVideosRequest extends pb_1.Message {
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.pageSize != 0)
-            writer.writeInt32(2, this.pageSize);
-        if (this.pageNumber != 0)
-            writer.writeInt32(3, this.pageNumber);
+        if (this.page_number != 0)
+            writer.writeInt32(1, this.page_number);
+        if (this.page_size != 0)
+            writer.writeInt32(2, this.page_size);
+        if (this.channel_id.length)
+            writer.writeString(3, this.channel_id);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -548,11 +592,14 @@ export class ListVideosRequest extends pb_1.Message {
             if (reader.isEndGroup())
                 break;
             switch (reader.getFieldNumber()) {
+                case 1:
+                    message.page_number = reader.readInt32();
+                    break;
                 case 2:
-                    message.pageSize = reader.readInt32();
+                    message.page_size = reader.readInt32();
                     break;
                 case 3:
-                    message.pageNumber = reader.readInt32();
+                    message.channel_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -570,16 +617,12 @@ export class ListVideosResponse extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         videos?: Video[];
-        next_page_number?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
             if ("videos" in data && data.videos != undefined) {
                 this.videos = data.videos;
-            }
-            if ("next_page_number" in data && data.next_page_number != undefined) {
-                this.next_page_number = data.next_page_number;
             }
         }
     }
@@ -589,35 +632,21 @@ export class ListVideosResponse extends pb_1.Message {
     set videos(value: Video[]) {
         pb_1.Message.setRepeatedWrapperField(this, 1, value);
     }
-    get next_page_number() {
-        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
-    }
-    set next_page_number(value: number) {
-        pb_1.Message.setField(this, 2, value);
-    }
     static fromObject(data: {
         videos?: ReturnType<typeof Video.prototype.toObject>[];
-        next_page_number?: number;
     }): ListVideosResponse {
         const message = new ListVideosResponse({});
         if (data.videos != null) {
             message.videos = data.videos.map(item => Video.fromObject(item));
-        }
-        if (data.next_page_number != null) {
-            message.next_page_number = data.next_page_number;
         }
         return message;
     }
     toObject() {
         const data: {
             videos?: ReturnType<typeof Video.prototype.toObject>[];
-            next_page_number?: number;
         } = {};
         if (this.videos != null) {
             data.videos = this.videos.map((item: Video) => item.toObject());
-        }
-        if (this.next_page_number != null) {
-            data.next_page_number = this.next_page_number;
         }
         return data;
     }
@@ -627,8 +656,6 @@ export class ListVideosResponse extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.videos.length)
             writer.writeRepeatedMessage(1, this.videos, (item: Video) => item.serialize(writer));
-        if (this.next_page_number != 0)
-            writer.writeInt32(2, this.next_page_number);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -640,9 +667,6 @@ export class ListVideosResponse extends pb_1.Message {
             switch (reader.getFieldNumber()) {
                 case 1:
                     reader.readMessage(message.videos, () => pb_1.Message.addToRepeatedWrapperField(message, 1, Video.deserialize(reader), Video));
-                    break;
-                case 2:
-                    message.next_page_number = reader.readInt32();
                     break;
                 default: reader.skipField();
             }
@@ -1056,6 +1080,1418 @@ export class Empty extends pb_1.Message {
         return Empty.deserialize(bytes);
     }
 }
+export class Channel extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        tenant_id?: string;
+        name?: string;
+        description?: string;
+        created_by?: string;
+        created_at?: dependency_1.Timestamp;
+        updated_at?: dependency_1.Timestamp;
+        user_role?: string;
+        member_count?: number;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("tenant_id" in data && data.tenant_id != undefined) {
+                this.tenant_id = data.tenant_id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+            if ("created_by" in data && data.created_by != undefined) {
+                this.created_by = data.created_by;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+            if ("updated_at" in data && data.updated_at != undefined) {
+                this.updated_at = data.updated_at;
+            }
+            if ("user_role" in data && data.user_role != undefined) {
+                this.user_role = data.user_role;
+            }
+            if ("member_count" in data && data.member_count != undefined) {
+                this.member_count = data.member_count;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get tenant_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set tenant_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get created_by() {
+        return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
+    }
+    set created_by(value: string) {
+        pb_1.Message.setField(this, 6, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 7) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 7, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 7) != null;
+    }
+    get updated_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 8) as dependency_1.Timestamp;
+    }
+    set updated_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 8, value);
+    }
+    get has_updated_at() {
+        return pb_1.Message.getField(this, 8) != null;
+    }
+    get user_role() {
+        return pb_1.Message.getFieldWithDefault(this, 9, "") as string;
+    }
+    set user_role(value: string) {
+        pb_1.Message.setField(this, 9, value);
+    }
+    get member_count() {
+        return pb_1.Message.getFieldWithDefault(this, 10, 0) as number;
+    }
+    set member_count(value: number) {
+        pb_1.Message.setField(this, 10, value);
+    }
+    static fromObject(data: {
+        id?: string;
+        tenant_id?: string;
+        name?: string;
+        description?: string;
+        created_by?: string;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        user_role?: string;
+        member_count?: number;
+    }): Channel {
+        const message = new Channel({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.tenant_id != null) {
+            message.tenant_id = data.tenant_id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        if (data.created_by != null) {
+            message.created_by = data.created_by;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        if (data.updated_at != null) {
+            message.updated_at = dependency_1.Timestamp.fromObject(data.updated_at);
+        }
+        if (data.user_role != null) {
+            message.user_role = data.user_role;
+        }
+        if (data.member_count != null) {
+            message.member_count = data.member_count;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            tenant_id?: string;
+            name?: string;
+            description?: string;
+            created_by?: string;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+            user_role?: string;
+            member_count?: number;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.tenant_id != null) {
+            data.tenant_id = this.tenant_id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        if (this.created_by != null) {
+            data.created_by = this.created_by;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        if (this.updated_at != null) {
+            data.updated_at = this.updated_at.toObject();
+        }
+        if (this.user_role != null) {
+            data.user_role = this.user_role;
+        }
+        if (this.member_count != null) {
+            data.member_count = this.member_count;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.tenant_id.length)
+            writer.writeString(2, this.tenant_id);
+        if (this.name.length)
+            writer.writeString(3, this.name);
+        if (this.description.length)
+            writer.writeString(4, this.description);
+        if (this.created_by.length)
+            writer.writeString(6, this.created_by);
+        if (this.has_created_at)
+            writer.writeMessage(7, this.created_at, () => this.created_at.serialize(writer));
+        if (this.has_updated_at)
+            writer.writeMessage(8, this.updated_at, () => this.updated_at.serialize(writer));
+        if (this.user_role.length)
+            writer.writeString(9, this.user_role);
+        if (this.member_count != 0)
+            writer.writeInt32(10, this.member_count);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Channel {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Channel();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.tenant_id = reader.readString();
+                    break;
+                case 3:
+                    message.name = reader.readString();
+                    break;
+                case 4:
+                    message.description = reader.readString();
+                    break;
+                case 6:
+                    message.created_by = reader.readString();
+                    break;
+                case 7:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 8:
+                    reader.readMessage(message.updated_at, () => message.updated_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                case 9:
+                    message.user_role = reader.readString();
+                    break;
+                case 10:
+                    message.member_count = reader.readInt32();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): Channel {
+        return Channel.deserialize(bytes);
+    }
+}
+export class ChannelMember extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user?: dependency_2.User;
+        role?: string;
+        added_by?: string;
+        created_at?: dependency_1.Timestamp;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user" in data && data.user != undefined) {
+                this.user = data.user;
+            }
+            if ("role" in data && data.role != undefined) {
+                this.role = data.role;
+            }
+            if ("added_by" in data && data.added_by != undefined) {
+                this.added_by = data.added_by;
+            }
+            if ("created_at" in data && data.created_at != undefined) {
+                this.created_at = data.created_at;
+            }
+        }
+    }
+    get user() {
+        return pb_1.Message.getWrapperField(this, dependency_2.User, 1) as dependency_2.User;
+    }
+    set user(value: dependency_2.User) {
+        pb_1.Message.setWrapperField(this, 1, value);
+    }
+    get has_user() {
+        return pb_1.Message.getField(this, 1) != null;
+    }
+    get role() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set role(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get added_by() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set added_by(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get created_at() {
+        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 4) as dependency_1.Timestamp;
+    }
+    set created_at(value: dependency_1.Timestamp) {
+        pb_1.Message.setWrapperField(this, 4, value);
+    }
+    get has_created_at() {
+        return pb_1.Message.getField(this, 4) != null;
+    }
+    static fromObject(data: {
+        user?: ReturnType<typeof dependency_2.User.prototype.toObject>;
+        role?: string;
+        added_by?: string;
+        created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+    }): ChannelMember {
+        const message = new ChannelMember({});
+        if (data.user != null) {
+            message.user = dependency_2.User.fromObject(data.user);
+        }
+        if (data.role != null) {
+            message.role = data.role;
+        }
+        if (data.added_by != null) {
+            message.added_by = data.added_by;
+        }
+        if (data.created_at != null) {
+            message.created_at = dependency_1.Timestamp.fromObject(data.created_at);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user?: ReturnType<typeof dependency_2.User.prototype.toObject>;
+            role?: string;
+            added_by?: string;
+            created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
+        } = {};
+        if (this.user != null) {
+            data.user = this.user.toObject();
+        }
+        if (this.role != null) {
+            data.role = this.role;
+        }
+        if (this.added_by != null) {
+            data.added_by = this.added_by;
+        }
+        if (this.created_at != null) {
+            data.created_at = this.created_at.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.has_user)
+            writer.writeMessage(1, this.user, () => this.user.serialize(writer));
+        if (this.role.length)
+            writer.writeString(2, this.role);
+        if (this.added_by.length)
+            writer.writeString(3, this.added_by);
+        if (this.has_created_at)
+            writer.writeMessage(4, this.created_at, () => this.created_at.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): ChannelMember {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new ChannelMember();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.user, () => message.user = dependency_2.User.deserialize(reader));
+                    break;
+                case 2:
+                    message.role = reader.readString();
+                    break;
+                case 3:
+                    message.added_by = reader.readString();
+                    break;
+                case 4:
+                    reader.readMessage(message.created_at, () => message.created_at = dependency_1.Timestamp.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): ChannelMember {
+        return ChannelMember.deserialize(bytes);
+    }
+}
+export class CreateChannelRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        name?: string;
+        description?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+        }
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        name?: string;
+        description?: string;
+    }): CreateChannelRequest {
+        const message = new CreateChannelRequest({});
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            name?: string;
+            description?: string;
+        } = {};
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.name.length)
+            writer.writeString(2, this.name);
+        if (this.description.length)
+            writer.writeString(3, this.description);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateChannelRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateChannelRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 2:
+                    message.name = reader.readString();
+                    break;
+                case 3:
+                    message.description = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CreateChannelRequest {
+        return CreateChannelRequest.deserialize(bytes);
+    }
+}
+export class CreateChannelResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        channel?: Channel;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("channel" in data && data.channel != undefined) {
+                this.channel = data.channel;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get channel() {
+        return pb_1.Message.getWrapperField(this, Channel, 2) as Channel;
+    }
+    set channel(value: Channel) {
+        pb_1.Message.setWrapperField(this, 2, value);
+    }
+    get has_channel() {
+        return pb_1.Message.getField(this, 2) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        channel?: ReturnType<typeof Channel.prototype.toObject>;
+    }): CreateChannelResponse {
+        const message = new CreateChannelResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.channel != null) {
+            message.channel = Channel.fromObject(data.channel);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            channel?: ReturnType<typeof Channel.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.channel != null) {
+            data.channel = this.channel.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.has_channel)
+            writer.writeMessage(2, this.channel, () => this.channel.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateChannelResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateChannelResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.channel, () => message.channel = Channel.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CreateChannelResponse {
+        return CreateChannelResponse.deserialize(bytes);
+    }
+}
+export class UpdateChannelRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        channel_id?: string;
+        name?: string;
+        description?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("description" in data && data.description != undefined) {
+                this.description = data.description;
+            }
+        }
+    }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get description() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set description(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    static fromObject(data: {
+        channel_id?: string;
+        name?: string;
+        description?: string;
+    }): UpdateChannelRequest {
+        const message = new UpdateChannelRequest({});
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.description != null) {
+            message.description = data.description;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            channel_id?: string;
+            name?: string;
+            description?: string;
+        } = {};
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.description != null) {
+            data.description = this.description;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.channel_id.length)
+            writer.writeString(2, this.channel_id);
+        if (this.name.length)
+            writer.writeString(3, this.name);
+        if (this.description.length)
+            writer.writeString(4, this.description);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateChannelRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateChannelRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 2:
+                    message.channel_id = reader.readString();
+                    break;
+                case 3:
+                    message.name = reader.readString();
+                    break;
+                case 4:
+                    message.description = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateChannelRequest {
+        return UpdateChannelRequest.deserialize(bytes);
+    }
+}
+export class UpdateChannelResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        channel?: Channel;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("channel" in data && data.channel != undefined) {
+                this.channel = data.channel;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get channel() {
+        return pb_1.Message.getWrapperField(this, Channel, 2) as Channel;
+    }
+    set channel(value: Channel) {
+        pb_1.Message.setWrapperField(this, 2, value);
+    }
+    get has_channel() {
+        return pb_1.Message.getField(this, 2) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        channel?: ReturnType<typeof Channel.prototype.toObject>;
+    }): UpdateChannelResponse {
+        const message = new UpdateChannelResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.channel != null) {
+            message.channel = Channel.fromObject(data.channel);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            channel?: ReturnType<typeof Channel.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.channel != null) {
+            data.channel = this.channel.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.has_channel)
+            writer.writeMessage(2, this.channel, () => this.channel.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateChannelResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateChannelResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.channel, () => message.channel = Channel.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateChannelResponse {
+        return UpdateChannelResponse.deserialize(bytes);
+    }
+}
+export class GetChannelsRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {}) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") { }
+    }
+    static fromObject(data: {}): GetChannelsRequest {
+        const message = new GetChannelsRequest({});
+        return message;
+    }
+    toObject() {
+        const data: {} = {};
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetChannelsRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetChannelsRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetChannelsRequest {
+        return GetChannelsRequest.deserialize(bytes);
+    }
+}
+export class GetChannelsResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        channels?: Channel[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [2], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("channels" in data && data.channels != undefined) {
+                this.channels = data.channels;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get channels() {
+        return pb_1.Message.getRepeatedWrapperField(this, Channel, 2) as Channel[];
+    }
+    set channels(value: Channel[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 2, value);
+    }
+    static fromObject(data: {
+        message?: string;
+        channels?: ReturnType<typeof Channel.prototype.toObject>[];
+    }): GetChannelsResponse {
+        const message = new GetChannelsResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.channels != null) {
+            message.channels = data.channels.map(item => Channel.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            channels?: ReturnType<typeof Channel.prototype.toObject>[];
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.channels != null) {
+            data.channels = this.channels.map((item: Channel) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.channels.length)
+            writer.writeRepeatedMessage(2, this.channels, (item: Channel) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetChannelsResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetChannelsResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.channels, () => pb_1.Message.addToRepeatedWrapperField(message, 2, Channel.deserialize(reader), Channel));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetChannelsResponse {
+        return GetChannelsResponse.deserialize(bytes);
+    }
+}
+export class GetChannelMembersRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        channel_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
+            }
+        }
+    }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        channel_id?: string;
+    }): GetChannelMembersRequest {
+        const message = new GetChannelMembersRequest({});
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            channel_id?: string;
+        } = {};
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.channel_id.length)
+            writer.writeString(2, this.channel_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetChannelMembersRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetChannelMembersRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 2:
+                    message.channel_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetChannelMembersRequest {
+        return GetChannelMembersRequest.deserialize(bytes);
+    }
+}
+export class GetChannelMembersResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        channel_members?: ChannelMember[];
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [2], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("channel_members" in data && data.channel_members != undefined) {
+                this.channel_members = data.channel_members;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get channel_members() {
+        return pb_1.Message.getRepeatedWrapperField(this, ChannelMember, 2) as ChannelMember[];
+    }
+    set channel_members(value: ChannelMember[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 2, value);
+    }
+    static fromObject(data: {
+        message?: string;
+        channel_members?: ReturnType<typeof ChannelMember.prototype.toObject>[];
+    }): GetChannelMembersResponse {
+        const message = new GetChannelMembersResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.channel_members != null) {
+            message.channel_members = data.channel_members.map(item => ChannelMember.fromObject(item));
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            channel_members?: ReturnType<typeof ChannelMember.prototype.toObject>[];
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.channel_members != null) {
+            data.channel_members = this.channel_members.map((item: ChannelMember) => item.toObject());
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.channel_members.length)
+            writer.writeRepeatedMessage(2, this.channel_members, (item: ChannelMember) => item.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetChannelMembersResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetChannelMembersResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.channel_members, () => pb_1.Message.addToRepeatedWrapperField(message, 2, ChannelMember.deserialize(reader), ChannelMember));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetChannelMembersResponse {
+        return GetChannelMembersResponse.deserialize(bytes);
+    }
+}
+export class AddChannelMemberRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        channel_id?: string;
+        user_id?: string;
+        role?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("role" in data && data.role != undefined) {
+                this.role = data.role;
+            }
+        }
+    }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get role() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set role(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    static fromObject(data: {
+        channel_id?: string;
+        user_id?: string;
+        role?: string;
+    }): AddChannelMemberRequest {
+        const message = new AddChannelMemberRequest({});
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.role != null) {
+            message.role = data.role;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            channel_id?: string;
+            user_id?: string;
+            role?: string;
+        } = {};
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.role != null) {
+            data.role = this.role;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.channel_id.length)
+            writer.writeString(2, this.channel_id);
+        if (this.user_id.length)
+            writer.writeString(3, this.user_id);
+        if (this.role.length)
+            writer.writeString(4, this.role);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddChannelMemberRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddChannelMemberRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 2:
+                    message.channel_id = reader.readString();
+                    break;
+                case 3:
+                    message.user_id = reader.readString();
+                    break;
+                case 4:
+                    message.role = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddChannelMemberRequest {
+        return AddChannelMemberRequest.deserialize(bytes);
+    }
+}
+export class AddChannelMemberResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        message?: string;
+    }): AddChannelMemberResponse {
+        const message = new AddChannelMemberResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AddChannelMemberResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AddChannelMemberResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): AddChannelMemberResponse {
+        return AddChannelMemberResponse.deserialize(bytes);
+    }
+}
+export class RemoveChannelMemberRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        channel_id?: string;
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
+            }
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        channel_id?: string;
+        user_id?: string;
+    }): RemoveChannelMemberRequest {
+        const message = new RemoveChannelMemberRequest({});
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            channel_id?: string;
+            user_id?: string;
+        } = {};
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.channel_id.length)
+            writer.writeString(2, this.channel_id);
+        if (this.user_id.length)
+            writer.writeString(3, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveChannelMemberRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveChannelMemberRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 2:
+                    message.channel_id = reader.readString();
+                    break;
+                case 3:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveChannelMemberRequest {
+        return RemoveChannelMemberRequest.deserialize(bytes);
+    }
+}
+export class RemoveChannelMemberResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        message?: string;
+    }): RemoveChannelMemberResponse {
+        const message = new RemoveChannelMemberResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveChannelMemberResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveChannelMemberResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveChannelMemberResponse {
+        return RemoveChannelMemberResponse.deserialize(bytes);
+    }
+}
 export abstract class UnimplementedVideoServiceService {
     static definition = {
         CreateVideo: {
@@ -1154,5 +2590,105 @@ export class VideoServiceClient {
     private static ShareVideo = new grpc_web_1.MethodDescriptor<ShareVideoRequest, ShareLink>("/videoservice.VideoService/ShareVideo", grpc_web_1.MethodType.UNARY, ShareVideoRequest, ShareLink, (message: ShareVideoRequest) => message.serialize(), ShareLink.deserialize);
     ShareVideo(message: ShareVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<ShareVideoRequest, ShareLink>(this._address + "/videoservice.VideoService/ShareVideo", message, metadata || {}, VideoServiceClient.ShareVideo);
+    }
+}
+export abstract class UnimplementedChannelServiceService {
+    static definition = {
+        CreateChannel: {
+            path: "/videoservice.ChannelService/CreateChannel",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CreateChannelRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateChannelRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CreateChannelResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CreateChannelResponse.deserialize(new Uint8Array(bytes))
+        },
+        UpdateChannel: {
+            path: "/videoservice.ChannelService/UpdateChannel",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: UpdateChannelRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => UpdateChannelRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: UpdateChannelResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => UpdateChannelResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetChannels: {
+            path: "/videoservice.ChannelService/GetChannels",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetChannelsRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetChannelsRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetChannelsResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetChannelsResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetMembers: {
+            path: "/videoservice.ChannelService/GetMembers",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetChannelMembersRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetChannelMembersRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetChannelMembersResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetChannelMembersResponse.deserialize(new Uint8Array(bytes))
+        },
+        AddMember: {
+            path: "/videoservice.ChannelService/AddMember",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: AddChannelMemberRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => AddChannelMemberRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: AddChannelMemberResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => AddChannelMemberResponse.deserialize(new Uint8Array(bytes))
+        },
+        RemoveMember: {
+            path: "/videoservice.ChannelService/RemoveMember",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: RemoveChannelMemberRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => RemoveChannelMemberRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: RemoveChannelMemberResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => RemoveChannelMemberResponse.deserialize(new Uint8Array(bytes))
+        }
+    };
+    [method: string]: grpc_1.UntypedHandleCall;
+    abstract CreateChannel(call: grpc_1.ServerUnaryCall<CreateChannelRequest, CreateChannelResponse>, callback: grpc_1.sendUnaryData<CreateChannelResponse>): void;
+    abstract UpdateChannel(call: grpc_1.ServerUnaryCall<UpdateChannelRequest, UpdateChannelResponse>, callback: grpc_1.sendUnaryData<UpdateChannelResponse>): void;
+    abstract GetChannels(call: grpc_1.ServerUnaryCall<GetChannelsRequest, GetChannelsResponse>, callback: grpc_1.sendUnaryData<GetChannelsResponse>): void;
+    abstract GetMembers(call: grpc_1.ServerUnaryCall<GetChannelMembersRequest, GetChannelMembersResponse>, callback: grpc_1.sendUnaryData<GetChannelMembersResponse>): void;
+    abstract AddMember(call: grpc_1.ServerUnaryCall<AddChannelMemberRequest, AddChannelMemberResponse>, callback: grpc_1.sendUnaryData<AddChannelMemberResponse>): void;
+    abstract RemoveMember(call: grpc_1.ServerUnaryCall<RemoveChannelMemberRequest, RemoveChannelMemberResponse>, callback: grpc_1.sendUnaryData<RemoveChannelMemberResponse>): void;
+}
+export class ChannelServiceClient {
+    private _address: string;
+    private _client: grpc_web_1.GrpcWebClientBase;
+    constructor(address: string, credentials?: Object, options?: grpc_web_1.GrpcWebClientBaseOptions) {
+        if (!options)
+            options = {};
+        options.format = options.format || "text";
+        this._address = address;
+        this._client = new grpc_web_1.GrpcWebClientBase(options);
+    }
+    private static CreateChannel = new grpc_web_1.MethodDescriptor<CreateChannelRequest, CreateChannelResponse>("/videoservice.ChannelService/CreateChannel", grpc_web_1.MethodType.UNARY, CreateChannelRequest, CreateChannelResponse, (message: CreateChannelRequest) => message.serialize(), CreateChannelResponse.deserialize);
+    CreateChannel(message: CreateChannelRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CreateChannelRequest, CreateChannelResponse>(this._address + "/videoservice.ChannelService/CreateChannel", message, metadata || {}, ChannelServiceClient.CreateChannel);
+    }
+    private static UpdateChannel = new grpc_web_1.MethodDescriptor<UpdateChannelRequest, UpdateChannelResponse>("/videoservice.ChannelService/UpdateChannel", grpc_web_1.MethodType.UNARY, UpdateChannelRequest, UpdateChannelResponse, (message: UpdateChannelRequest) => message.serialize(), UpdateChannelResponse.deserialize);
+    UpdateChannel(message: UpdateChannelRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<UpdateChannelRequest, UpdateChannelResponse>(this._address + "/videoservice.ChannelService/UpdateChannel", message, metadata || {}, ChannelServiceClient.UpdateChannel);
+    }
+    private static GetChannels = new grpc_web_1.MethodDescriptor<GetChannelsRequest, GetChannelsResponse>("/videoservice.ChannelService/GetChannels", grpc_web_1.MethodType.UNARY, GetChannelsRequest, GetChannelsResponse, (message: GetChannelsRequest) => message.serialize(), GetChannelsResponse.deserialize);
+    GetChannels(message: GetChannelsRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetChannelsRequest, GetChannelsResponse>(this._address + "/videoservice.ChannelService/GetChannels", message, metadata || {}, ChannelServiceClient.GetChannels);
+    }
+    private static GetMembers = new grpc_web_1.MethodDescriptor<GetChannelMembersRequest, GetChannelMembersResponse>("/videoservice.ChannelService/GetMembers", grpc_web_1.MethodType.UNARY, GetChannelMembersRequest, GetChannelMembersResponse, (message: GetChannelMembersRequest) => message.serialize(), GetChannelMembersResponse.deserialize);
+    GetMembers(message: GetChannelMembersRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetChannelMembersRequest, GetChannelMembersResponse>(this._address + "/videoservice.ChannelService/GetMembers", message, metadata || {}, ChannelServiceClient.GetMembers);
+    }
+    private static AddMember = new grpc_web_1.MethodDescriptor<AddChannelMemberRequest, AddChannelMemberResponse>("/videoservice.ChannelService/AddMember", grpc_web_1.MethodType.UNARY, AddChannelMemberRequest, AddChannelMemberResponse, (message: AddChannelMemberRequest) => message.serialize(), AddChannelMemberResponse.deserialize);
+    AddMember(message: AddChannelMemberRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<AddChannelMemberRequest, AddChannelMemberResponse>(this._address + "/videoservice.ChannelService/AddMember", message, metadata || {}, ChannelServiceClient.AddMember);
+    }
+    private static RemoveMember = new grpc_web_1.MethodDescriptor<RemoveChannelMemberRequest, RemoveChannelMemberResponse>("/videoservice.ChannelService/RemoveMember", grpc_web_1.MethodType.UNARY, RemoveChannelMemberRequest, RemoveChannelMemberResponse, (message: RemoveChannelMemberRequest) => message.serialize(), RemoveChannelMemberResponse.deserialize);
+    RemoveMember(message: RemoveChannelMemberRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<RemoveChannelMemberRequest, RemoveChannelMemberResponse>(this._address + "/videoservice.ChannelService/RemoveMember", message, metadata || {}, ChannelServiceClient.RemoveMember);
     }
 }

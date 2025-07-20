@@ -1,0 +1,6 @@
+// .vscode/settings.json
+{
+    "proto3.compileOptions": "--proto_path=proto",
+    "proto3.trace.server": "verbose"
+  }
+  

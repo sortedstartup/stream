@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"io"
@@ -37,14 +38,46 @@ var (
 	BuildTime string
 )
 
+// UserServiceClientWrapper wraps the UserAPI to implement the UserServiceClient interface
+// This avoids circular dependency issues in the monolith
+type UserServiceClientWrapper struct {
+	userAPI *userAPI.UserAPI
+}
+
+func (w *UserServiceClientWrapper) CreateUserIfNotExists(ctx context.Context, req *userProto.CreateUserRequest, opts ...grpc.CallOption) (*userProto.CreateUserResponse, error) {
+	return w.userAPI.CreateUserIfNotExists(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) GetTenants(ctx context.Context, req *userProto.GetTenantsRequest, opts ...grpc.CallOption) (*userProto.GetTenantsResponse, error) {
+	return w.userAPI.GetTenants(ctx, req)
+}
+
+// TenantServiceClientWrapper wraps the TenantAPI to implement the TenantServiceClient interface
+type TenantServiceClientWrapper struct {
+	tenantAPI *userAPI.TenantAPI
+}
+
+func (w *TenantServiceClientWrapper) CreateTenant(ctx context.Context, req *userProto.CreateTenantRequest, opts ...grpc.CallOption) (*userProto.CreateTenantResponse, error) {
+	return w.tenantAPI.CreateTenant(ctx, req)
+}
+
+func (w *TenantServiceClientWrapper) AddUser(ctx context.Context, req *userProto.AddUserRequest, opts ...grpc.CallOption) (*userProto.AddUserResponse, error) {
+	return w.tenantAPI.AddUser(ctx, req)
+}
+
+func (w *TenantServiceClientWrapper) GetUsers(ctx context.Context, req *userProto.GetUsersRequest, opts ...grpc.CallOption) (*userProto.GetUsersResponse, error) {
+	return w.tenantAPI.GetUsers(ctx, req)
+}
+
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI   *videoAPI.VideoAPI
-	CommentAPI *commentAPI.CommentAPI
-	UserAPI    *userAPI.UserAPI
-
+	VideoAPI      *videoAPI.VideoAPI
+	CommentAPI    *commentAPI.CommentAPI
+	UserAPI       *userAPI.UserAPI
+	TenantAPI     *userAPI.TenantAPI
+	ChannelAPI    *videoAPI.ChannelAPI
 	GRPCServer    *grpc.Server
 	GRPCWebServer *http.Server
 
@@ -110,8 +143,18 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
+	log.Info("Creating userservice API")
+	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
+	if err != nil {
+		log.Error("Could not create userservice API", "err", err)
+		return nil, err
+	}
+
 	log.Info("Creating videoservice API")
-	videoAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService)
+	// Create wrapper to avoid circular dependency
+	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
+	tenantServiceClientWrapper := &TenantServiceClientWrapper{tenantAPI: tenantAPI}
+	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err
@@ -124,14 +167,11 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
-	log.Info("Creating userservice API")
-	userAPI, err := userAPI.NewUserAPI(config.UserService)
-	if err != nil {
-		log.Error("Could not create userservice API", "err", err)
-		return nil, err
-	}
-
-	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors.PanicRecoveryInterceptor(), interceptors.FirebaseAuthInterceptor(firebase)))
+	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		interceptors.PanicRecoveryInterceptor(),
+		interceptors.FirebaseAuthInterceptor(firebase),
+		interceptors.TenantInterceptor(),
+	))
 
 	// GRPC Web is a http server 1.0 server that wraps a grpc server
 	// Browsers JS clients can only talk to GRPC web for now
@@ -219,8 +259,10 @@ func NewMonolith() (*Monolith, error) {
 	return &Monolith{
 		Config:        &config,
 		VideoAPI:      videoAPI,
+		ChannelAPI:    channelAPI,
 		CommentAPI:    commentAPI,
 		UserAPI:       userAPI,
+		TenantAPI:     tenantAPI,
 		Firebase:      firebase,
 		GRPCServer:    grpcServer,
 		GRPCWebServer: httpServer,
@@ -230,20 +272,22 @@ func NewMonolith() (*Monolith, error) {
 
 func (m *Monolith) InitServices() error {
 
-	m.log.Info("Initializing Task Service")
-	err := m.VideoAPI.Init()
+	m.log.Info("Initializing User Service")
+	err := m.UserAPI.Init()
+	if err != nil {
+		return err
+	}
+
+	// Video service depends on user service
+
+	m.log.Info("Initializing Video Service")
+	err = m.VideoAPI.Init()
 	if err != nil {
 		return err
 	}
 
 	m.log.Info("Initializing Comment Service")
 	err = m.CommentAPI.Init()
-	if err != nil {
-		return err
-	}
-
-	m.log.Info("Initializing User Service")
-	err = m.UserAPI.Init()
 	if err != nil {
 		return err
 	}
@@ -283,8 +327,10 @@ func (m *Monolith) startServer() error {
 	}
 
 	videoProto.RegisterVideoServiceServer(m.GRPCServer, m.VideoAPI)
+	videoProto.RegisterChannelServiceServer(m.GRPCServer, m.ChannelAPI)
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
+	userProto.RegisterTenantServiceServer(m.GRPCServer, m.TenantAPI)
 
 	reflection.Register(m.GRPCServer)
 
@@ -316,7 +362,7 @@ func enableCORS(next http.Handler) http.Handler {
 		// Set necessary headers for CORS
 		w.Header().Set("Access-Control-Allow-Origin", "*") // Adjust in production
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web, family-id")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web, x-tenant-id")
 
 		// Check for preflight request
 		if r.Method == "OPTIONS" {
