@@ -12,6 +12,7 @@ INSERT INTO videos (
     url,
     uploaded_user_id,
     tenant_id,
+    channel_id,
     is_private,
     created_at,
     updated_at
@@ -22,6 +23,7 @@ INSERT INTO videos (
     @url,
     @uploaded_user_id,
     @tenant_id,
+    @channel_id,
     @is_private,
     @created_at,
     @updated_at
@@ -41,6 +43,20 @@ ORDER BY created_at DESC;
 SELECT * FROM videos 
 WHERE tenant_id = @tenant_id AND channel_id = @channel_id
 ORDER BY created_at DESC;
+
+-- name: GetAllAccessibleVideosByTenantID :many
+SELECT DISTINCT v.* FROM videos v
+LEFT JOIN channels c ON v.channel_id = c.id
+LEFT JOIN channel_members cm ON c.id = cm.channel_id
+WHERE v.tenant_id = @tenant_id 
+  AND (
+    -- User's own videos (private)
+    (v.uploaded_user_id = @user_id AND (v.channel_id IS NULL OR v.channel_id = ''))
+    OR 
+    -- Videos in channels user is member of
+    (v.channel_id IS NOT NULL AND v.channel_id != '' AND cm.user_id = @user_id)
+  )
+ORDER BY v.created_at DESC;
 
 -- Channel queries
 -- name: CreateChannel :one

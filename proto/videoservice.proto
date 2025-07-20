@@ -39,6 +39,7 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+  string channel_id = 10; // Optional: channel this video belongs to
 }
 
 enum VideoStatus {
@@ -66,11 +67,9 @@ message GetVideoRequest {
 }
 
 message ListVideosRequest {
-  // user id is implicit from auth context
-  int32 pageSize = 2;
-  int32 pageNumber = 3;
-  string channel_id = 4; // Optional: filter by channel within tenant
-  // tenant_id comes from x-tenant-id header, not request body
+  int32 page_number = 1;
+  int32 page_size = 2;
+  string channel_id = 3; // Optional: filter by channel
 }
 
 message ListVideosResponse {

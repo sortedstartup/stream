@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
+import { useNavigate } from 'react-router';
 import { $currentTenant, $currentUserRole } from '../stores/tenants';
 import { $channels, $isLoadingChannels, $channelError, fetchChannels } from '../stores/channels';
+import { $tenantVideos, fetchTenantVideos } from '../stores/videos';
 import ChannelCard from './ChannelCard';
 import CreateChannelModal from './modals/CreateChannelModal';
 import ManageMembersModal from './modals/ManageMembersModal';
 import ChannelSettingsModal from './modals/ChannelSettingsModal';
 
 const ChannelDashboard = () => {
+  const navigate = useNavigate();
   const currentTenant = useStore($currentTenant);
   const currentUserRole = useStore($currentUserRole);
   const channels = useStore($channels);
+  const tenantVideos = useStore($tenantVideos);
   const loading = useStore($isLoadingChannels);
   const error = useStore($channelError);
   
@@ -20,10 +24,16 @@ const ChannelDashboard = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState(null);
 
-  // Load channels on component mount
+  // Navigation handlers
+  const handleVideoClick = (videoId) => {
+    navigate(`/video/${videoId}`);
+  };
+
+  // Load channels and tenant videos on component mount
   useEffect(() => {
     if (currentTenant?.tenant?.id) {
       fetchChannels();
+      fetchTenantVideos();
     }
   }, [currentTenant?.tenant?.id]);
 
@@ -154,6 +164,77 @@ const ChannelDashboard = () => {
           ))}
         </div>
       )}
+
+      {/* My Videos Section (User's private videos not in any channel) */}
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
+              <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              My Videos
+            </h2>
+            <p className="text-base-content/70 mt-1">
+              Your private videos not organized in channels • {tenantVideos.length} videos
+            </p>
+          </div>
+        </div>
+
+        {tenantVideos.length === 0 ? (
+          <div className="text-center py-8 bg-base-200 rounded-lg">
+            <div className="flex justify-center mb-4">
+              <svg className="w-12 h-12 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No private videos</h3>
+            <p className="text-base-content/70">
+              Upload or record videos to see them here. Your videos are private until you add them to a channel.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {tenantVideos.map((video) => (
+              <div key={video.id} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                <figure className="aspect-video bg-base-300">
+                  {video.thumbnail_url ? (
+                    <img 
+                      src={video.thumbnail_url} 
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full text-base-content/40">
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                </figure>
+                <div className="card-body p-4">
+                  <h3 className="card-title text-sm font-semibold truncate">{video.title}</h3>
+                  <p className="text-xs text-base-content/70 line-clamp-2">{video.description}</p>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs text-base-content/60">
+                      {new Date(video.created_at?.seconds * 1000).toLocaleDateString()}
+                    </span>
+                    <button 
+                      onClick={() => handleVideoClick(video.id)}
+                      className="btn btn-primary btn-xs"
+                    >
+                      Watch
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Modals */}
       {showCreateModal && (

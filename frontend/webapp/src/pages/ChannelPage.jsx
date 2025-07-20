@@ -9,9 +9,8 @@ import ManageMembersModal from '../components/modals/ManageMembersModal';
 import ChannelSettingsModal from '../components/modals/ChannelSettingsModal';
 
 const ChannelPage = () => {
-  const { channelId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const channel = useStore($currentChannel);
   const channels = useStore($channels);
   const videos = useStore($videos);
   const currentTenant = useStore($currentTenant);
@@ -19,16 +18,17 @@ const ChannelPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userRole, setUserRole] = useState(null);
+  const [currentChannel, setCurrentChannel] = useState(null);
   
   // Modal states
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   useEffect(() => {
-    if (channelId) {
+    if (id) {
       loadChannelData();
     }
-  }, [channelId, channels]);
+  }, [id, channels]);
 
   const loadChannelData = async () => {
     try {
@@ -41,12 +41,13 @@ const ChannelPage = () => {
       }
       
       // Get channel from the loaded channels
-      const channelData = getChannelById(channelId);
+      const channelData = getChannelById(id);
       
       if (!channelData) {
         throw new Error('Channel not found');
       }
 
+      setCurrentChannel(channelData);
       // Set user role from channel data (assuming it comes with role info)
       setUserRole(channelData?.user_role || 'viewer');
       
@@ -60,17 +61,22 @@ const ChannelPage = () => {
   };
 
   const handleChannelUpdated = (updatedChannel) => {
-    // The store will be automatically updated, just close modal
+    setCurrentChannel(updatedChannel);
     setShowSettingsModal(false);
   };
 
   const handleUploadVideo = () => {
     // Navigate to upload page with channel context
-    navigate('/upload', { state: { channelId } });
+    navigate('/upload', { state: { channelId: id } });
+  };
+
+  const handleRecordVideo = () => {
+    // Navigate to record page with channel context
+    navigate('/record', { state: { channelId: id } });
   };
 
   // Filter videos that belong to this channel (if video has channel_id)
-  const channelVideos = videos.filter(video => video.channel_id === channelId);
+  const channelVideos = videos.filter(video => video.channel_id === id);
 
   const canManage = userRole === 'owner';
   const canUpload = userRole === 'owner' || userRole === 'uploader';
@@ -108,7 +114,7 @@ const ChannelPage = () => {
     );
   }
 
-  if (!channel) {
+  if (!currentChannel) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-6">
@@ -154,7 +160,7 @@ const ChannelPage = () => {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-base-content">{channel.name}</span>
+        <span className="text-base-content">{currentChannel.name}</span>
       </div>
 
       {/* Header */}
@@ -174,10 +180,10 @@ const ChannelPage = () => {
               <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
-              {channel.name}
+              {currentChannel.name}
             </h1>
             <p className="text-base-content/70 mt-1">
-              {channel.description || 'No description provided'}
+              {currentChannel.description || 'No description provided'}
             </p>
             <div className="flex items-center gap-4 mt-2 text-sm text-base-content/60">
               <span className="flex items-center gap-1">
@@ -223,16 +229,29 @@ const ChannelPage = () => {
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           {canUpload && (
-            <button 
-              onClick={handleUploadVideo}
-              className="btn btn-primary gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Upload Video
-            </button>
+            <>
+              <button 
+                onClick={handleUploadVideo}
+                className="btn btn-primary gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Video
+              </button>
+              
+              <button 
+                onClick={handleRecordVideo}
+                className="btn btn-secondary gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Record Video
+              </button>
+            </>
           )}
           
           {canManage && (
@@ -347,7 +366,7 @@ const ChannelPage = () => {
         <ManageMembersModal
           isOpen={showMembersModal}
           onClose={() => setShowMembersModal(false)}
-          channel={channel}
+          channel={currentChannel}
         />
       )}
 
@@ -355,7 +374,7 @@ const ChannelPage = () => {
         <ChannelSettingsModal
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
-          channel={channel}
+          channel={currentChannel}
           onChannelUpdated={handleChannelUpdated}
         />
       )}

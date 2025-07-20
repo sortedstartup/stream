@@ -7,8 +7,8 @@ const ChannelCard = ({ channel, userRole, onManageMembers, onSettings }) => {
   const navigate = useNavigate();
   const currentTenant = useStore($currentTenant);
 
-  const handleViewChannel = () => {
-    navigate(`/channels/${channel.id}`);
+  const handleChannelClick = () => {
+    navigate(`/channel/${channel.id}`);
   };
 
   const canManageChannel = userRole === 'owner';
@@ -99,7 +99,7 @@ const ChannelCard = ({ channel, userRole, onManageMembers, onSettings }) => {
           
           {/* View Channel Button */}
           <button 
-            onClick={handleViewChannel}
+            onClick={handleChannelClick}
             className="btn btn-primary btn-sm"
           >
             View Channel
