@@ -643,23 +643,17 @@ func (q *Queries) RemoveVideoFromChannel(ctx context.Context, arg RemoveVideoFro
 const softDeleteVideo = `-- name: SoftDeleteVideo :exec
 UPDATE videoservice_videos 
 SET is_deleted = TRUE, updated_at = ?1
-WHERE id = ?2 AND tenant_id = ?3 AND uploaded_user_id = ?4 AND is_deleted = FALSE
+WHERE id = ?2 AND tenant_id = ?3 AND is_deleted = FALSE
 `
 
 type SoftDeleteVideoParams struct {
 	UpdatedAt time.Time
 	VideoID   string
 	TenantID  sql.NullString
-	UserID    string
 }
 
 func (q *Queries) SoftDeleteVideo(ctx context.Context, arg SoftDeleteVideoParams) error {
-	_, err := q.db.ExecContext(ctx, softDeleteVideo,
-		arg.UpdatedAt,
-		arg.VideoID,
-		arg.TenantID,
-		arg.UserID,
-	)
+	_, err := q.db.ExecContext(ctx, softDeleteVideo, arg.UpdatedAt, arg.VideoID, arg.TenantID)
 	return err
 }
 

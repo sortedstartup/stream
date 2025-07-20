@@ -175,5 +175,5 @@ WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id AND
 -- name: SoftDeleteVideo :exec
 UPDATE videoservice_videos 
 SET is_deleted = TRUE, updated_at = @updated_at
-WHERE id = @video_id AND tenant_id = @tenant_id AND uploaded_user_id = @user_id AND is_deleted = FALSE;
+WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
 
