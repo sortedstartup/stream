@@ -2492,6 +2492,349 @@ export class RemoveChannelMemberResponse extends pb_1.Message {
         return RemoveChannelMemberResponse.deserialize(bytes);
     }
 }
+export class MoveVideoToChannelRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+        channel_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+            if ("channel_id" in data && data.channel_id != undefined) {
+                this.channel_id = data.channel_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get channel_id() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set channel_id(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+        channel_id?: string;
+    }): MoveVideoToChannelRequest {
+        const message = new MoveVideoToChannelRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        if (data.channel_id != null) {
+            message.channel_id = data.channel_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+            channel_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        if (this.channel_id != null) {
+            data.channel_id = this.channel_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (this.channel_id.length)
+            writer.writeString(2, this.channel_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): MoveVideoToChannelRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new MoveVideoToChannelRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                case 2:
+                    message.channel_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): MoveVideoToChannelRequest {
+        return MoveVideoToChannelRequest.deserialize(bytes);
+    }
+}
+export class MoveVideoToChannelResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        video?: Video;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("video" in data && data.video != undefined) {
+                this.video = data.video;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get video() {
+        return pb_1.Message.getWrapperField(this, Video, 2) as Video;
+    }
+    set video(value: Video) {
+        pb_1.Message.setWrapperField(this, 2, value);
+    }
+    get has_video() {
+        return pb_1.Message.getField(this, 2) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        video?: ReturnType<typeof Video.prototype.toObject>;
+    }): MoveVideoToChannelResponse {
+        const message = new MoveVideoToChannelResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.video != null) {
+            message.video = Video.fromObject(data.video);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            video?: ReturnType<typeof Video.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.video != null) {
+            data.video = this.video.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.has_video)
+            writer.writeMessage(2, this.video, () => this.video.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): MoveVideoToChannelResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new MoveVideoToChannelResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.video, () => message.video = Video.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): MoveVideoToChannelResponse {
+        return MoveVideoToChannelResponse.deserialize(bytes);
+    }
+}
+export class RemoveVideoFromChannelRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        video_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("video_id" in data && data.video_id != undefined) {
+                this.video_id = data.video_id;
+            }
+        }
+    }
+    get video_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set video_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        video_id?: string;
+    }): RemoveVideoFromChannelRequest {
+        const message = new RemoveVideoFromChannelRequest({});
+        if (data.video_id != null) {
+            message.video_id = data.video_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            video_id?: string;
+        } = {};
+        if (this.video_id != null) {
+            data.video_id = this.video_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.video_id.length)
+            writer.writeString(1, this.video_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveVideoFromChannelRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveVideoFromChannelRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.video_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveVideoFromChannelRequest {
+        return RemoveVideoFromChannelRequest.deserialize(bytes);
+    }
+}
+export class RemoveVideoFromChannelResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        message?: string;
+        video?: Video;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("message" in data && data.message != undefined) {
+                this.message = data.message;
+            }
+            if ("video" in data && data.video != undefined) {
+                this.video = data.video;
+            }
+        }
+    }
+    get message() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set message(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get video() {
+        return pb_1.Message.getWrapperField(this, Video, 2) as Video;
+    }
+    set video(value: Video) {
+        pb_1.Message.setWrapperField(this, 2, value);
+    }
+    get has_video() {
+        return pb_1.Message.getField(this, 2) != null;
+    }
+    static fromObject(data: {
+        message?: string;
+        video?: ReturnType<typeof Video.prototype.toObject>;
+    }): RemoveVideoFromChannelResponse {
+        const message = new RemoveVideoFromChannelResponse({});
+        if (data.message != null) {
+            message.message = data.message;
+        }
+        if (data.video != null) {
+            message.video = Video.fromObject(data.video);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            message?: string;
+            video?: ReturnType<typeof Video.prototype.toObject>;
+        } = {};
+        if (this.message != null) {
+            data.message = this.message;
+        }
+        if (this.video != null) {
+            data.video = this.video.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.message.length)
+            writer.writeString(1, this.message);
+        if (this.has_video)
+            writer.writeMessage(2, this.video, () => this.video.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): RemoveVideoFromChannelResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new RemoveVideoFromChannelResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.message = reader.readString();
+                    break;
+                case 2:
+                    reader.readMessage(message.video, () => message.video = Video.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): RemoveVideoFromChannelResponse {
+        return RemoveVideoFromChannelResponse.deserialize(bytes);
+    }
+}
 export abstract class UnimplementedVideoServiceService {
     static definition = {
         CreateVideo: {
@@ -2539,6 +2882,24 @@ export abstract class UnimplementedVideoServiceService {
             responseSerialize: (message: Empty) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => Empty.deserialize(new Uint8Array(bytes))
         },
+        MoveVideoToChannel: {
+            path: "/videoservice.VideoService/MoveVideoToChannel",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: MoveVideoToChannelRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => MoveVideoToChannelRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: MoveVideoToChannelResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => MoveVideoToChannelResponse.deserialize(new Uint8Array(bytes))
+        },
+        RemoveVideoFromChannel: {
+            path: "/videoservice.VideoService/RemoveVideoFromChannel",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: RemoveVideoFromChannelRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => RemoveVideoFromChannelRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: RemoveVideoFromChannelResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => RemoveVideoFromChannelResponse.deserialize(new Uint8Array(bytes))
+        },
         ShareVideo: {
             path: "/videoservice.VideoService/ShareVideo",
             requestStream: false,
@@ -2555,6 +2916,8 @@ export abstract class UnimplementedVideoServiceService {
     abstract ListVideos(call: grpc_1.ServerUnaryCall<ListVideosRequest, ListVideosResponse>, callback: grpc_1.sendUnaryData<ListVideosResponse>): void;
     abstract UpdateVideo(call: grpc_1.ServerUnaryCall<UpdateVideoRequest, Video>, callback: grpc_1.sendUnaryData<Video>): void;
     abstract DeleteVideo(call: grpc_1.ServerUnaryCall<DeleteVideoRequest, Empty>, callback: grpc_1.sendUnaryData<Empty>): void;
+    abstract MoveVideoToChannel(call: grpc_1.ServerUnaryCall<MoveVideoToChannelRequest, MoveVideoToChannelResponse>, callback: grpc_1.sendUnaryData<MoveVideoToChannelResponse>): void;
+    abstract RemoveVideoFromChannel(call: grpc_1.ServerUnaryCall<RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse>, callback: grpc_1.sendUnaryData<RemoveVideoFromChannelResponse>): void;
     abstract ShareVideo(call: grpc_1.ServerUnaryCall<ShareVideoRequest, ShareLink>, callback: grpc_1.sendUnaryData<ShareLink>): void;
 }
 export class VideoServiceClient {
@@ -2586,6 +2949,14 @@ export class VideoServiceClient {
     private static DeleteVideo = new grpc_web_1.MethodDescriptor<DeleteVideoRequest, Empty>("/videoservice.VideoService/DeleteVideo", grpc_web_1.MethodType.UNARY, DeleteVideoRequest, Empty, (message: DeleteVideoRequest) => message.serialize(), Empty.deserialize);
     DeleteVideo(message: DeleteVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<DeleteVideoRequest, Empty>(this._address + "/videoservice.VideoService/DeleteVideo", message, metadata || {}, VideoServiceClient.DeleteVideo);
+    }
+    private static MoveVideoToChannel = new grpc_web_1.MethodDescriptor<MoveVideoToChannelRequest, MoveVideoToChannelResponse>("/videoservice.VideoService/MoveVideoToChannel", grpc_web_1.MethodType.UNARY, MoveVideoToChannelRequest, MoveVideoToChannelResponse, (message: MoveVideoToChannelRequest) => message.serialize(), MoveVideoToChannelResponse.deserialize);
+    MoveVideoToChannel(message: MoveVideoToChannelRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<MoveVideoToChannelRequest, MoveVideoToChannelResponse>(this._address + "/videoservice.VideoService/MoveVideoToChannel", message, metadata || {}, VideoServiceClient.MoveVideoToChannel);
+    }
+    private static RemoveVideoFromChannel = new grpc_web_1.MethodDescriptor<RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse>("/videoservice.VideoService/RemoveVideoFromChannel", grpc_web_1.MethodType.UNARY, RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse, (message: RemoveVideoFromChannelRequest) => message.serialize(), RemoveVideoFromChannelResponse.deserialize);
+    RemoveVideoFromChannel(message: RemoveVideoFromChannelRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse>(this._address + "/videoservice.VideoService/RemoveVideoFromChannel", message, metadata || {}, VideoServiceClient.RemoveVideoFromChannel);
     }
     private static ShareVideo = new grpc_web_1.MethodDescriptor<ShareVideoRequest, ShareLink>("/videoservice.VideoService/ShareVideo", grpc_web_1.MethodType.UNARY, ShareVideoRequest, ShareLink, (message: ShareVideoRequest) => message.serialize(), ShareLink.deserialize);
     ShareVideo(message: ShareVideoRequest, metadata: grpc_web_1.Metadata | null) {

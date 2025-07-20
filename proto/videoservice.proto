@@ -16,6 +16,10 @@ service VideoService {
   rpc UpdateVideo(UpdateVideoRequest) returns (Video);
   rpc DeleteVideo(DeleteVideoRequest) returns (Empty);
 
+  // Video-Channel Management
+  rpc MoveVideoToChannel(MoveVideoToChannelRequest) returns (MoveVideoToChannelResponse);
+  rpc RemoveVideoFromChannel(RemoveVideoFromChannelRequest) returns (RemoveVideoFromChannelResponse);
+
   // Sharing
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
 }
@@ -172,4 +176,24 @@ message RemoveChannelMemberRequest {
 
 message RemoveChannelMemberResponse {
   string message = 1;
+}
+
+// Video-Channel Management Messages
+message MoveVideoToChannelRequest {
+  string video_id = 1;
+  string channel_id = 2;
+}
+
+message MoveVideoToChannelResponse {
+  string message = 1;
+  Video video = 2;
+}
+
+message RemoveVideoFromChannelRequest {
+  string video_id = 1;
+}
+
+message RemoveVideoFromChannelResponse {
+  string message = 1;
+  Video video = 2;
 }

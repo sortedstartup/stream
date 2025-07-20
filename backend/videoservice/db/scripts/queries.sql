@@ -152,3 +152,20 @@ WHERE cm.channel_id = @channel_id AND cm.user_id = @user_id AND c.tenant_id = @t
 DELETE FROM videoservice_channel_members 
 WHERE channel_id = @channel_id AND user_id = @user_id;
 
+-- Video-Channel Management Queries
+-- name: MoveVideoToChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = @channel_id, updated_at = @updated_at
+WHERE id = @video_id AND tenant_id = @tenant_id AND uploaded_user_id = @user_id 
+  AND (channel_id IS NULL OR channel_id = '');
+
+-- name: RemoveVideoFromChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = NULL, updated_at = @updated_at
+WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id;
+
+-- name: MoveVideoFromChannelToChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = @new_channel_id, updated_at = @updated_at
+WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @old_channel_id;
+

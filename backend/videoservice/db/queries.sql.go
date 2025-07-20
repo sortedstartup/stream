@@ -608,6 +608,81 @@ func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVi
 	return items, nil
 }
 
+const moveVideoFromChannelToChannel = `-- name: MoveVideoFromChannelToChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = ?1, updated_at = ?2
+WHERE id = ?3 AND tenant_id = ?4 AND channel_id = ?5
+`
+
+type MoveVideoFromChannelToChannelParams struct {
+	NewChannelID sql.NullString
+	UpdatedAt    time.Time
+	VideoID      string
+	TenantID     sql.NullString
+	OldChannelID sql.NullString
+}
+
+func (q *Queries) MoveVideoFromChannelToChannel(ctx context.Context, arg MoveVideoFromChannelToChannelParams) error {
+	_, err := q.db.ExecContext(ctx, moveVideoFromChannelToChannel,
+		arg.NewChannelID,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.OldChannelID,
+	)
+	return err
+}
+
+const moveVideoToChannel = `-- name: MoveVideoToChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = ?1, updated_at = ?2
+WHERE id = ?3 AND tenant_id = ?4 AND uploaded_user_id = ?5 
+  AND (channel_id IS NULL OR channel_id = '')
+`
+
+type MoveVideoToChannelParams struct {
+	ChannelID sql.NullString
+	UpdatedAt time.Time
+	VideoID   string
+	TenantID  sql.NullString
+	UserID    string
+}
+
+// Video-Channel Management Queries
+func (q *Queries) MoveVideoToChannel(ctx context.Context, arg MoveVideoToChannelParams) error {
+	_, err := q.db.ExecContext(ctx, moveVideoToChannel,
+		arg.ChannelID,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.UserID,
+	)
+	return err
+}
+
+const removeVideoFromChannel = `-- name: RemoveVideoFromChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = NULL, updated_at = ?1
+WHERE id = ?2 AND tenant_id = ?3 AND channel_id = ?4
+`
+
+type RemoveVideoFromChannelParams struct {
+	UpdatedAt time.Time
+	VideoID   string
+	TenantID  sql.NullString
+	ChannelID sql.NullString
+}
+
+func (q *Queries) RemoveVideoFromChannel(ctx context.Context, arg RemoveVideoFromChannelParams) error {
+	_, err := q.db.ExecContext(ctx, removeVideoFromChannel,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.ChannelID,
+	)
+	return err
+}
+
 const updateChannel = `-- name: UpdateChannel :one
 UPDATE videoservice_channels 
 SET 
