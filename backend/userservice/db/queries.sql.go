@@ -144,7 +144,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 const getTenantUsers = `-- name: GetTenantUsers :many
 SELECT 
     tu.role, tu.created_at,
-    u.username, u.email,
+    u.id as user_id, u.username, u.email,
     t.created_at as tenant_created_at,
     t.name as tenant_name
 FROM userservice_tenant_users tu
@@ -157,6 +157,7 @@ ORDER BY tu.created_at ASC
 type GetTenantUsersRow struct {
 	Role            string
 	CreatedAt       time.Time
+	UserID          string
 	Username        string
 	Email           string
 	TenantCreatedAt time.Time
@@ -175,6 +176,7 @@ func (q *Queries) GetTenantUsers(ctx context.Context, tenantID string) ([]GetTen
 		if err := rows.Scan(
 			&i.Role,
 			&i.CreatedAt,
+			&i.UserID,
 			&i.Username,
 			&i.Email,
 			&i.TenantCreatedAt,

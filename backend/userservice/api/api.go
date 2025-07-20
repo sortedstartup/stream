@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/userservice/config"
 	"sortedstartup.com/stream/userservice/db"
@@ -204,7 +205,7 @@ func (s *TenantAPI) createPersonalTenant(ctx context.Context) error {
 		ID:        uuid.New().String(),
 		TenantID:  tenant.ID,
 		UserID:    authContext.User.ID,
-		Role:      "super_admin",
+		Role:      constants.TenantRoleSuperAdmin,
 		CreatedAt: time.Now(),
 	}
 
@@ -258,7 +259,7 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 		ID:        uuid.New().String(),
 		TenantID:  tenant.ID,
 		UserID:    authContext.User.ID,
-		Role:      "super_admin",
+		Role:      constants.TenantRoleSuperAdmin,
 		CreatedAt: time.Now(),
 	}
 
@@ -365,7 +366,7 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 	// Default role to member if not specified
 	role := req.Role
 	if role == "" {
-		role = "member"
+		role = constants.TenantRoleMember
 	}
 
 	// Authorization check - only super_admin can add users to tenant
@@ -383,7 +384,7 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 	}
 
 	// Only super_admin can add users to tenant
-	if userRole != "super_admin" {
+	if userRole != constants.TenantRoleSuperAdmin {
 		s.log.Warn("Non-super-admin user attempted to add user to tenant", "userID", authContext.User.ID, "role", userRole, "tenantID", req.TenantId)
 		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can add users to tenant")
 	}
@@ -441,7 +442,7 @@ func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*
 	}
 
 	// Only super_admin can view tenant users
-	if userRole != "super_admin" {
+	if userRole != constants.TenantRoleSuperAdmin {
 		s.log.Warn("Non-super-admin user attempted to view tenant users", "userID", authContext.User.ID, "role", userRole, "tenantID", req.TenantId)
 		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can view tenant members")
 	}
@@ -455,12 +456,18 @@ func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*
 	var tenantUsersProto []*proto.TenantUser
 
 	for _, user := range tenantUsers {
+		// Skip current user so they don't appear in "Add Member" dropdown
+		if user.UserID == authContext.User.ID {
+			continue
+		}
+
 		tenantUsersProto = append(tenantUsersProto, &proto.TenantUser{
 			Tenant: &proto.Tenant{
 				Name:      user.TenantName,
 				CreatedAt: timestamppb.New(user.TenantCreatedAt),
 			},
 			User: &proto.User{
+				Id:       user.UserID,
 				Username: user.Username,
 				Email:    user.Email,
 			},
