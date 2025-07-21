@@ -8,6 +8,7 @@ import ChannelCard from './ChannelCard';
 import CreateChannelModal from './modals/CreateChannelModal';
 import ManageMembersModal from './modals/ManageMembersModal';
 import ChannelSettingsModal from './modals/ChannelSettingsModal';
+import VideoActionsMenu from './VideoActionsMenu';
 
 const ChannelDashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +24,10 @@ const ChannelDashboard = () => {
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState(null);
+  
+  // Status message state
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [statusType, setStatusType] = useState('info');
 
   // Navigation handlers
   const handleVideoClick = (videoId) => {
@@ -54,6 +59,24 @@ const ChannelDashboard = () => {
   const handleChannelCreated = () => {
     setShowCreateModal(false);
     // fetchChannels is automatically called by the store
+  };
+
+  // Video action handlers
+  const handleVideoActionStart = (message) => {
+    setStatusMessage(message);
+    setStatusType('info');
+  };
+
+  const handleVideoActionComplete = (message) => {
+    setStatusMessage(message);
+    setStatusType('success');
+    setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  const handleVideoActionError = (message) => {
+    setStatusMessage(message);
+    setStatusType('error');
+    setTimeout(() => setStatusMessage(null), 5000);
   };
 
   const handleChannelUpdated = () => {
@@ -90,6 +113,22 @@ const ChannelDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* Status Message */}
+      {statusMessage && (
+        <div className={`alert mb-6 ${
+          statusType === 'success' ? 'alert-success' : 
+          statusType === 'error' ? 'alert-error' : 'alert-info'
+        }`}>
+          <span>{statusMessage}</span>
+          <button 
+            onClick={() => setStatusMessage(null)}
+            className="btn btn-ghost btn-sm"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
@@ -216,7 +255,16 @@ const ChannelDashboard = () => {
                   )}
                 </figure>
                 <div className="card-body p-4">
-                  <h3 className="card-title text-sm font-semibold truncate">{video.title}</h3>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="card-title text-sm font-semibold truncate flex-1">{video.title}</h3>
+                    <VideoActionsMenu
+                      video={video}
+                      userRole="owner" // User owns their tenant-level videos
+                      onActionStart={handleVideoActionStart}
+                      onActionComplete={handleVideoActionComplete}
+                      onActionError={handleVideoActionError}
+                    />
+                  </div>
                   <p className="text-xs text-base-content/70 line-clamp-2">{video.description}</p>
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-xs text-base-content/60">
