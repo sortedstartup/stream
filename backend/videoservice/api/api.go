@@ -32,6 +32,9 @@ type VideoAPI struct {
 	// gRPC clients for other services
 	userServiceClient userProto.UserServiceClient
 
+	// Policy validator for common video operations
+	policyValidator *VideoPolicyValidator
+
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
 	channelAPI *ChannelAPI
@@ -82,6 +85,9 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		tenantServiceClient: tenantServiceClient,
 	}
 
+	// Create policy validator
+	policyValidator := NewVideoPolicyValidator(dbQueries, userServiceClient, childLogger)
+
 	videoAPI := &VideoAPI{
 		HTTPServerMux:     ServerMux,
 		config:            config,
@@ -89,6 +95,7 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		log:               childLogger,
 		dbQueries:         dbQueries,
 		userServiceClient: userServiceClient,
+		policyValidator:   policyValidator,
 		channelAPI:        channelAPI,
 	}
 
@@ -269,6 +276,149 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 		Url:         video.Url,
 		Visibility:  proto.Visibility_VISIBILITY_PRIVATE, // All videos are private for now
 		CreatedAt:   timestamppb.New(video.CreatedAt),
+	}, nil
+}
+
+// ===== VIDEO-CHANNEL MANAGEMENT METHODS =====
+
+func (s *VideoAPI) MoveVideoToChannel(ctx context.Context, req *proto.MoveVideoToChannelRequest) (*proto.MoveVideoToChannelResponse, error) {
+	// Common validation
+	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get and validate video
+	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate permissions for moving the video
+	err = s.policyValidator.ValidateVideoMovePermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID, req.ChannelId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Move the video to the target channel using single query
+	err = s.dbQueries.UpdateVideoChannel(ctx, db.UpdateVideoChannelParams{
+		VideoID:          req.VideoId,
+		ChannelID:        sql.NullString{String: req.ChannelId, Valid: true},
+		TenantID:         sql.NullString{String: tenantID, Valid: true},
+		UploadedUserID:   video.UploadedUserID, // For tenant-level video validation
+		CurrentChannelID: video.ChannelID,      // For channel video validation
+		UpdatedAt:        time.Now(),
+	})
+	if err != nil {
+		s.log.Error("Error moving video to channel", "err", err, "videoID", req.VideoId, "channelID", req.ChannelId)
+		return nil, status.Error(codes.Internal, "failed to move video to channel")
+	}
+
+	// Verify the video was actually updated (check if WHERE clause matched)
+	updatedVideo, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+		ID:       req.VideoId,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
+	if err != nil {
+		s.log.Error("Error verifying video update", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	// Check if the video was actually moved to the target channel
+	if !updatedVideo.ChannelID.Valid || updatedVideo.ChannelID.String != req.ChannelId {
+		// Database didn't update the row, meaning permission/ownership validation failed
+		if !video.ChannelID.Valid || video.ChannelID.String == "" {
+			return nil, status.Error(codes.PermissionDenied, "access denied: you can only move your own tenant-level videos")
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "access denied: video move failed due to permission or state validation")
+		}
+	}
+
+	return &proto.MoveVideoToChannelResponse{
+		Message: "Video moved to channel successfully",
+		Video:   s.policyValidator.ConvertVideoToProto(&updatedVideo),
+	}, nil
+}
+
+func (s *VideoAPI) RemoveVideoFromChannel(ctx context.Context, req *proto.RemoveVideoFromChannelRequest) (*proto.RemoveVideoFromChannelResponse, error) {
+	// Common validation
+	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get and validate video
+	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate permissions for removing video from channel
+	err = s.policyValidator.ValidateVideoRemovalPermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remove the video from the channel
+	err = s.dbQueries.RemoveVideoFromChannel(ctx, db.RemoveVideoFromChannelParams{
+		VideoID:   req.VideoId,
+		TenantID:  sql.NullString{String: tenantID, Valid: true},
+		ChannelID: video.ChannelID,
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		s.log.Error("Error removing video from channel", "err", err, "videoID", req.VideoId, "channelID", video.ChannelID.String)
+		return nil, status.Error(codes.Internal, "failed to remove video from channel")
+	}
+
+	// Get updated video
+	updatedVideo, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+		ID:       req.VideoId,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
+	if err != nil {
+		s.log.Error("Error getting updated video", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &proto.RemoveVideoFromChannelResponse{
+		Message: "Video removed from channel successfully",
+		Video:   s.policyValidator.ConvertVideoToProto(&updatedVideo),
+	}, nil
+}
+
+func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoRequest) (*proto.DeleteVideoResponse, error) {
+	// Common validation
+	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get and validate video
+	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate permissions for deleting the video
+	err = s.policyValidator.ValidateVideoDeletionPermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Soft delete the video
+	err = s.dbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
+		VideoID:   req.VideoId,
+		TenantID:  sql.NullString{String: tenantID, Valid: true},
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		s.log.Error("Error soft deleting video", "err", err, "videoID", req.VideoId)
+		return nil, status.Error(codes.Internal, "failed to delete video")
+	}
+
+	return &proto.DeleteVideoResponse{
+		Message: "Video deleted successfully",
 	}, nil
 }
 

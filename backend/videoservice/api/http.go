@@ -257,7 +257,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		UploadedUserID: userID,
 		TenantID:       sql.NullString{String: tenantID, Valid: true},
 		ChannelID:      sql.NullString{String: channelID, Valid: channelID != ""},
-		IsPrivate:      sql.NullBool{Bool: true, Valid: true}, // All videos are private by default
+		IsPrivate:      sql.NullBool{Bool: true, Valid: true},  // All videos are private by default
+		IsDeleted:      sql.NullBool{Bool: false, Valid: true}, // All videos start as not deleted
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	})
