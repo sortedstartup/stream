@@ -187,7 +187,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 		return nil, err
 	}
 
-	var videos []db.Video
+	var videos []db.VideoserviceVideo
 
 	// Filter videos based on channel_id parameter
 	if req.ChannelId != "" {

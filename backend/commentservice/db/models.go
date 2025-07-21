@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type Comment struct {
+type CommentserviceComment struct {
 	ID              string
 	Content         string
 	VideoID         string
@@ -20,16 +20,9 @@ type Comment struct {
 	Username        sql.NullString
 }
 
-type CommentLike struct {
+type CommentserviceCommentLike struct {
 	ID        string
-	UserID    string
 	CommentID string
+	UserID    string
 	CreatedAt time.Time
-}
-
-type User struct {
-	ID        string
-	Username  string
-	Email     string
-	CreatedAt sql.NullTime
 }

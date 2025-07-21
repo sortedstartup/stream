@@ -37,23 +37,23 @@ func (m *MockDBQueries) DeleteComment(ctx context.Context, params db.DeleteComme
 	return args.Error(0)
 }
 
-func (m *MockDBQueries) GetAllCommentsByUserPaginated(ctx context.Context, params db.GetAllCommentsByUserPaginatedParams) ([]db.Comment, error) {
+func (m *MockDBQueries) GetAllCommentsByUserPaginated(ctx context.Context, params db.GetAllCommentsByUserPaginatedParams) ([]db.CommentserviceComment, error) {
 	args := m.Called(ctx, params)
-	return args.Get(0).([]db.Comment), args.Error(1)
+	return args.Get(0).([]db.CommentserviceComment), args.Error(1)
 }
 
-func (m *MockDBQueries) GetCommentByID(ctx context.Context, params db.GetCommentByIDParams) (db.Comment, error) {
+func (m *MockDBQueries) GetCommentByID(ctx context.Context, params db.GetCommentByIDParams) (db.CommentserviceComment, error) {
 	args := m.Called(ctx, params)
 
-	// Safely type assert to db.Comment
-	comment, ok := args.Get(0).(db.Comment)
+	// Safely type assert to db.CommentserviceComment
+	comment, ok := args.Get(0).(db.CommentserviceComment)
 	if !ok {
-		// If the value is a *db.Comment, dereference it
-		if commentPtr, ok := args.Get(0).(*db.Comment); ok {
+		// If the value is a *db.CommentserviceComment, dereference it
+		if commentPtr, ok := args.Get(0).(*db.CommentserviceComment); ok {
 			return *commentPtr, args.Error(1)
 		}
-		// If it's neither, return an empty db.Comment with an error
-		return db.Comment{}, fmt.Errorf("unexpected type for mock return value: %T", args.Get(0))
+		// If it's neither, return an empty db.CommentserviceComment with an error
+		return db.CommentserviceComment{}, fmt.Errorf("unexpected type for mock return value: %T", args.Get(0))
 	}
 
 	return comment, args.Error(1)
@@ -69,19 +69,29 @@ func (m *MockDBQueries) GetCommentLikesCount(ctx context.Context, commentID stri
 	return args.Get(0).(int64), args.Error(1)
 }
 
-func (m *MockDBQueries) GetCommentsByVideo(ctx context.Context, videoID string) ([]db.Comment, error) {
+func (m *MockDBQueries) GetCommentsByVideo(ctx context.Context, videoID string) ([]db.CommentserviceComment, error) {
 	args := m.Called(ctx, videoID)
-	return args.Get(0).([]db.Comment), args.Error(1)
+	return args.Get(0).([]db.CommentserviceComment), args.Error(1)
 }
 
-func (m *MockDBQueries) GetCommentsByVideoPaginated(ctx context.Context, params db.GetCommentsByVideoPaginatedParams) ([]db.Comment, error) {
+func (m *MockDBQueries) GetCommentsByVideoPaginated(ctx context.Context, params db.GetCommentsByVideoPaginatedParams) ([]db.CommentserviceComment, error) {
 	args := m.Called(ctx, params)
-	return args.Get(0).([]db.Comment), args.Error(1)
+	return args.Get(0).([]db.CommentserviceComment), args.Error(1)
 }
 
-func (m *MockDBQueries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]db.Comment, error) {
+func (m *MockDBQueries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]db.CommentserviceComment, error) {
 	args := m.Called(ctx, commentID)
-	return args.Get(0).([]db.Comment), args.Error(1)
+	return args.Get(0).([]db.CommentserviceComment), args.Error(1)
+}
+
+func (m *MockDBQueries) GetComentsAndRepliesForVideoID(ctx context.Context, videoID string) ([]db.GetComentsAndRepliesForVideoIDRow, error) {
+	args := m.Called(ctx, videoID)
+	return args.Get(0).([]db.GetComentsAndRepliesForVideoIDRow), args.Error(1)
+}
+
+func (m *MockDBQueries) test(ctx context.Context) ([]db.CommentserviceComment, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]db.CommentserviceComment), args.Error(1)
 }
 
 func (m *MockDBQueries) LikeComment(ctx context.Context, params db.LikeCommentParams) error {
@@ -171,7 +181,7 @@ func TestListComments(t *testing.T) {
 	md := metadata.Pairs("authorization", authToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	mockComments := []db.Comment{
+	mockComments := []db.CommentserviceComment{
 		{ID: "123", Content: "Test Comment", VideoID: "vid1", UserID: "user1"},
 	}
 	mockDB.On("GetAllCommentsByUserPaginated", ctx, mock.Anything).Return(mockComments, nil)
@@ -215,11 +225,11 @@ func TestGetComment(t *testing.T) {
 	md := metadata.Pairs("authorization", authToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	mockComment := db.Comment{
+	mockComment := db.CommentserviceComment{
 		ID:      "mock-id",
 		Content: "Mock comment",
 		VideoID: "vid1",
-		UserID:  "test-user-id", 
+		UserID:  "test-user-id",
 	}
 
 	mockDB.On("GetCommentByID", ctx, mock.Anything).Return(mockComment, nil)
