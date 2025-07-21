@@ -39,4 +39,5 @@ type VideoserviceVideo struct {
 	IsPrivate      sql.NullBool
 	TenantID       sql.NullString
 	ChannelID      sql.NullString
+	IsDeleted      sql.NullBool
 }

@@ -19,12 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VideoService_CreateVideo_FullMethodName = "/videoservice.VideoService/CreateVideo"
-	VideoService_GetVideo_FullMethodName    = "/videoservice.VideoService/GetVideo"
-	VideoService_ListVideos_FullMethodName  = "/videoservice.VideoService/ListVideos"
-	VideoService_UpdateVideo_FullMethodName = "/videoservice.VideoService/UpdateVideo"
-	VideoService_DeleteVideo_FullMethodName = "/videoservice.VideoService/DeleteVideo"
-	VideoService_ShareVideo_FullMethodName  = "/videoservice.VideoService/ShareVideo"
+	VideoService_CreateVideo_FullMethodName            = "/videoservice.VideoService/CreateVideo"
+	VideoService_GetVideo_FullMethodName               = "/videoservice.VideoService/GetVideo"
+	VideoService_ListVideos_FullMethodName             = "/videoservice.VideoService/ListVideos"
+	VideoService_UpdateVideo_FullMethodName            = "/videoservice.VideoService/UpdateVideo"
+	VideoService_DeleteVideo_FullMethodName            = "/videoservice.VideoService/DeleteVideo"
+	VideoService_MoveVideoToChannel_FullMethodName     = "/videoservice.VideoService/MoveVideoToChannel"
+	VideoService_RemoveVideoFromChannel_FullMethodName = "/videoservice.VideoService/RemoveVideoFromChannel"
+	VideoService_ShareVideo_FullMethodName             = "/videoservice.VideoService/ShareVideo"
 )
 
 // VideoServiceClient is the client API for VideoService service.
@@ -36,7 +38,10 @@ type VideoServiceClient interface {
 	GetVideo(ctx context.Context, in *GetVideoRequest, opts ...grpc.CallOption) (*Video, error)
 	ListVideos(ctx context.Context, in *ListVideosRequest, opts ...grpc.CallOption) (*ListVideosResponse, error)
 	UpdateVideo(ctx context.Context, in *UpdateVideoRequest, opts ...grpc.CallOption) (*Video, error)
-	DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*Empty, error)
+	DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*DeleteVideoResponse, error)
+	// Video-Channel Management
+	MoveVideoToChannel(ctx context.Context, in *MoveVideoToChannelRequest, opts ...grpc.CallOption) (*MoveVideoToChannelResponse, error)
+	RemoveVideoFromChannel(ctx context.Context, in *RemoveVideoFromChannelRequest, opts ...grpc.CallOption) (*RemoveVideoFromChannelResponse, error)
 	// Sharing
 	ShareVideo(ctx context.Context, in *ShareVideoRequest, opts ...grpc.CallOption) (*ShareLink, error)
 }
@@ -89,10 +94,30 @@ func (c *videoServiceClient) UpdateVideo(ctx context.Context, in *UpdateVideoReq
 	return out, nil
 }
 
-func (c *videoServiceClient) DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*Empty, error) {
+func (c *videoServiceClient) DeleteVideo(ctx context.Context, in *DeleteVideoRequest, opts ...grpc.CallOption) (*DeleteVideoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
+	out := new(DeleteVideoResponse)
 	err := c.cc.Invoke(ctx, VideoService_DeleteVideo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) MoveVideoToChannel(ctx context.Context, in *MoveVideoToChannelRequest, opts ...grpc.CallOption) (*MoveVideoToChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MoveVideoToChannelResponse)
+	err := c.cc.Invoke(ctx, VideoService_MoveVideoToChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) RemoveVideoFromChannel(ctx context.Context, in *RemoveVideoFromChannelRequest, opts ...grpc.CallOption) (*RemoveVideoFromChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveVideoFromChannelResponse)
+	err := c.cc.Invoke(ctx, VideoService_RemoveVideoFromChannel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +143,10 @@ type VideoServiceServer interface {
 	GetVideo(context.Context, *GetVideoRequest) (*Video, error)
 	ListVideos(context.Context, *ListVideosRequest) (*ListVideosResponse, error)
 	UpdateVideo(context.Context, *UpdateVideoRequest) (*Video, error)
-	DeleteVideo(context.Context, *DeleteVideoRequest) (*Empty, error)
+	DeleteVideo(context.Context, *DeleteVideoRequest) (*DeleteVideoResponse, error)
+	// Video-Channel Management
+	MoveVideoToChannel(context.Context, *MoveVideoToChannelRequest) (*MoveVideoToChannelResponse, error)
+	RemoveVideoFromChannel(context.Context, *RemoveVideoFromChannelRequest) (*RemoveVideoFromChannelResponse, error)
 	// Sharing
 	ShareVideo(context.Context, *ShareVideoRequest) (*ShareLink, error)
 	mustEmbedUnimplementedVideoServiceServer()
@@ -143,8 +171,14 @@ func (UnimplementedVideoServiceServer) ListVideos(context.Context, *ListVideosRe
 func (UnimplementedVideoServiceServer) UpdateVideo(context.Context, *UpdateVideoRequest) (*Video, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVideo not implemented")
 }
-func (UnimplementedVideoServiceServer) DeleteVideo(context.Context, *DeleteVideoRequest) (*Empty, error) {
+func (UnimplementedVideoServiceServer) DeleteVideo(context.Context, *DeleteVideoRequest) (*DeleteVideoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVideo not implemented")
+}
+func (UnimplementedVideoServiceServer) MoveVideoToChannel(context.Context, *MoveVideoToChannelRequest) (*MoveVideoToChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MoveVideoToChannel not implemented")
+}
+func (UnimplementedVideoServiceServer) RemoveVideoFromChannel(context.Context, *RemoveVideoFromChannelRequest) (*RemoveVideoFromChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveVideoFromChannel not implemented")
 }
 func (UnimplementedVideoServiceServer) ShareVideo(context.Context, *ShareVideoRequest) (*ShareLink, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ShareVideo not implemented")
@@ -260,6 +294,42 @@ func _VideoService_DeleteVideo_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VideoService_MoveVideoToChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MoveVideoToChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).MoveVideoToChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_MoveVideoToChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).MoveVideoToChannel(ctx, req.(*MoveVideoToChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_RemoveVideoFromChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveVideoFromChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).RemoveVideoFromChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_RemoveVideoFromChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).RemoveVideoFromChannel(ctx, req.(*RemoveVideoFromChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VideoService_ShareVideo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ShareVideoRequest)
 	if err := dec(in); err != nil {
@@ -304,6 +374,14 @@ var VideoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteVideo",
 			Handler:    _VideoService_DeleteVideo_Handler,
+		},
+		{
+			MethodName: "MoveVideoToChannel",
+			Handler:    _VideoService_MoveVideoToChannel_Handler,
+		},
+		{
+			MethodName: "RemoveVideoFromChannel",
+			Handler:    _VideoService_RemoveVideoFromChannel_Handler,
 		},
 		{
 			MethodName: "ShareVideo",
