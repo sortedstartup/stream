@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 
 export const Sidebar = ({ onItemClick }) => {
   const navItems = [
-    { to: '/team', icon: Users, label: 'Team' },
+    { to: '/team', icon: Users, label: 'Workspace' },
     { to: '/', icon: Home, label: 'Home' },
     { to: '/channels', icon: Folder, label: 'Dashboard', className: 'text-blue-500' },
     { to: '/record', icon: Circle, label: 'Record', className: 'text-red-500' },

@@ -11,11 +11,10 @@ export const TeamPage = () => {
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
   
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
-  
+
   // Check if user can view/manage members (super_admin only)
   const canManageMembers = currentUserRole === 'super_admin'
   
@@ -41,15 +40,6 @@ export const TeamPage = () => {
 
     loadUsers()
   }, [currentTenant, canManageMembers])
-
-  const handleCreateTenant = async (name, description) => {
-    const newTenant = await createTenant(name, description || '')
-    if (newTenant) {
-      setShowCreateModal(false)
-      return true
-    }
-    return false
-  }
 
   const handleAddUser = async (username, role) => {
     if (username && currentTenant && currentTenant.tenant) {
@@ -81,13 +71,6 @@ export const TeamPage = () => {
               Manage your workspaces and team members
             </p>
           </div>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <Plus className="w-5 h-5" />
-            New Workspace
-          </button>
         </div>
 
         {/* Error Alert */}
@@ -189,12 +172,6 @@ export const TeamPage = () => {
       </div>
 
       {/* Modals */}
-      <CreateWorkspaceModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSubmit={handleCreateTenant}
-      />
-      
       <AddUserModal
         isOpen={showAddUserModal}
         onClose={() => setShowAddUserModal(false)}

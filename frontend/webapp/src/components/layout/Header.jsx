@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react'
 import { $currentUser, $isLoggedIn, clearAuthState } from '../../auth/store/auth'
 import { useNavigate } from 'react-router'
 import { TenantSwitcher } from '../TenantSwitcher'
+import { Plus } from 'react-feather'
 
 const toggleTheme = (e) => {
     const html = document.querySelector('html')
@@ -17,6 +18,10 @@ export const Header = ({ onMenuClick }) => {
   const currentUser = useStore($currentUser)
   const isLoggedIn = useStore($isLoggedIn)
   const navigate = useNavigate()
+
+  const handleOpenWorkspaceModal = () => {
+    document.dispatchEvent(new CustomEvent("open-create-workspace"))
+  }
 
   return (
     <div className="navbar bg-base-100 min-h-0 h-16 px-4">
@@ -38,6 +43,15 @@ export const Header = ({ onMenuClick }) => {
 
       <div className="flex-none flex items-center gap-4">
         {isLoggedIn && <TenantSwitcher />}
+         {isLoggedIn && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleOpenWorkspaceModal}
+          >
+            <Plus className="w-4 h-4" />
+            New Workspace
+          </button>
+        )}
         <ThemeSelector />
         {isLoggedIn && <UserMenu />}
       </div>
