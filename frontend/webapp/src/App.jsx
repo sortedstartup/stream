@@ -22,7 +22,7 @@ function App() {
             <HomePage />
           </ProtectedRoute>
         } />
-        <Route path="/team" element={
+        <Route path="/workspace" element={
           <ProtectedRoute>
             <TeamPage />
           </ProtectedRoute>
