@@ -4,19 +4,32 @@ import { Layout } from "../components/layout/Layout"
 import { $tenants, $currentTenant, $tenantError, createTenant, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
 import { Plus, AlertCircle, User, Users, UserPlus, Check, X } from 'react-feather'
 import { CreateWorkspaceModal, AddUserModal } from '../components/modals'
+import { $currentUser } from '../auth/store/auth'
+import { useLocation } from 'react-router'
 
 export const TeamPage = () => {
   const tenants = useStore($tenants)
   const currentTenant = useStore($currentTenant)
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
+  const currentUser = useStore($currentUser)
   
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
 
   // Check if user can view/manage members (super_admin only)
   const canManageMembers = currentUserRole === 'super_admin'
+  const location = useLocation()
+
+  // Show success message on navigation with success message
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      setStatusMessage(location.state.successMessage)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
   
   // Load tenant users when current tenant changes
   useEffect(() => {
@@ -63,6 +76,15 @@ export const TeamPage = () => {
   return (
     <Layout>
       <div className="space-y-8">
+      {statusMessage && (
+          <div className="alert alert-success shadow-lg mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{statusMessage}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -122,22 +144,17 @@ export const TeamPage = () => {
           </div>
         )}
 
-        {/* Team Members - Only show for super admins */}
-        {canManageMembers && currentTenant && currentTenant.tenant && !currentTenant.tenant.is_personal && (
-          <div className="card bg-base-100">
-            <div className="card-body">
-              <h2 className="card-title flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Team Members
-              </h2>
-              
-              {loadingUsers ? (
-                <div className="flex justify-center py-8">
-                  <span className="loading loading-spinner loading-md"></span>
-                </div>
-              ) : (
+        {/* Team Members */}
+        {currentTenant && currentTenant.tenant && (
+          currentTenant.tenant.is_personal ? (
+            <div className="card bg-base-100 mt-4">
+              <div className="card-body">
+                <h2 className="card-title flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Team Members
+                </h2>
                 <div className="overflow-x-auto">
-                  <table className="table">
+                  <table className="table w-full">
                     <thead>
                       <tr>
                         <th>Member</th>
@@ -145,29 +162,76 @@ export const TeamPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
-                        <tr>
-                          <td>
-                            <div className="flex items-center gap-3">
-                              <div>
-                                <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
-                                <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
-                              </div>
+                      <tr>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <div className="font-medium">{currentUser?.displayName || currentUser?.email || 'User'}</div>
+                              <div className="text-sm text-gray-500">{currentUser?.email || 'No email'}</div>
                             </div>
-                          </td>
-                          <td>
-                            <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
-                              {tenantUser.role?.role}
-                              </span>
-                          </td>
-                        </tr>
-                      ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-info">
+                            super_admin
+                          </span>
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
-              )}
+                <p className="mt-4 text-sm text-gray-500 italic">
+                  You can't add members to personal workspace.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            canManageMembers && (
+              <div className="card bg-base-100 mt-4">
+                <div className="card-body">
+                  <h2 className="card-title flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Team Members
+                  </h2>
+                  {loadingUsers ? (
+                    <div className="flex justify-center py-8">
+                      <span className="loading loading-spinner loading-md"></span>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="table w-full">
+                        <thead>
+                          <tr>
+                            <th>Member</th>
+                            <th>Role</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
+                            <tr key={tenantUser.user?.id}>
+                              <td>
+                                <div className="flex items-center gap-3">
+                                  <div>
+                                    <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
+                                    <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
+                                  {tenantUser.role?.role}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          )
         )}
       </div>
 

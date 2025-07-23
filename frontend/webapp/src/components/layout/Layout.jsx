@@ -4,10 +4,12 @@ import { Header } from './Header'
 import Footer from './Footer'
 import { CreateWorkspaceModal } from '../modals'
 import { createTenant } from '../../stores/tenants'
+import { useNavigate } from "react-router"
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const handler = () => setShowCreateModal(true)
@@ -19,6 +21,7 @@ export const Layout = ({ children }) => {
     const newTenant = await createTenant(name, description || '')
     if (newTenant) {
       setShowCreateModal(false)
+      navigate('/workspace', { state: { successMessage: 'Workspace created successfully!' } })
       return true
     }
     return false
