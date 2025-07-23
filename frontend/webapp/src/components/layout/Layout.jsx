@@ -1,10 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
+import { CreateWorkspaceModal } from '../modals'
+import { createTenant } from '../../stores/tenants'
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setShowCreateModal(true)
+    document.addEventListener('open-create-workspace', handler)
+    return () => document.removeEventListener('open-create-workspace', handler)
+  }, [])
+
+  const handleCreateTenant = async (name, description) => {
+    const newTenant = await createTenant(name, description || '')
+    if (newTenant) {
+      setShowCreateModal(false)
+      return true
+    }
+    return false
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -44,6 +62,13 @@ export const Layout = ({ children }) => {
       <footer className="bg-base-200 text-center py-4 md:ml-16">
         <Footer />
       </footer>
+
+      {/* Global Create Workspace Modal */}
+      <CreateWorkspaceModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateTenant}
+      />
     </div>
   )
 }
