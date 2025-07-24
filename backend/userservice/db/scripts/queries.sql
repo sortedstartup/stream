@@ -33,6 +33,11 @@ INSERT INTO userservice_tenants (
     @created_by
 ) RETURNING id, name, description, is_personal, created_at, created_by;
 
+-- name: CheckDuplicateTenantName :one
+SELECT 1 FROM userservice_tenants
+WHERE name = ?1 AND created_by = ?2
+LIMIT 1;
+
 -- name: GetUserTenants :many
 SELECT 
     tu.id as tenant_user_id,

@@ -16,13 +16,18 @@ export const Layout = ({ children }) => {
   }, [])
 
   const handleCreateTenant = async (name, description) => {
+  try {
     const newTenant = await createTenant(name, description || '')
-    if (newTenant) {
-      setShowCreateModal(false)
-      return true
+    if (!newTenant) {
+      throw new Error('Failed to create workspace')
     }
-    return false
+    setShowCreateModal(false)
+    return true
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create workspace'
+    throw new Error(message)
   }
+}
 
   return (
     <div className="flex flex-col min-h-screen">

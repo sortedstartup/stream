@@ -238,6 +238,19 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 		return nil, status.Error(codes.InvalidArgument, "tenant name is required")
 	}
 
+    userID := authContext.User.ID
+	
+    // Check if tenant name already exists for this user
+    _, err = s.dbQueries.CheckDuplicateTenantName(ctx, db.CheckDuplicateTenantNameParams{
+        Name:      req.Name,
+        CreatedBy: userID,
+    })
+    if err == nil {
+        return nil, status.Error(codes.AlreadyExists, "workspace name already exists")
+    } else if err != sql.ErrNoRows {
+        return nil, status.Error(codes.Internal, "failed to check for duplicate workspace")
+    }
+   
 	tenantID := uuid.New().String()
 	tenantParams := db.CreateTenantParams{
 		ID:          tenantID,

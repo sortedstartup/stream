@@ -111,13 +111,15 @@ export const createTenant = async (name: string, description: string = '') => {
       
       return response.tenant_user
     } else {
-      // Don't set global error - let modal handle it
-      return null
+      // Return null or throw error so modal can handle message
+      throw new Error(response.message || 'Failed to create workspace')
     }
   } catch (error) {
     console.error('Error creating tenant:', error)
-    // Don't set global error - let modal handle it
-    return null
+    // Propagate error message upwards
+    // error.details might hold gRPC error message, fallback to error.message
+    const message = error instanceof Error ? error.message : 'Failed to create workspace'
+    throw new Error(message)
   }
 }
 

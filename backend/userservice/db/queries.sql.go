@@ -11,6 +11,24 @@ import (
 	"time"
 )
 
+const checkDuplicateTenantName = `-- name: CheckDuplicateTenantName :one
+SELECT 1 FROM userservice_tenants
+WHERE name = ?1 AND created_by = ?2
+LIMIT 1
+`
+
+type CheckDuplicateTenantNameParams struct {
+	Name      string
+	CreatedBy string
+}
+
+func (q *Queries) CheckDuplicateTenantName(ctx context.Context, arg CheckDuplicateTenantNameParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkDuplicateTenantName, arg.Name, arg.CreatedBy)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createTenant = `-- name: CreateTenant :one
 INSERT INTO userservice_tenants (
     id,
