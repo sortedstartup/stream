@@ -26,7 +26,7 @@ service PaymentService {
 // Messages for CheckUserAccess
 message CheckUserAccessRequest {
   string user_id = 1;
-  string usage_type = 2;                 // "storage", "users", "api_calls"
+  string usage_type = 2;                 // "storage", "users"
   int64 requested_usage = 3;             // Amount we want to use (bytes for storage, count for users)
 }
 
@@ -67,7 +67,7 @@ message CreateCheckoutSessionResponse {
 // Messages for UpdateUserUsage
 message UpdateUserUsageRequest {
   string user_id = 1;
-  string usage_type = 2;                 // "storage", "users", "api_calls"
+  string usage_type = 2;                 // "storage", "users"
   int64 usage_change = 3;                // Can be positive (add) or negative (subtract)
 }
 
@@ -99,9 +99,9 @@ message UserSubscriptionInfo {
 message UserUsage {
   string user_id = 1;
   int64 storage_used_bytes = 2;
-  int64 api_calls_used = 3;
-  int64 compute_hours_used = 4;
-  double storage_usage_percent = 5;       // Calculated percentage
+  int32 users_count = 3;                  // Total users across all workspaces owned by this user
+  double storage_usage_percent = 4;       // Calculated percentage
+  double users_usage_percent = 5;         // Calculated percentage
   google.protobuf.Timestamp last_calculated_at = 6;
 }
 
@@ -123,9 +123,8 @@ message Plan {
   string id = 1;
   string name = 2;
   int64 storage_limit_bytes = 3;
-  int64 api_calls_limit = 4;
-  int64 compute_hours_limit = 5;
-  int64 price_cents = 6;
-  string provider_price_id = 7;          // Provider-specific price ID
-  bool is_active = 8;
+  int32 users_limit = 4;
+  int64 price_cents = 5;
+  string provider_price_id = 6;          // Provider-specific price ID
+  bool is_active = 7;
 } 
