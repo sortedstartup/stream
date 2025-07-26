@@ -3,7 +3,8 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
 import { CreateWorkspaceModal } from '../modals'
-import { createTenant } from '../../stores/tenants'
+import { createTenant, switchTenant } from '../../stores/tenants'
+import { showSuccessMessage } from '../../stores/notifications'
 import { useNavigate } from "react-router"
 
 export const Layout = ({ children }) => {
@@ -21,7 +22,9 @@ export const Layout = ({ children }) => {
     const newTenant = await createTenant(name, description || '')
     if (newTenant) {
       setShowCreateModal(false)
-      navigate('/workspace', { state: { successMessage: 'Workspace created successfully!' } })
+      switchTenant(newTenant)
+      showSuccessMessage('Workspace created successfully!')
+      navigate('/workspace')
       return true
     }
     return false

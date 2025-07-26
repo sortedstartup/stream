@@ -1,35 +1,25 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
 import { Layout } from "../components/layout/Layout"
-import { $tenants, $currentTenant, $tenantError, createTenant, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
-import { Plus, AlertCircle, User, Users, UserPlus, Check, X } from 'react-feather'
-import { CreateWorkspaceModal, AddUserModal } from '../components/modals'
+import { $currentTenant, $tenantError, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
+import { $successMessage, clearSuccessMessage } from '../stores/notifications'
+import {  AlertCircle, User, Users, UserPlus, X } from 'react-feather'
+import {  AddUserModal } from '../components/modals'
 import { $currentUser } from '../auth/store/auth'
-import { useLocation } from 'react-router'
 
 export const TeamPage = () => {
-  const tenants = useStore($tenants)
   const currentTenant = useStore($currentTenant)
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
   const currentUser = useStore($currentUser)
+  const successMessage = useStore($successMessage)
   
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
-  const [statusMessage, setStatusMessage] = useState('')
 
   // Check if user can view/manage members (super_admin only)
   const canManageMembers = currentUserRole === 'super_admin'
-  const location = useLocation()
-
-  // Show success message on navigation with success message
-  useEffect(() => {
-    if (location.state?.successMessage) {
-      setStatusMessage(location.state.successMessage)
-      window.history.replaceState({}, document.title)
-    }
-  }, [location.state])
   
   // Load tenant users when current tenant changes
   useEffect(() => {
@@ -76,12 +66,18 @@ export const TeamPage = () => {
   return (
     <Layout>
       <div className="space-y-8">
-      {statusMessage && (
+              {successMessage && (
           <div className="alert alert-success shadow-lg mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>{statusMessage}</span>
+            <span>{successMessage}</span>
+            <button 
+              className="btn btn-sm btn-ghost btn-circle ml-auto"
+              onClick={clearSuccessMessage}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
@@ -146,13 +142,19 @@ export const TeamPage = () => {
 
         {/* Team Members */}
         {currentTenant && currentTenant.tenant && (
-          currentTenant.tenant.is_personal ? (
-            <div className="card bg-base-100 mt-4">
-              <div className="card-body">
-                <h2 className="card-title flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Team Members
-                </h2>
+          <div className="card bg-base-100 mt-4">
+            <div className="card-body">
+              <h2 className="card-title flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Team Members
+              </h2>
+              
+              {/* Loading State */}
+              {loadingUsers ? (
+                <div className="flex justify-center py-8">
+                  <span className="loading loading-spinner loading-md"></span>
+                </div>
+              ) : (
                 <div className="overflow-x-auto">
                   <table className="table w-full">
                     <thead>
@@ -162,76 +164,56 @@ export const TeamPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <div className="font-medium">{currentUser?.displayName || currentUser?.email || 'User'}</div>
-                              <div className="text-sm text-gray-500">{currentUser?.email || 'No email'}</div>
+                      {currentTenant.tenant.is_personal ? (
+                        /* Personal Workspace - Show Current User */
+                        <tr>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <div className="font-medium">{currentUser?.displayName || currentUser?.email || 'User'}</div>
+                                <div className="text-sm text-gray-500">{currentUser?.email || 'No email'}</div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="badge badge-info">
-                            super_admin
-                          </span>
-                        </td>
-                      </tr>
+                          </td>
+                          <td>
+                            <span className="badge badge-info">
+                              super_admin
+                            </span>
+                          </td>
+                        </tr>
+                      ) : (
+                        /* Organizational Workspace - Show All Members */
+                        canManageMembers && tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
+                          <tr key={tenantUser.user?.id}>
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
+                                  <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
+                                {tenantUser.role?.role}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
+              )}
+              
+              {/* Info Message for Personal Workspace */}
+              {currentTenant.tenant.is_personal && (
                 <p className="mt-4 text-sm text-gray-500 italic">
                   You can't add members to personal workspace.
                 </p>
-              </div>
+              )}
             </div>
-          ) : (
-            canManageMembers && (
-              <div className="card bg-base-100 mt-4">
-                <div className="card-body">
-                  <h2 className="card-title flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Team Members
-                  </h2>
-                  {loadingUsers ? (
-                    <div className="flex justify-center py-8">
-                      <span className="loading loading-spinner loading-md"></span>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="table w-full">
-                        <thead>
-                          <tr>
-                            <th>Member</th>
-                            <th>Role</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
-                            <tr key={tenantUser.user?.id}>
-                              <td>
-                                <div className="flex items-center gap-3">
-                                  <div>
-                                    <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
-                                    <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
-                                  {tenantUser.role?.role}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          )
+          </div>
         )}
       </div>
 
