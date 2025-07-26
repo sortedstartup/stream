@@ -1797,7 +1797,6 @@ export class Plan extends pb_1.Message {
         storage_limit_bytes?: number;
         users_limit?: number;
         price_cents?: number;
-        provider_price_id?: string;
         is_active?: boolean;
     }) {
         super();
@@ -1817,9 +1816,6 @@ export class Plan extends pb_1.Message {
             }
             if ("price_cents" in data && data.price_cents != undefined) {
                 this.price_cents = data.price_cents;
-            }
-            if ("provider_price_id" in data && data.provider_price_id != undefined) {
-                this.provider_price_id = data.provider_price_id;
             }
             if ("is_active" in data && data.is_active != undefined) {
                 this.is_active = data.is_active;
@@ -1856,17 +1852,11 @@ export class Plan extends pb_1.Message {
     set price_cents(value: number) {
         pb_1.Message.setField(this, 5, value);
     }
-    get provider_price_id() {
-        return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
-    }
-    set provider_price_id(value: string) {
-        pb_1.Message.setField(this, 6, value);
-    }
     get is_active() {
-        return pb_1.Message.getFieldWithDefault(this, 7, false) as boolean;
+        return pb_1.Message.getFieldWithDefault(this, 6, false) as boolean;
     }
     set is_active(value: boolean) {
-        pb_1.Message.setField(this, 7, value);
+        pb_1.Message.setField(this, 6, value);
     }
     static fromObject(data: {
         id?: string;
@@ -1874,7 +1864,6 @@ export class Plan extends pb_1.Message {
         storage_limit_bytes?: number;
         users_limit?: number;
         price_cents?: number;
-        provider_price_id?: string;
         is_active?: boolean;
     }): Plan {
         const message = new Plan({});
@@ -1893,9 +1882,6 @@ export class Plan extends pb_1.Message {
         if (data.price_cents != null) {
             message.price_cents = data.price_cents;
         }
-        if (data.provider_price_id != null) {
-            message.provider_price_id = data.provider_price_id;
-        }
         if (data.is_active != null) {
             message.is_active = data.is_active;
         }
@@ -1908,7 +1894,6 @@ export class Plan extends pb_1.Message {
             storage_limit_bytes?: number;
             users_limit?: number;
             price_cents?: number;
-            provider_price_id?: string;
             is_active?: boolean;
         } = {};
         if (this.id != null) {
@@ -1925,9 +1910,6 @@ export class Plan extends pb_1.Message {
         }
         if (this.price_cents != null) {
             data.price_cents = this.price_cents;
-        }
-        if (this.provider_price_id != null) {
-            data.provider_price_id = this.provider_price_id;
         }
         if (this.is_active != null) {
             data.is_active = this.is_active;
@@ -1948,10 +1930,8 @@ export class Plan extends pb_1.Message {
             writer.writeInt32(4, this.users_limit);
         if (this.price_cents != 0)
             writer.writeInt64(5, this.price_cents);
-        if (this.provider_price_id.length)
-            writer.writeString(6, this.provider_price_id);
         if (this.is_active != false)
-            writer.writeBool(7, this.is_active);
+            writer.writeBool(6, this.is_active);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1977,9 +1957,6 @@ export class Plan extends pb_1.Message {
                     message.price_cents = reader.readInt64();
                     break;
                 case 6:
-                    message.provider_price_id = reader.readString();
-                    break;
-                case 7:
                     message.is_active = reader.readBool();
                     break;
                 default: reader.skipField();

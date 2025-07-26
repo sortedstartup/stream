@@ -12,10 +12,8 @@ type PaymentservicePlan struct {
 	ID                string
 	Name              string
 	StorageLimitBytes int64
-	ApiCallsLimit     int64
-	ComputeHoursLimit int64
+	UsersLimit        int64
 	PriceCents        sql.NullInt64
-	ProviderPriceID   sql.NullString
 	IsActive          sql.NullBool
 	CreatedAt         int64
 	UpdatedAt         int64
@@ -38,8 +36,7 @@ type PaymentserviceUserSubscription struct {
 type PaymentserviceUserUsage struct {
 	UserID           string
 	StorageUsedBytes sql.NullInt64
-	ApiCallsUsed     sql.NullInt64
-	ComputeHoursUsed sql.NullInt64
+	UsersCount       sql.NullInt64
 	LastCalculatedAt sql.NullInt64
 	CreatedAt        int64
 	UpdatedAt        int64

@@ -35,14 +35,14 @@ SELECT * FROM paymentservice_user_usage WHERE user_id = ? LIMIT 1;
 
 -- name: CreateUserUsage :one
 INSERT INTO paymentservice_user_usage (
-    user_id, storage_used_bytes, api_calls_used, compute_hours_used,
+    user_id, storage_used_bytes, users_count,
     last_calculated_at, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: UpdateUserUsage :exec
 UPDATE paymentservice_user_usage 
-SET storage_used_bytes = ?, api_calls_used = ?, compute_hours_used = ?,
+SET storage_used_bytes = ?, users_count = ?,
     last_calculated_at = ?, updated_at = ?
 WHERE user_id = ?;
 
@@ -51,9 +51,9 @@ UPDATE paymentservice_user_usage
 SET storage_used_bytes = storage_used_bytes + ?, last_calculated_at = ?, updated_at = ?
 WHERE user_id = ?;
 
--- name: UpdateUserApiUsage :exec
+-- name: UpdateUserUsersCount :exec
 UPDATE paymentservice_user_usage 
-SET api_calls_used = api_calls_used + ?, last_calculated_at = ?, updated_at = ?
+SET users_count = users_count + ?, last_calculated_at = ?, updated_at = ?
 WHERE user_id = ?;
 
 -- Core access check query (main functionality)
@@ -66,15 +66,13 @@ SELECT
     
     -- Plan limits
     p.storage_limit_bytes,
-    p.api_calls_limit,
-    p.compute_hours_limit,
+    p.users_limit,
     p.name as plan_name,
     p.price_cents,
     
     -- Current usage
     COALESCE(u.storage_used_bytes, 0) as current_storage_bytes,
-    COALESCE(u.api_calls_used, 0) as current_api_calls,
-    COALESCE(u.compute_hours_used, 0) as current_compute_hours,
+    COALESCE(u.users_count, 0) as current_users_count,
     
     -- Access decision for storage
     CASE 
@@ -84,17 +82,17 @@ SELECT
         ELSE 0 
     END as has_storage_access,
     
-    -- Access decision for API calls
+    -- Access decision for users
     CASE 
         WHEN s.status = 'active' 
-         AND COALESCE(u.api_calls_used, 0) < p.api_calls_limit
+         AND COALESCE(u.users_count, 0) < p.users_limit
         THEN 1 
         ELSE 0 
-    END as has_api_access,
+    END as has_users_access,
     
     -- Usage percentages for warnings
     CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 as storage_usage_percent,
-    CAST(COALESCE(u.api_calls_used, 0) AS FLOAT) / p.api_calls_limit * 100 as api_usage_percent
+    CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 as users_usage_percent
 
 FROM paymentservice_user_subscriptions s
 LEFT JOIN paymentservice_plans p ON s.plan_id = p.id  

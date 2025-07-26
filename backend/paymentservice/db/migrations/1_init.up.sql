@@ -6,10 +6,8 @@ CREATE TABLE paymentservice_plans (
     id TEXT PRIMARY KEY,                    -- 'free', 'standard', 'premium'
     name TEXT NOT NULL,
     storage_limit_bytes INTEGER NOT NULL,  -- Storage limit in bytes
-    api_calls_limit INTEGER NOT NULL,      -- API calls limit per period
-    compute_hours_limit INTEGER NOT NULL,  -- Compute hours limit per period
+    users_limit INTEGER NOT NULL,          -- Users limit
     price_cents INTEGER DEFAULT 0,         -- 0 for free, provider price for paid
-    provider_price_id TEXT,                -- Provider-specific price ID (Stripe/Razorpay)
     is_active BOOLEAN DEFAULT TRUE,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -36,8 +34,7 @@ CREATE TABLE paymentservice_user_subscriptions (
 CREATE TABLE paymentservice_user_usage (
     user_id TEXT PRIMARY KEY,
     storage_used_bytes INTEGER DEFAULT 0,   -- Total storage used by user
-    api_calls_used INTEGER DEFAULT 0,       -- Total API calls used in current period
-    compute_hours_used INTEGER DEFAULT 0,   -- Total compute hours used in current period
+    users_count INTEGER DEFAULT 0,          -- Total users managed by this user
     last_calculated_at INTEGER,            -- Last time usage was calculated
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
@@ -51,6 +48,6 @@ CREATE INDEX idx_user_subscriptions_status ON paymentservice_user_subscriptions(
 CREATE INDEX idx_user_usage_user_id ON paymentservice_user_usage(user_id);
 
 -- Insert default plans (for Stream application - can be customized per app)
-INSERT INTO paymentservice_plans (id, name, storage_limit_bytes, api_calls_limit, compute_hours_limit, price_cents, created_at, updated_at) VALUES
-('free', 'Free Plan', 1073741824, 1000, 10, 0, strftime('%s', 'now'), strftime('%s', 'now')),
-('standard', 'Standard Plan', 107374182400, 50000, 500, 2900, strftime('%s', 'now'), strftime('%s', 'now')); 
+INSERT INTO paymentservice_plans (id, name, storage_limit_bytes, users_limit, price_cents, created_at, updated_at) VALUES
+('free', 'Free Plan', 1073741824, 5, 0, strftime('%s', 'now'), strftime('%s', 'now')),
+('standard', 'Standard Plan', 107374182400, 50, 2900, strftime('%s', 'now'), strftime('%s', 'now')); 

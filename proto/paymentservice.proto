@@ -125,6 +125,5 @@ message Plan {
   int64 storage_limit_bytes = 3;
   int32 users_limit = 4;
   int64 price_cents = 5;
-  string provider_price_id = 6;          // Provider-specific price ID
-  bool is_active = 7;
+  bool is_active = 6;
 } 

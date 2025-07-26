@@ -8,19 +8,67 @@ description:
 globs: backend/**,frontend/**
 alwaysApply: false
 ---
-This a mono repo containing many microservice, 
+This a mono repo containing many microservices, 
 Every microservice has its own proto file
 you MUST follow microservice best practices including 
-1. every microservice has its own db2
+1. every microservice has its own db
 2. microservice talk only using API layers to each other. In this project api is expressed in using proto
 
-We have 3 microservices
+We have 4 microservices:
 1. videoservice
-2. userservice
+2. userservice  
 3. commentservice
+4. paymentservice
 
 Tech stack: Go, React, nanostores (state management) sqlite, firebase auth
-Reporsitory structure
+
+## Architecture Patterns
+
+### Mono Service Pattern:
+- All microservices run under a single mono service (backend/mono/main.go)
+- Mono service handles server ports, not individual microservices
+- Individual services only define business logic and database operations
+- Each service has its own SQLite database
+
+### Configuration Pattern:
+- All services follow same config pattern: ServiceConfig + DBConfig
+- Uses mapstructure tags for config file loading (not environment variables)
+- Database uses connection URLs (DBConfig.Url), not file paths
+- Service-specific configs only contain business logic settings
+- Example structure:
+  ```go
+  type ServiceConfig struct {
+      DB DBConfig `json:"db" mapstructure:"db"`
+      // service-specific fields only
+  }
+  type DBConfig struct {
+      Driver string `json:"driver" mapstructure:"driver"`
+      Url    string `json:"url" mapstructure:"url"`
+  }
+  ```
+
+### Proto Integration Pattern:
+- Proto files stored in root /proto folder
+- Each service generates own proto stubs in service/proto/ folder  
+- Run `go generate` in service folder to create: proto stubs + SQLC queries
+- Cross-service communication ONLY via gRPC APIs
+- Never bypass API layer between services
+
+### Payment Service Architecture:
+- Generic design: application-agnostic, reusable across different apps
+- User-based subscriptions: user pays → quota applies across all their workspaces/tenants
+- Integration pattern: Application services call payment service to check access before actions
+- Provider-agnostic: supports multiple payment providers (Stripe, Razorpay)
+- Environment-specific settings (like price IDs) stored in config, not database
+
+### Stream App Integration Flow:
+- Access check pattern: Get tenant owner (userservice) → Check owner's subscription (paymentservice) → Allow/deny action
+- Payment service doesn't know about tenants/workspaces (handled by userservice)
+- Payment service tracks: user subscriptions, usage limits, plan definitions
+- Usage types: storage limits (bytes), user limits (count)
+- Real-time usage tracking: file uploads, user additions
+
+Repository structure
 .
 |-- LICENSE
 |-- README.md
@@ -106,6 +154,28 @@ Reporsitory structure
 |   |   `-- proto
 |   |       |-- userservice.pb.go
 |   |       `-- userservice_grpc.pb.go
+|   |-- paymentservice
+|   |   |-- api
+|   |   |   |-- api.go
+|   |   |   `-- http.go
+|   |   |-- autogenerate.go
+|   |   |-- config
+|   |   |   `-- config.go
+|   |   |-- db
+|   |   |   |-- db.go
+|   |   |   |-- migrate.go
+|   |   |   |-- migrations
+|   |   |   |-- models.go
+|   |   |   |-- queries.sql.go
+|   |   |   `-- scripts
+|   |   |       |-- queries.sql
+|   |   |       `-- sqlc.yaml
+|   |   |-- go.mod
+|   |   |-- providers
+|   |   |   `-- stripe.go
+|   |   `-- proto
+|   |       |-- paymentservice.pb.go
+|   |       `-- paymentservice_grpc.pb.go
 |   `-- videoservice
 |       |-- api
 |       |   |-- api.go
@@ -176,6 +246,7 @@ Reporsitory structure
 |       |   |   |--.....
 |       |   |-- proto
 |       |   |   |-- commentservice.ts
+|       |   |   |-- paymentservice.ts
 |       |   |   |-- google
 |       |   |   |   `-- protobuf
 |       |   |   |       `-- timestamp.ts
@@ -195,18 +266,18 @@ Reporsitory structure
 |-- package-lock.json
 |-- proto
 |   |-- commentservice.proto
+|   |-- paymentservice.proto
+|   |-- userservice.proto
 |   `-- videoservice.proto
-    `-- userservice.proto
-        .....
 
 Features can be read from docs/features.md file
 
-How to implement a new API 
-- Identity which microservie(s) to make changes in 
+How to implement a new API:
+- Identify which microservice(s) to make changes in 
 - Update proto files in root level "proto" folder. Once we made proto changes, then we can make changes in respective backend api folder, by adding migrations, scripts/queries.sql. 
-Then ask me to run 'go generate' in respective service folder in backend, I will run, it will auto generate few files.
-`go generate` will generate 
-0. go generate works in the context of a give microservice
+Then ask user to run 'go generate' in respective service folder in backend, they will run, it will auto generate few files.
+`go generate` will generate:
+0. go generate works in the context of a given microservice
 1. server stubs for proto file 
 2. go code for queries.sql under db/queries.sql.go
 
