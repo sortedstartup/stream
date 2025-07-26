@@ -1300,9 +1300,9 @@ export class UserUsage extends pb_1.Message {
     constructor(data?: any[] | {
         user_id?: string;
         storage_used_bytes?: number;
-        api_calls_used?: number;
-        compute_hours_used?: number;
+        users_count?: number;
         storage_usage_percent?: number;
+        users_usage_percent?: number;
         last_calculated_at?: dependency_1.Timestamp;
     }) {
         super();
@@ -1314,14 +1314,14 @@ export class UserUsage extends pb_1.Message {
             if ("storage_used_bytes" in data && data.storage_used_bytes != undefined) {
                 this.storage_used_bytes = data.storage_used_bytes;
             }
-            if ("api_calls_used" in data && data.api_calls_used != undefined) {
-                this.api_calls_used = data.api_calls_used;
-            }
-            if ("compute_hours_used" in data && data.compute_hours_used != undefined) {
-                this.compute_hours_used = data.compute_hours_used;
+            if ("users_count" in data && data.users_count != undefined) {
+                this.users_count = data.users_count;
             }
             if ("storage_usage_percent" in data && data.storage_usage_percent != undefined) {
                 this.storage_usage_percent = data.storage_usage_percent;
+            }
+            if ("users_usage_percent" in data && data.users_usage_percent != undefined) {
+                this.users_usage_percent = data.users_usage_percent;
             }
             if ("last_calculated_at" in data && data.last_calculated_at != undefined) {
                 this.last_calculated_at = data.last_calculated_at;
@@ -1340,22 +1340,22 @@ export class UserUsage extends pb_1.Message {
     set storage_used_bytes(value: number) {
         pb_1.Message.setField(this, 2, value);
     }
-    get api_calls_used() {
+    get users_count() {
         return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
     }
-    set api_calls_used(value: number) {
+    set users_count(value: number) {
         pb_1.Message.setField(this, 3, value);
     }
-    get compute_hours_used() {
+    get storage_usage_percent() {
         return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
     }
-    set compute_hours_used(value: number) {
+    set storage_usage_percent(value: number) {
         pb_1.Message.setField(this, 4, value);
     }
-    get storage_usage_percent() {
+    get users_usage_percent() {
         return pb_1.Message.getFieldWithDefault(this, 5, 0) as number;
     }
-    set storage_usage_percent(value: number) {
+    set users_usage_percent(value: number) {
         pb_1.Message.setField(this, 5, value);
     }
     get last_calculated_at() {
@@ -1370,9 +1370,9 @@ export class UserUsage extends pb_1.Message {
     static fromObject(data: {
         user_id?: string;
         storage_used_bytes?: number;
-        api_calls_used?: number;
-        compute_hours_used?: number;
+        users_count?: number;
         storage_usage_percent?: number;
+        users_usage_percent?: number;
         last_calculated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
     }): UserUsage {
         const message = new UserUsage({});
@@ -1382,14 +1382,14 @@ export class UserUsage extends pb_1.Message {
         if (data.storage_used_bytes != null) {
             message.storage_used_bytes = data.storage_used_bytes;
         }
-        if (data.api_calls_used != null) {
-            message.api_calls_used = data.api_calls_used;
-        }
-        if (data.compute_hours_used != null) {
-            message.compute_hours_used = data.compute_hours_used;
+        if (data.users_count != null) {
+            message.users_count = data.users_count;
         }
         if (data.storage_usage_percent != null) {
             message.storage_usage_percent = data.storage_usage_percent;
+        }
+        if (data.users_usage_percent != null) {
+            message.users_usage_percent = data.users_usage_percent;
         }
         if (data.last_calculated_at != null) {
             message.last_calculated_at = dependency_1.Timestamp.fromObject(data.last_calculated_at);
@@ -1400,9 +1400,9 @@ export class UserUsage extends pb_1.Message {
         const data: {
             user_id?: string;
             storage_used_bytes?: number;
-            api_calls_used?: number;
-            compute_hours_used?: number;
+            users_count?: number;
             storage_usage_percent?: number;
+            users_usage_percent?: number;
             last_calculated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         } = {};
         if (this.user_id != null) {
@@ -1411,14 +1411,14 @@ export class UserUsage extends pb_1.Message {
         if (this.storage_used_bytes != null) {
             data.storage_used_bytes = this.storage_used_bytes;
         }
-        if (this.api_calls_used != null) {
-            data.api_calls_used = this.api_calls_used;
-        }
-        if (this.compute_hours_used != null) {
-            data.compute_hours_used = this.compute_hours_used;
+        if (this.users_count != null) {
+            data.users_count = this.users_count;
         }
         if (this.storage_usage_percent != null) {
             data.storage_usage_percent = this.storage_usage_percent;
+        }
+        if (this.users_usage_percent != null) {
+            data.users_usage_percent = this.users_usage_percent;
         }
         if (this.last_calculated_at != null) {
             data.last_calculated_at = this.last_calculated_at.toObject();
@@ -1433,12 +1433,12 @@ export class UserUsage extends pb_1.Message {
             writer.writeString(1, this.user_id);
         if (this.storage_used_bytes != 0)
             writer.writeInt64(2, this.storage_used_bytes);
-        if (this.api_calls_used != 0)
-            writer.writeInt64(3, this.api_calls_used);
-        if (this.compute_hours_used != 0)
-            writer.writeInt64(4, this.compute_hours_used);
+        if (this.users_count != 0)
+            writer.writeInt32(3, this.users_count);
         if (this.storage_usage_percent != 0)
-            writer.writeDouble(5, this.storage_usage_percent);
+            writer.writeDouble(4, this.storage_usage_percent);
+        if (this.users_usage_percent != 0)
+            writer.writeDouble(5, this.users_usage_percent);
         if (this.has_last_calculated_at)
             writer.writeMessage(6, this.last_calculated_at, () => this.last_calculated_at.serialize(writer));
         if (!w)
@@ -1457,13 +1457,13 @@ export class UserUsage extends pb_1.Message {
                     message.storage_used_bytes = reader.readInt64();
                     break;
                 case 3:
-                    message.api_calls_used = reader.readInt64();
+                    message.users_count = reader.readInt32();
                     break;
                 case 4:
-                    message.compute_hours_used = reader.readInt64();
+                    message.storage_usage_percent = reader.readDouble();
                     break;
                 case 5:
-                    message.storage_usage_percent = reader.readDouble();
+                    message.users_usage_percent = reader.readDouble();
                     break;
                 case 6:
                     reader.readMessage(message.last_calculated_at, () => message.last_calculated_at = dependency_1.Timestamp.deserialize(reader));
@@ -1795,8 +1795,7 @@ export class Plan extends pb_1.Message {
         id?: string;
         name?: string;
         storage_limit_bytes?: number;
-        api_calls_limit?: number;
-        compute_hours_limit?: number;
+        users_limit?: number;
         price_cents?: number;
         provider_price_id?: string;
         is_active?: boolean;
@@ -1813,11 +1812,8 @@ export class Plan extends pb_1.Message {
             if ("storage_limit_bytes" in data && data.storage_limit_bytes != undefined) {
                 this.storage_limit_bytes = data.storage_limit_bytes;
             }
-            if ("api_calls_limit" in data && data.api_calls_limit != undefined) {
-                this.api_calls_limit = data.api_calls_limit;
-            }
-            if ("compute_hours_limit" in data && data.compute_hours_limit != undefined) {
-                this.compute_hours_limit = data.compute_hours_limit;
+            if ("users_limit" in data && data.users_limit != undefined) {
+                this.users_limit = data.users_limit;
             }
             if ("price_cents" in data && data.price_cents != undefined) {
                 this.price_cents = data.price_cents;
@@ -1848,42 +1844,35 @@ export class Plan extends pb_1.Message {
     set storage_limit_bytes(value: number) {
         pb_1.Message.setField(this, 3, value);
     }
-    get api_calls_limit() {
+    get users_limit() {
         return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
     }
-    set api_calls_limit(value: number) {
+    set users_limit(value: number) {
         pb_1.Message.setField(this, 4, value);
     }
-    get compute_hours_limit() {
+    get price_cents() {
         return pb_1.Message.getFieldWithDefault(this, 5, 0) as number;
     }
-    set compute_hours_limit(value: number) {
+    set price_cents(value: number) {
         pb_1.Message.setField(this, 5, value);
     }
-    get price_cents() {
-        return pb_1.Message.getFieldWithDefault(this, 6, 0) as number;
-    }
-    set price_cents(value: number) {
-        pb_1.Message.setField(this, 6, value);
-    }
     get provider_price_id() {
-        return pb_1.Message.getFieldWithDefault(this, 7, "") as string;
+        return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
     }
     set provider_price_id(value: string) {
-        pb_1.Message.setField(this, 7, value);
+        pb_1.Message.setField(this, 6, value);
     }
     get is_active() {
-        return pb_1.Message.getFieldWithDefault(this, 8, false) as boolean;
+        return pb_1.Message.getFieldWithDefault(this, 7, false) as boolean;
     }
     set is_active(value: boolean) {
-        pb_1.Message.setField(this, 8, value);
+        pb_1.Message.setField(this, 7, value);
     }
     static fromObject(data: {
         id?: string;
         name?: string;
         storage_limit_bytes?: number;
-        api_calls_limit?: number;
-        compute_hours_limit?: number;
+        users_limit?: number;
         price_cents?: number;
         provider_price_id?: string;
         is_active?: boolean;
@@ -1898,11 +1887,8 @@ export class Plan extends pb_1.Message {
         if (data.storage_limit_bytes != null) {
             message.storage_limit_bytes = data.storage_limit_bytes;
         }
-        if (data.api_calls_limit != null) {
-            message.api_calls_limit = data.api_calls_limit;
-        }
-        if (data.compute_hours_limit != null) {
-            message.compute_hours_limit = data.compute_hours_limit;
+        if (data.users_limit != null) {
+            message.users_limit = data.users_limit;
         }
         if (data.price_cents != null) {
             message.price_cents = data.price_cents;
@@ -1920,8 +1906,7 @@ export class Plan extends pb_1.Message {
             id?: string;
             name?: string;
             storage_limit_bytes?: number;
-            api_calls_limit?: number;
-            compute_hours_limit?: number;
+            users_limit?: number;
             price_cents?: number;
             provider_price_id?: string;
             is_active?: boolean;
@@ -1935,11 +1920,8 @@ export class Plan extends pb_1.Message {
         if (this.storage_limit_bytes != null) {
             data.storage_limit_bytes = this.storage_limit_bytes;
         }
-        if (this.api_calls_limit != null) {
-            data.api_calls_limit = this.api_calls_limit;
-        }
-        if (this.compute_hours_limit != null) {
-            data.compute_hours_limit = this.compute_hours_limit;
+        if (this.users_limit != null) {
+            data.users_limit = this.users_limit;
         }
         if (this.price_cents != null) {
             data.price_cents = this.price_cents;
@@ -1962,16 +1944,14 @@ export class Plan extends pb_1.Message {
             writer.writeString(2, this.name);
         if (this.storage_limit_bytes != 0)
             writer.writeInt64(3, this.storage_limit_bytes);
-        if (this.api_calls_limit != 0)
-            writer.writeInt64(4, this.api_calls_limit);
-        if (this.compute_hours_limit != 0)
-            writer.writeInt64(5, this.compute_hours_limit);
+        if (this.users_limit != 0)
+            writer.writeInt32(4, this.users_limit);
         if (this.price_cents != 0)
-            writer.writeInt64(6, this.price_cents);
+            writer.writeInt64(5, this.price_cents);
         if (this.provider_price_id.length)
-            writer.writeString(7, this.provider_price_id);
+            writer.writeString(6, this.provider_price_id);
         if (this.is_active != false)
-            writer.writeBool(8, this.is_active);
+            writer.writeBool(7, this.is_active);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1991,18 +1971,15 @@ export class Plan extends pb_1.Message {
                     message.storage_limit_bytes = reader.readInt64();
                     break;
                 case 4:
-                    message.api_calls_limit = reader.readInt64();
+                    message.users_limit = reader.readInt32();
                     break;
                 case 5:
-                    message.compute_hours_limit = reader.readInt64();
-                    break;
-                case 6:
                     message.price_cents = reader.readInt64();
                     break;
-                case 7:
+                case 6:
                     message.provider_price_id = reader.readString();
                     break;
-                case 8:
+                case 7:
                     message.is_active = reader.readBool();
                     break;
                 default: reader.skipField();
