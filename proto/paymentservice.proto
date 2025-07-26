@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package paymentservice;
+option go_package = "sortedstartup.com/stream/paymentservice/proto";
+
+import "google/protobuf/timestamp.proto";
+
+// Generic Payment service for managing user subscriptions and usage limits
+service PaymentService {
+  // Check if user can perform specific action
+  rpc CheckUserAccess(CheckUserAccessRequest) returns (CheckUserAccessResponse);
+  
+  // Get user subscription and usage details
+  rpc GetUserSubscription(GetUserSubscriptionRequest) returns (GetUserSubscriptionResponse);
+  
+  // Create payment checkout session (provider-agnostic)
+  rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
+  
+  // Update user usage (called by application services)
+  rpc UpdateUserUsage(UpdateUserUsageRequest) returns (UpdateUserUsageResponse);
+  
+  // Initialize user with free subscription
+  rpc InitializeUser(InitializeUserRequest) returns (InitializeUserResponse);
+}
+
+// Messages for CheckUserAccess
+message CheckUserAccessRequest {
+  string user_id = 1;
+  string usage_type = 2;                 // "storage", "users", "api_calls"
+  int64 requested_usage = 3;             // Amount we want to use (bytes for storage, count for users)
+}
+
+message CheckUserAccessResponse {
+  bool has_access = 1;
+  string reason = 2;                     // "subscription_inactive", "storage_limit_exceeded", "usage_limit_exceeded"
+  UserSubscriptionInfo subscription_info = 3;
+  bool is_near_limit = 4;                // true if usage > 75%
+  string warning_message = 5;
+}
+
+// Messages for GetUserSubscription
+message GetUserSubscriptionRequest {
+  string user_id = 1;
+}
+
+message GetUserSubscriptionResponse {
+  UserSubscriptionInfo subscription_info = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Messages for CreateCheckoutSession
+message CreateCheckoutSessionRequest {
+  string user_id = 1;                    // User who wants to pay
+  string plan_id = 2;                    // "standard", "premium"
+  string success_url = 3;                // Frontend redirect after payment
+  string cancel_url = 4;                 // Frontend redirect after cancel
+}
+
+message CreateCheckoutSessionResponse {
+  string checkout_url = 1;               // URL to redirect user to
+  string session_id = 2;                 // Provider session ID
+  bool success = 3;
+  string error_message = 4;
+}
+
+// Messages for UpdateUserUsage
+message UpdateUserUsageRequest {
+  string user_id = 1;
+  string usage_type = 2;                 // "storage", "users", "api_calls"
+  int64 usage_change = 3;                // Can be positive (add) or negative (subtract)
+}
+
+message UpdateUserUsageResponse {
+  bool success = 1;
+  string error_message = 2;
+  UserSubscriptionInfo updated_info = 3;
+}
+
+// Messages for InitializeUser
+message InitializeUserRequest {
+  string user_id = 1;                    // User to initialize with free plan
+}
+
+message InitializeUserResponse {
+  bool success = 1;
+  string error_message = 2;
+  UserSubscriptionInfo subscription_info = 3;
+}
+
+// Shared data structures
+message UserSubscriptionInfo {
+  string user_id = 1;
+  Subscription subscription = 2;
+  UserUsage usage = 3;
+  Plan plan = 4;
+}
+
+message UserUsage {
+  string user_id = 1;
+  int64 storage_used_bytes = 2;
+  int64 api_calls_used = 3;
+  int64 compute_hours_used = 4;
+  double storage_usage_percent = 5;       // Calculated percentage
+  google.protobuf.Timestamp last_calculated_at = 6;
+}
+
+message Subscription {
+  string id = 1;
+  string user_id = 2;                    // User who paid
+  string plan_id = 3;
+  string provider = 4;                   // "stripe" or "razorpay"
+  string provider_customer_id = 5;
+  string provider_subscription_id = 6;
+  string status = 7;                     // "active", "canceled", "past_due", "incomplete"
+  google.protobuf.Timestamp current_period_start = 8;
+  google.protobuf.Timestamp current_period_end = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Plan {
+  string id = 1;
+  string name = 2;
+  int64 storage_limit_bytes = 3;
+  int64 api_calls_limit = 4;
+  int64 compute_hours_limit = 5;
+  int64 price_cents = 6;
+  string provider_price_id = 7;          // Provider-specific price ID
+  bool is_active = 8;
+} 
