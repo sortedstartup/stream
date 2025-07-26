@@ -1,10 +1,10 @@
 import { atom } from 'nanostores'
 
 // Success message store
-export const $successMessage = atom(null)
+export const $successMessage = atom<string | null>(null)
 
 // Helper functions
-export const showSuccessMessage = (message) => {
+export const showSuccessMessage = (message: string) => {
   $successMessage.set(message)
   // Auto-clear after 5 seconds
   setTimeout(() => {
