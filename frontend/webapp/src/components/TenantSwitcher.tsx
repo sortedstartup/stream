@@ -15,12 +15,19 @@ export const TenantSwitcher = () => {
     return null 
   }
 
-  const handleTenantChange = (tenant: TenantUser) => {
-    switchTenant(tenant)
+  const handleTenantChange = async (tenant: TenantUser) => {
+    if (tenant.tenant.id === currentTenant.tenant.id) return;
+
+    await switchTenant(tenant)
+
+    const path = location.pathname;
+
+    const isChannelPath = path.startsWith('/channel/')
     
-    // If user is on a channel-related page, navigate to channels dashboard
-    if (location.pathname.startsWith('/')) {
-      navigate('/channels')
+    if (isChannelPath) {
+      navigate('/channels', { replace: true })
+    } else {
+      navigate(path, { replace: true })
     }
   }
 
