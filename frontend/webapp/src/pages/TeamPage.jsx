@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
 import { Layout } from "../components/layout/Layout"
 import { $currentTenant, $tenantError, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
-import { $successMessage, clearSuccessMessage } from '../stores/notifications'
+import { showSuccessToast } from '../utils/toast'
 import {  AlertCircle, User, Users, UserPlus, X } from 'react-feather'
 import {  AddUserModal } from '../components/modals'
 import { $currentUser } from '../auth/store/auth'
@@ -12,7 +12,6 @@ export const TeamPage = () => {
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
   const currentUser = useStore($currentUser)
-  const successMessage = useStore($successMessage)
   
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
@@ -49,6 +48,7 @@ export const TeamPage = () => {
       const success = await addUserToTenant(currentTenant.tenant.id, username, role)
       if (success) {
         setShowAddUserModal(false)
+        showSuccessToast(`User ${username} added successfully!`)
         // Refresh the user list
         const users = await getTenantUsers(currentTenant.tenant.id)
         setTenantUsers(users)
@@ -66,20 +66,6 @@ export const TeamPage = () => {
   return (
     <Layout>
       <div className="space-y-8">
-              {successMessage && (
-          <div className="alert alert-success shadow-lg mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span>{successMessage}</span>
-            <button 
-              className="btn btn-sm btn-ghost btn-circle ml-auto"
-              onClick={clearSuccessMessage}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -223,6 +209,8 @@ export const TeamPage = () => {
         onClose={() => setShowAddUserModal(false)}
         onSubmit={handleAddUser}
       />
+
+
     </Layout>
   )
 }
