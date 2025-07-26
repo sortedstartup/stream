@@ -341,10 +341,10 @@ const ManageMembersModal = ({ isOpen, onClose, channel }) => {
 
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <div className={`badge badge-sm ${getRoleColor(member.role?.role || member.role)}`}>
-                          <span className="flex items-center gap-1">
-                            {getRoleIcon(member.role?.role || member.role)} {member.role?.role || member.role}
-                          </span>
+                      <div className={`badge badge-sm ${getRoleColor(member.role?.role || member.role)}`}>
+                        <span className="flex items-center gap-1">
+                          {getRoleIcon(member.role?.role || member.role)} {member.role?.role || member.role}
+                        </span>
                         </div>
                         {member.user?.id === channel?.created_by && (
                           <div className="badge badge-xs badge-info">
