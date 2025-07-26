@@ -456,11 +456,6 @@ func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*
 	var tenantUsersProto []*proto.TenantUser
 
 	for _, user := range tenantUsers {
-		// Skip current user so they don't appear in "Add Member" dropdown
-		if user.UserID == authContext.User.ID {
-			continue
-		}
-
 		tenantUsersProto = append(tenantUsersProto, &proto.TenantUser{
 			Tenant: &proto.Tenant{
 				Name:      user.TenantName,

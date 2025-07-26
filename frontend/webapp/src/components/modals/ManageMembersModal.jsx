@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { $channelMembers, fetchChannelMembers, addChannelMember, removeChannelMember } from '../../stores/channels';
 import { $currentTenant, getTenantUsers } from '../../stores/tenants';
+import { $currentUser } from '../../auth/store/auth';
 
 const ManageMembersModal = ({ isOpen, onClose, channel }) => {
   const members = useStore($channelMembers);
   const currentTenant = useStore($currentTenant);
+  const currentUser = useStore($currentUser);
   
   const [tenantUsers, setTenantUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +133,27 @@ const ManageMembersModal = ({ isOpen, onClose, channel }) => {
   const availableUsers = tenantUsers.filter(
     tenantUser => !members.some(member => member.user?.id === tenantUser.user?.id)
   );
+
+  // Helper function to determine if current user can remove a member
+  const canRemoveMember = (member) => {
+    const memberRole = member.role?.role || member.role;
+    const currentUserId = currentUser?.uid;
+    
+    // Can't remove if no current user
+    if (!currentUserId) return false;
+    
+    // Can't remove yourself (prevent self-removal)
+    if (member.user?.id === currentUserId) return false;
+    
+    // Channel creator can remove anyone (including other owners)
+    if (channel?.created_by === currentUserId) return true;
+    
+    // Non-owners can't remove anyone
+    if (memberRole === 'owner') return false;
+    
+    // Can remove non-owners
+    return true;
+  };
 
   if (!isOpen) return null;
 
@@ -317,13 +340,25 @@ const ManageMembersModal = ({ isOpen, onClose, channel }) => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className={`badge badge-sm ${getRoleColor(member.role?.role || member.role)}`}>
-                        <span className="flex items-center gap-1">
-                          {getRoleIcon(member.role?.role || member.role)} {member.role?.role || member.role}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <div className={`badge badge-sm ${getRoleColor(member.role?.role || member.role)}`}>
+                          <span className="flex items-center gap-1">
+                            {getRoleIcon(member.role?.role || member.role)} {member.role?.role || member.role}
+                          </span>
+                        </div>
+                        {member.user?.id === channel?.created_by && (
+                          <div className="badge badge-xs badge-info">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              Creator
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
-                      {(member.role?.role || member.role) !== 'owner' && (
+                      {canRemoveMember(member) && (
                         <button
                           onClick={() => handleRemoveMember(member.user?.id)}
                           className="btn btn-ghost btn-xs text-error"
