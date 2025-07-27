@@ -8,17 +8,29 @@ import { CreateWorkspaceModal } from '../modals'
 import { createTenant, switchTenant } from '../../stores/tenants'
 import { showSuccessToast } from '../../utils/toast'
 import { useNavigate } from "react-router"
+import { loadUserSubscription } from '../../stores/payment'
+import { $currentUser } from '../../auth/store/auth'
+import { useStore } from '@nanostores/react'
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const navigate = useNavigate()
+  const currentUser = useStore($currentUser)
 
   useEffect(() => {
     const handler = () => setShowCreateModal(true)
     document.addEventListener('open-create-workspace', handler)
+    
     return () => document.removeEventListener('open-create-workspace', handler)
   }, [])
+
+  // Load subscription data when user is available
+  useEffect(() => {
+    if (currentUser?.uid) {
+      loadUserSubscription()
+    }
+  }, [currentUser])
 
   const handleCreateTenant = async (name, description) => {
     const newTenant = await createTenant(name, description || '')

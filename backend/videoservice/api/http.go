@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"sortedstartup.com/stream/common/interceptors"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	"sortedstartup.com/stream/videoservice/db"
 )
 
@@ -69,6 +70,40 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		slog.Error("Tenant access denied", "tenantID", tenantID, "userID", userID, "err", err)
 		return
+	}
+
+	// Check payment access for storage upload
+	slog.Info("Checking storage access for upload", "userID", userID)
+	accessResp, err := api.paymentServiceClient.CheckUserAccess(r.Context(), &paymentProto.CheckUserAccessRequest{
+		UserId:         userID,
+		UsageType:      "storage",
+		RequestedUsage: int64(r.ContentLength), // Check if the upload size would exceed limits
+	})
+	if err != nil {
+		http.Error(w, "Payment service unavailable", http.StatusServiceUnavailable)
+		slog.Error("Payment service error", "err", err, "userID", userID)
+		return
+	}
+
+	if !accessResp.HasAccess {
+		var errorMessage string
+		switch accessResp.Reason {
+		case "storage_limit_exceeded":
+			errorMessage = "Upload failed: Storage limit exceeded. Please upgrade your plan to continue uploading."
+		case "subscription_inactive":
+			errorMessage = "Upload failed: Your subscription is inactive. Please reactivate to continue uploading."
+		default:
+			errorMessage = "Upload failed: Access denied. Please check your subscription status."
+		}
+
+		http.Error(w, errorMessage, http.StatusPaymentRequired) // 402 Payment Required
+		slog.Warn("Upload blocked due to payment restrictions", "userID", userID, "reason", accessResp.Reason)
+		return
+	}
+
+	// Log usage warning if near limit
+	if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
+		slog.Warn("User approaching storage limit", "userID", userID, "warning", accessResp.WarningMessage)
 	}
 
 	// Enforce Content-Length header if provided
@@ -268,6 +303,27 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to add video to the database", "err", err)
 		http.Error(w, "Failed to add video to the library", http.StatusInternalServerError)
 		return
+	}
+
+	// Update storage usage in payment service
+	fileInfo, err := outFile.Stat()
+	if err != nil {
+		slog.Error("Failed to get file size for usage tracking", "err", err, "filename", fileName)
+	} else {
+		fileSize := fileInfo.Size()
+		slog.Info("Updating storage usage", "userID", userID, "fileSize", fileSize)
+
+		_, err = api.paymentServiceClient.UpdateUserUsage(r.Context(), &paymentProto.UpdateUserUsageRequest{
+			UserId:      userID,
+			UsageType:   "storage",
+			UsageChange: fileSize,
+		})
+		if err != nil {
+			slog.Error("Failed to update storage usage in payment service", "err", err, "userID", userID, "fileSize", fileSize)
+			// Don't fail the upload, just log the error
+		} else {
+			slog.Info("Storage usage updated successfully", "userID", userID, "fileSize", fileSize)
+		}
 	}
 
 	// Success! Respond and exit

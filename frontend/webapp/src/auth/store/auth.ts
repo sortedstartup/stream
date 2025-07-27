@@ -6,6 +6,7 @@ import { User } from 'firebase/auth'
 export const $isLoggedIn = atom(false)
 export const $currentUser = atom<User | null>(null)
 export const $authToken = atom<string>("")
+export const $authInitialized = atom(false)
 
 // Initialize auth state from localStorage
 const savedToken = localStorage.getItem('authToken')
@@ -33,6 +34,8 @@ export const initAuthStateHandler = () => {
     } else {
       clearAuthState()
     }
+    // Set auth as initialized once we've processed the initial auth state
+    $authInitialized.set(true)
   })
 }
 
