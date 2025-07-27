@@ -15,6 +15,7 @@ import (
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	userProto "sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
@@ -30,7 +31,8 @@ type VideoAPI struct {
 	dbQueries *db.Queries
 
 	// gRPC clients for other services
-	userServiceClient userProto.UserServiceClient
+	userServiceClient    userProto.UserServiceClient
+	paymentServiceClient paymentProto.PaymentServiceClient
 
 	// Policy validator for common video operations
 	policyValidator *VideoPolicyValidator
@@ -56,7 +58,7 @@ type ChannelAPI struct {
 	proto.UnimplementedChannelServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient) (*VideoAPI, *ChannelAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient, paymentServiceClient paymentProto.PaymentServiceClient) (*VideoAPI, *ChannelAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -89,14 +91,15 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 	policyValidator := NewVideoPolicyValidator(dbQueries, userServiceClient, childLogger)
 
 	videoAPI := &VideoAPI{
-		HTTPServerMux:     ServerMux,
-		config:            config,
-		db:                _db,
-		log:               childLogger,
-		dbQueries:         dbQueries,
-		userServiceClient: userServiceClient,
-		policyValidator:   policyValidator,
-		channelAPI:        channelAPI,
+		HTTPServerMux:        ServerMux,
+		config:               config,
+		db:                   _db,
+		log:                  childLogger,
+		dbQueries:            dbQueries,
+		userServiceClient:    userServiceClient,
+		paymentServiceClient: paymentServiceClient,
+		policyValidator:      policyValidator,
+		channelAPI:           channelAPI,
 	}
 
 	// The authentication is handled in mono/main.go

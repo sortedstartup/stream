@@ -33,6 +33,9 @@ INSERT INTO userservice_tenants (
     @created_by
 ) RETURNING id, name, description, is_personal, created_at, created_by;
 
+-- name: GetTenantByID :one
+SELECT * FROM userservice_tenants WHERE id = @id;
+
 -- name: GetUserTenants :many
 SELECT 
     tu.id as tenant_user_id,

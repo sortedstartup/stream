@@ -14,30 +14,33 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	"sortedstartup.com/stream/userservice/config"
 	"sortedstartup.com/stream/userservice/db"
 	"sortedstartup.com/stream/userservice/proto"
 )
 
 type UserAPI struct {
-	config    config.UserServiceConfig
-	db        *sql.DB
-	log       *slog.Logger
-	dbQueries *db.Queries
-	userCache *lru.Cache
+	config               config.UserServiceConfig
+	db                   *sql.DB
+	log                  *slog.Logger
+	dbQueries            *db.Queries
+	userCache            *lru.Cache
+	paymentServiceClient paymentProto.PaymentServiceClient
 	proto.UnimplementedUserServiceServer
 	tenantAPI *TenantAPI
 }
 
 type TenantAPI struct {
-	config    config.UserServiceConfig
-	db        *sql.DB
-	log       *slog.Logger
-	dbQueries *db.Queries
+	config               config.UserServiceConfig
+	db                   *sql.DB
+	log                  *slog.Logger
+	dbQueries            *db.Queries
+	paymentServiceClient paymentProto.PaymentServiceClient
 	proto.UnimplementedTenantServiceServer
 }
 
-func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
+func NewUserAPI(config config.UserServiceConfig, paymentServiceClient paymentProto.PaymentServiceClient) (*UserAPI, *TenantAPI, error) {
 	slog.Info("NewUserAPI")
 
 	childLogger := slog.With("service", "UserAPI")
@@ -55,19 +58,21 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 	}
 
 	tenantAPI := &TenantAPI{
-		config:    config,
-		db:        _db,
-		log:       childLogger,
-		dbQueries: dbQueries,
+		config:               config,
+		db:                   _db,
+		log:                  childLogger,
+		dbQueries:            dbQueries,
+		paymentServiceClient: paymentServiceClient,
 	}
 
 	userAPI := &UserAPI{
-		config:    config,
-		db:        _db,
-		log:       childLogger,
-		userCache: cache,
-		dbQueries: dbQueries,
-		tenantAPI: tenantAPI,
+		config:               config,
+		db:                   _db,
+		log:                  childLogger,
+		userCache:            cache,
+		dbQueries:            dbQueries,
+		paymentServiceClient: paymentServiceClient,
+		tenantAPI:            tenantAPI,
 	}
 
 	return userAPI, tenantAPI, nil
@@ -134,6 +139,20 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			s.userCache.Add(userEmail, true)
 			s.log.Info("adding email to cache", "email", userEmail)
 
+			// Initialize payment service for new user
+			s.log.Info("Initializing payment service for new user", "userID", authContext.User.ID)
+			paymentResp, err := s.paymentServiceClient.InitializeUser(ctx, &paymentProto.InitializeUserRequest{
+				UserId: authContext.User.ID,
+			})
+			if err != nil {
+				s.log.Error("Failed to initialize payment service for user", "error", err, "userID", authContext.User.ID)
+				// Don't fail the entire request, just log the error
+			} else if paymentResp != nil && !paymentResp.Success {
+				s.log.Error("Payment service initialization failed", "error", paymentResp.ErrorMessage, "userID", authContext.User.ID)
+			} else {
+				s.log.Info("Payment service initialized successfully", "userID", authContext.User.ID)
+			}
+
 			err = s.tenantAPI.createPersonalTenant(ctx)
 			if err != nil {
 				s.log.Error("Failed to create personal tenant", "error", err)
@@ -154,6 +173,25 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			s.userCache.Add(userEmail, true)
 			s.log.Info("adding email to cache", "email", userEmail)
 
+			// Check if existing user has payment service initialized (migration for old users)
+			s.log.Info("Checking payment service for existing user", "userID", authContext.User.ID)
+			paymentResp, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+				UserId: authContext.User.ID,
+			})
+			if err != nil || (paymentResp != nil && !paymentResp.Success) {
+				s.log.Warn("Existing user has no payment service record, initializing", "userID", authContext.User.ID)
+				// Initialize payment service for existing user (migration)
+				initResp, err := s.paymentServiceClient.InitializeUser(ctx, &paymentProto.InitializeUserRequest{
+					UserId: authContext.User.ID,
+				})
+				if err != nil {
+					s.log.Error("Failed to initialize payment service for existing user", "error", err, "userID", authContext.User.ID)
+				} else if initResp != nil && !initResp.Success {
+					s.log.Error("Payment service initialization failed for existing user", "error", initResp.ErrorMessage, "userID", authContext.User.ID)
+				} else {
+					s.log.Info("Payment service initialized successfully for existing user", "userID", authContext.User.ID)
+				}
+			}
 		}
 		successMessage = "User already exists"
 	}
@@ -237,6 +275,29 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "tenant name is required")
 	}
+
+	// Check payment access for creating new organizational workspace (free users restricted to personal only)
+	s.log.Info("Checking payment access for workspace creation", "userID", authContext.User.ID)
+	accessResp, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: authContext.User.ID,
+	})
+	if err != nil {
+		s.log.Error("Payment service error while checking workspace creation", "error", err, "userID", authContext.User.ID)
+		return nil, status.Error(codes.Internal, "payment service unavailable")
+	}
+
+	if !accessResp.Success {
+		return nil, status.Error(codes.FailedPrecondition, "payment service not initialized")
+	}
+
+	// Free users can only use personal workspace - block organizational workspace creation
+	if accessResp.SubscriptionInfo.Plan.Id == "free" {
+		s.log.Warn("Free user attempted to create organizational workspace", "userID", authContext.User.ID, "planID", accessResp.SubscriptionInfo.Plan.Id)
+		return nil, status.Error(codes.PermissionDenied, "workspace creation requires paid subscription. Please upgrade your plan to create additional workspaces.")
+	}
+
+	// Paid users can create unlimited organizational workspaces
+	s.log.Info("Paid user creating workspace", "userID", authContext.User.ID, "planID", accessResp.SubscriptionInfo.Plan.Id)
 
 	tenantID := uuid.New().String()
 	tenantParams := db.CreateTenantParams{
@@ -388,6 +449,65 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 		s.log.Warn("Non-super-admin user attempted to add user to tenant", "userID", authContext.User.ID, "role", userRole, "tenantID", req.TenantId)
 		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can add users to tenant")
 	}
+
+	// Check payment access for adding users (check against tenant owner's subscription)
+	// Get tenant owner
+	tenant, err := s.dbQueries.GetTenantByID(ctx, req.TenantId)
+	if err != nil {
+		s.log.Error("Failed to get tenant details", "error", err, "tenantID", req.TenantId)
+		return nil, status.Error(codes.Internal, "failed to get tenant details")
+	}
+
+	// Check workspace type and apply appropriate logic
+	if tenant.IsPersonal {
+		s.log.Info("Adding user to personal workspace", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
+		// For personal workspaces: Check global user limit (5 free, 50 paid)
+	} else {
+		s.log.Info("Adding user to organizational workspace", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
+		// For organizational workspaces: Only paid users can create these, so check 50-user limit
+
+		// First verify the owner has paid subscription (organizational workspaces require payment)
+		subscriptionResp, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+			UserId: tenant.CreatedBy,
+		})
+		if err != nil {
+			s.log.Error("Failed to get subscription for organizational workspace owner", "error", err, "tenantOwner", tenant.CreatedBy)
+			return nil, status.Error(codes.Internal, "payment service unavailable")
+		}
+
+		if !subscriptionResp.Success || subscriptionResp.SubscriptionInfo.Plan.Id == "free" {
+			s.log.Error("Free user owns organizational workspace - data inconsistency", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
+			return nil, status.Error(codes.FailedPrecondition, "organizational workspace requires paid subscription")
+		}
+	}
+
+	// Check if tenant owner can add more users (applies to both personal and organizational)
+	s.log.Info("Checking user limit for adding member", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId, "isPersonal", tenant.IsPersonal)
+	accessResp, err := s.paymentServiceClient.CheckUserAccess(ctx, &paymentProto.CheckUserAccessRequest{
+		UserId:         tenant.CreatedBy, // Check tenant owner's subscription
+		UsageType:      "users",
+		RequestedUsage: 1, // Adding 1 user
+	})
+	if err != nil {
+		s.log.Error("Payment service error while checking user limits", "error", err, "tenantOwner", tenant.CreatedBy)
+		// Don't block the operation, just log the error for now
+	} else if !accessResp.HasAccess {
+		var errorMessage string
+		switch accessResp.Reason {
+		case "users_limit_exceeded":
+			errorMessage = "Cannot add user: User limit exceeded. Please upgrade your plan to add more members."
+		case "subscription_inactive":
+			errorMessage = "Cannot add user: Subscription is inactive. Please reactivate to add members."
+		default:
+			errorMessage = "Cannot add user: Access denied. Please check your subscription status."
+		}
+
+		s.log.Warn("User addition blocked due to payment restrictions", "tenantOwner", tenant.CreatedBy, "reason", accessResp.Reason)
+		return nil, status.Error(codes.FailedPrecondition, errorMessage)
+	} else if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
+		s.log.Warn("Tenant owner approaching user limit", "tenantOwner", tenant.CreatedBy, "warning", accessResp.WarningMessage)
+	}
+
 	tenantUserParams := db.CreateTenantUserParams{
 		ID:        uuid.New().String(),
 		TenantID:  req.TenantId,
