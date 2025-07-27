@@ -1,9 +1,13 @@
 import React, { useState } from 'react'
-import { X, AlertCircle } from 'react-feather'
+import { useStore } from '@nanostores/react'
+import { X, AlertCircle, CreditCard } from 'react-feather'
+import { $userSubscription, isFreePlan } from '../../stores/payment'
 
 export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const userSubscription = useStore($userSubscription)
+  const isFreeUser = isFreePlan(userSubscription)
 
   if (!isOpen) return null
 
@@ -50,6 +54,17 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
         </button>
 
         <h3 className="font-bold text-lg mb-4">Create New Workspace</h3>
+        
+        {/* Payment Restriction Notice for Free Users */}
+        {isFreeUser && (
+          <div className="alert alert-warning mb-4">
+            <CreditCard className="stroke-current shrink-0 h-4 w-4" />
+            <div className="flex-1">
+              <span className="text-sm font-medium">Upgrade Required</span>
+              <p className="text-xs mt-1">Creating additional workspaces requires a paid subscription. Upgrade to unlock unlimited workspaces.</p>
+            </div>
+          </div>
+        )}
         
         {error && (
           <div className="alert alert-error mb-4">
@@ -99,20 +114,31 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Creating...
-                </>
-              ) : (
-                'Create Workspace'
-              )}
-            </button>
+            {isFreeUser ? (
+              <button 
+                type="button"
+                className="btn btn-primary"
+                onClick={() => window.location.href = '/billing'}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Upgrade Plan
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Workspace'
+                )}
+              </button>
+            )}
           </div>
         </form>
       </div>

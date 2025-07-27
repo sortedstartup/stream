@@ -11,6 +11,8 @@ import { VideoPage } from './pages/VideoPage'
 import { UploadPage } from './pages/UploadPage';
 import { ChannelDashboardPage } from './pages/ChannelDashboard';
 import ChannelPage from './pages/ChannelPage';
+import { BillingPage } from './pages/BillingPage';
+import { BillingSuccessPage } from './pages/BillingSuccessPage';
 
 function App() {
   return (
@@ -60,6 +62,16 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/billing" element={
+          <ProtectedRoute>
+            <BillingPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/billing/success" element={
+          <ProtectedRoute>
+            <BillingSuccessPage />
           </ProtectedRoute>
         } />
       </Routes>

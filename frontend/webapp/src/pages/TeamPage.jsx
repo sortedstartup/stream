@@ -6,12 +6,15 @@ import { showSuccessToast } from '../utils/toast'
 import {  AlertCircle, User, Users, UserPlus, X } from 'react-feather'
 import {  AddUserModal } from '../components/modals'
 import { $currentUser } from '../auth/store/auth'
+import { $userSubscription } from '../stores/payment'
+import { UsageWarningBanner } from '../components/UsageWarningBanner'
 
 export const TeamPage = () => {
   const currentTenant = useStore($currentTenant)
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
   const currentUser = useStore($currentUser)
+  const userSubscription = useStore($userSubscription)
   
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
@@ -76,6 +79,9 @@ export const TeamPage = () => {
             </p>
           </div>
         </div>
+
+        {/* Usage Warning Banner */}
+        <UsageWarningBanner subscription={userSubscription} />
 
         {/* Error Alert */}
         {tenantError && (
