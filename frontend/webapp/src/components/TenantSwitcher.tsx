@@ -20,11 +20,12 @@ export const TenantSwitcher = () => {
 
     await switchTenant(tenant)
 
-    const path = location.pathname;
+    const path = location.pathname
 
-    const isChannelPath = path.startsWith('/channel/')
-    
-    if (isChannelPath) {
+    // Match paths like /channel/abc123, /video/xyz, /record/123
+    const isTenantScopedResourcePath = /^\/[^/]+\/[^/]+$/.test(path)
+
+    if (isTenantScopedResourcePath) {
       navigate('/channels', { replace: true })
     } else {
       navigate(path, { replace: true })
