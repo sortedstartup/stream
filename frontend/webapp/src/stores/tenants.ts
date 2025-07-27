@@ -2,10 +2,15 @@ import { atom, computed } from 'nanostores'
 import { AddUserRequest, GetTenantsRequest, GetUsersRequest, TenantServiceClient, TenantUser, UserServiceClient } from '../proto/userservice'
 import { CreateTenantRequest } from '../proto/userservice'
 import { $authToken } from '../auth/store/auth'
+import { persistentAtom } from '@nanostores/persistent'
 
 // Tenant state atoms
 export const $tenants = atom<TenantUser[]>([])
-export const $currentTenant = atom<TenantUser | null>(null)
+export const $currentTenant = persistentAtom<TenantUser | null>('currentTenant', null, {
+  encode: JSON.stringify,
+  decode: JSON.parse,
+})
+
 export const $isLoadingTenants = atom(false)
 export const $tenantError = atom<string | null>(null)
 export const $userTenantRoles = atom<Record<string, string>>({}) // tenantId -> role mapping

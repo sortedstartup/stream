@@ -8,6 +8,7 @@ import { CreateWorkspaceModal } from '../modals'
 import { createTenant, switchTenant } from '../../stores/tenants'
 import { showSuccessToast } from '../../utils/toast'
 import { useNavigate } from "react-router"
+import { Breadcrumb } from '../Breadcrumb'
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -62,6 +63,7 @@ export const Layout = ({ children }) => {
         {/* Main Content */}
         <main className="flex-1 w-full md:ml-16 px-4 overflow-x-hidden">
           <div className="max-w-screen-xl mx-auto py-4">
+            <Breadcrumb />
             {children}
           </div>
         </main>
