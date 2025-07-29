@@ -98,6 +98,16 @@ const ChannelPage = () => {
     setTimeout(() => setStatusMessage(null), 5000);
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp || typeof timestamp.seconds !== 'number') return 'Unknown date';
+    
+    // Convert seconds to milliseconds
+    const millis = timestamp.seconds * 1000;
+    const date = new Date(millis);
+    
+    return isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleDateString();
+  };
+
   // Filter videos that belong to this channel (if video has channel_id)
   const channelVideos = videos.filter(video => video.channel_id === id);
 
@@ -392,8 +402,7 @@ const ChannelPage = () => {
                   />
                 </div>
                 <div className="text-xs text-base-content/60 space-y-1">
-                  <p>{video.duration || 'Unknown duration'}</p>
-                  <p>{new Date(video.createdAt).toLocaleDateString()}</p>
+                    <p>{formatDate(video.created_at)}</p>
                 </div>
                 <div className="card-actions justify-end">
                   <button 

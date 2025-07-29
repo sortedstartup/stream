@@ -27,6 +27,11 @@ const CreateChannelModal = ({ isOpen, onClose, onChannelCreated }) => {
       return;
     }
 
+    if (formData.name.trim().length > 50) {
+      setError('Channel name cannot exceed 50 characters');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -91,11 +96,11 @@ const CreateChannelModal = ({ isOpen, onClose, onChannelCreated }) => {
               placeholder="e.g., Marketing Team, Product Updates..."
               className={`input input-bordered w-full ${error && !formData.name.trim() ? 'input-error' : ''}`}
               disabled={loading}
-              maxLength={100}
+              maxLength={50}
             />
             <label className="label">
               <span className="label-text-alt text-base-content/60">
-                {formData.name.length}/100 characters
+                {formData.name.length}/50 characters
               </span>
             </label>
           </div>

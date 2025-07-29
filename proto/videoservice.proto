@@ -44,6 +44,7 @@ message Video {
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
   string channel_id = 10; // Optional: channel this video belongs to
+  int64 duration_seconds = 11;
 }
 
 enum VideoStatus {
@@ -116,6 +117,7 @@ message Channel {
   google.protobuf.Timestamp updated_at = 8;
   string user_role = 9; // Current user's role in this channel: owner, uploader, viewer
   int32 member_count = 10; // Number of members (only populated for owners)
+  int32 video_count = 11;  // Number of videos in this channel
 }
 
 message ChannelMember {

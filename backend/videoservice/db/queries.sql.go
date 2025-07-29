@@ -530,6 +530,43 @@ func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideo
 	return i, err
 }
 
+const getVideoCountsPerChannelByTenantID = `-- name: GetVideoCountsPerChannelByTenantID :many
+SELECT 
+  channel_id,
+  COUNT(*) AS video_count
+FROM videoservice_videos
+WHERE tenant_id = ?1 AND is_deleted = FALSE AND channel_id IS NOT NULL AND channel_id != ''
+GROUP BY channel_id
+`
+
+type GetVideoCountsPerChannelByTenantIDRow struct {
+	ChannelID  sql.NullString
+	VideoCount int64
+}
+
+func (q *Queries) GetVideoCountsPerChannelByTenantID(ctx context.Context, tenantID sql.NullString) ([]GetVideoCountsPerChannelByTenantIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getVideoCountsPerChannelByTenantID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetVideoCountsPerChannelByTenantIDRow
+	for rows.Next() {
+		var i GetVideoCountsPerChannelByTenantIDRow
+		if err := rows.Scan(&i.ChannelID, &i.VideoCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVideosByTenantID = `-- name: GetVideosByTenantID :many
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
 WHERE tenant_id = ?1 AND is_deleted = FALSE
