@@ -177,3 +177,11 @@ UPDATE videoservice_videos
 SET is_deleted = TRUE, updated_at = @updated_at
 WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
 
+-- name: GetVideoCountsPerChannelByTenantID :many
+SELECT 
+  channel_id,
+  COUNT(*) AS video_count
+FROM videoservice_videos
+WHERE tenant_id = @tenant_id AND is_deleted = FALSE AND channel_id IS NOT NULL AND channel_id != ''
+GROUP BY channel_id;
+
