@@ -29,11 +29,17 @@ export const VideoPage = () => {
     const [video, setVideo] = useState(null)
     const currentTenant = useStore($currentTenant);
 
+    const tenantId = currentTenant?.tenant?.id;
+
     useEffect(() => {
-        fetchVideo(id).then(video=>{
-            setVideo(video)
-        })
-    }, [id])
+        if (id && tenantId) {
+            fetchVideo(id)
+                .then(setVideo)
+                .catch(err => {
+                    console.error("Failed to load video", err);
+                });
+        }
+    }, [id, tenantId]);
 
     if (!video) return <div>Loading...</div>
 
