@@ -10,11 +10,17 @@ export const $currentTenant = persistentAtom<TenantUser | null>(
   'currentTenant',
   null,
   {
-    encode: JSON.stringify,
+    encode: (value) => {
+      if (!value) return JSON.stringify(null)
+      return JSON.stringify(value.toObject())
+    },
     decode: (str) => {
       try {
         const obj = JSON.parse(str)
-        if (obj && obj.tenant && obj.tenant.id) return obj
+        if (!obj) return null
+        if (obj && obj.tenant && obj.tenant.id) {
+          return TenantUser.fromObject(obj)
+        }
       } catch {}
       return null
     },
@@ -87,14 +93,30 @@ export const loadUserTenants = async () => {
       })
       $userTenantRoles.set(roleMapping)
       
-      if($currentTenant.get() === null) {
-      // Set current tenant to personal tenant by default, or first tenant if no personal tenant
-      const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
-      const defaultTenant = personalTenant || response.tenant_users[0]
-      if (defaultTenant) {
-        $currentTenant.set(defaultTenant)
+      const currentTenant = $currentTenant.get()
+      
+      if (currentTenant === null) {
+        // Set current tenant to personal tenant by default, or first tenant if no personal tenant
+        const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
+        const defaultTenant = personalTenant || response.tenant_users[0]
+        if (defaultTenant) {
+          $currentTenant.set(defaultTenant)
+        }
+      } else {
+        // Validate that the current tenant still exists in the user's tenant list
+        const tenantStillExists = response.tenant_users.find(t => t.tenant.id === currentTenant.tenant.id)
+        if (!tenantStillExists) {
+          // Current tenant no longer exists, fallback to default
+          const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
+          const defaultTenant = personalTenant || response.tenant_users[0]
+          if (defaultTenant) {
+            $currentTenant.set(defaultTenant)
+          } else {
+            $currentTenant.set(null)
+          }
+        }
+        // If tenant still exists, keep the current tenant as-is
       }
-    }
     } else {
       $tenantError.set(response.message || 'Failed to load tenants')
     }
@@ -190,9 +212,8 @@ export const getTenantUsers = async (tenantId: string) => {
 // Initialize tenants when auth state changes
 $authToken.subscribe((token) => {
   if (token) {
-//    if($currentTenant.get() === null) { 
-      loadUserTenants()
-//  }
+    // Always load tenants to update the list and role mappings, but preserve current tenant
+    loadUserTenants()
   } else {
     $tenants.set([])
     $currentTenant.set(null)
