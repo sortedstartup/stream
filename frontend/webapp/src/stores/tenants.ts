@@ -6,10 +6,21 @@ import { persistentAtom } from '@nanostores/persistent'
 
 // Tenant state atoms
 export const $tenants = atom<TenantUser[]>([])
-export const $currentTenant = persistentAtom<TenantUser | null>('currentTenant', null, {
-  encode: JSON.stringify,
-  decode: JSON.parse,
-})
+export const $currentTenant = persistentAtom<TenantUser | null>(
+  'currentTenant',
+  null,
+  {
+    encode: JSON.stringify,
+    decode: (str) => {
+      try {
+        const obj = JSON.parse(str)
+        if (obj && obj.tenant && obj.tenant.id) return obj
+      } catch {}
+      return null
+    },
+  }
+)
+
 
 export const $isLoadingTenants = atom(false)
 export const $tenantError = atom<string | null>(null)
@@ -76,12 +87,14 @@ export const loadUserTenants = async () => {
       })
       $userTenantRoles.set(roleMapping)
       
+      if($currentTenant.get() === null) {
       // Set current tenant to personal tenant by default, or first tenant if no personal tenant
       const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
       const defaultTenant = personalTenant || response.tenant_users[0]
       if (defaultTenant) {
         $currentTenant.set(defaultTenant)
       }
+    }
     } else {
       $tenantError.set(response.message || 'Failed to load tenants')
     }
@@ -177,7 +190,9 @@ export const getTenantUsers = async (tenantId: string) => {
 // Initialize tenants when auth state changes
 $authToken.subscribe((token) => {
   if (token) {
-    loadUserTenants()
+//    if($currentTenant.get() === null) { 
+      loadUserTenants()
+//  }
   } else {
     $tenants.set([])
     $currentTenant.set(null)
