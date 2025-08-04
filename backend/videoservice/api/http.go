@@ -366,6 +366,8 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	contentType := getMimeTypeFromExtension(video.Url)
 	w.Header().Set("Content-Type", contentType)
 
+	w.Header().Set("Content-Disposition", "inline")
+
 	// Cache video files for a longer period since they rarely change
 	// 7 days = 604800 seconds
 	w.Header().Set("Cache-Control", "public, max-age=604800") // Cache for 7 days

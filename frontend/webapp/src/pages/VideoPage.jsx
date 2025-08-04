@@ -16,6 +16,7 @@ const SimpleVideoPlayer = ({ videoId, tenantId }) => {
             <video
                 className="w-full aspect-video"
                 controls
+                controlsList="nodownload"
                 src={videoUrl}
             >
                 Your browser does not support the video tag.
