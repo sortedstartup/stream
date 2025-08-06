@@ -9,7 +9,9 @@ import {
     VideoServiceClient,
     MoveVideoToChannelRequest,
     RemoveVideoFromChannelRequest,
-    DeleteVideoRequest
+    DeleteVideoRequest,
+    UpdateVideoRequest,
+    Visibility
 } from "../proto/videoservice"
 
 export const $videos = atom<Video[]>([])
@@ -140,3 +142,37 @@ export const deleteVideo = async (videoId: string): Promise<void> => {
         throw error
     }
 }
+
+export const updateVideo = async (
+  videoId: string,
+  title: string,
+  description: string,
+  isPrivate: boolean
+): Promise<void> => {
+  try {
+    const visibility = isPrivate ? 0 : 2; // 0 = PRIVATE, 2 = PUBLIC
+
+    console.log({
+        video_id: videoId,
+        title,
+        description,
+        visibility,
+    });
+
+    const request = UpdateVideoRequest.fromObject({
+      video_id: videoId,
+      title,
+      description,
+      visibility,
+    });
+
+    await videoService.UpdateVideo(request, {});
+
+    await fetchVideos();
+    await fetchTenantVideos();
+  } catch (error) {
+    console.error("Error updating video:", error);
+    throw error;
+  }
+};
+

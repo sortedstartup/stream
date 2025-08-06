@@ -730,3 +730,30 @@ func (q *Queries) UpdateVideoChannel(ctx context.Context, arg UpdateVideoChannel
 	)
 	return err
 }
+
+const updateVideoTitleDescriptionIsPrivate = `-- name: UpdateVideoTitleDescriptionIsPrivate :exec
+UPDATE videoservice_videos
+SET title = ?1,
+    description = ?2,
+    is_private = ?3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = ?4
+  AND is_deleted = FALSE
+`
+
+type UpdateVideoTitleDescriptionIsPrivateParams struct {
+	Title       string
+	Description string
+	IsPrivate   sql.NullBool
+	ID          string
+}
+
+func (q *Queries) UpdateVideoTitleDescriptionIsPrivate(ctx context.Context, arg UpdateVideoTitleDescriptionIsPrivateParams) error {
+	_, err := q.db.ExecContext(ctx, updateVideoTitleDescriptionIsPrivate,
+		arg.Title,
+		arg.Description,
+		arg.IsPrivate,
+		arg.ID,
+	)
+	return err
+}

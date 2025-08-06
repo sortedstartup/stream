@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { $channels } from '../stores/channels';
-import { moveVideoToChannel, removeVideoFromChannel, deleteVideo } from '../stores/videos';
+import { moveVideoToChannel, removeVideoFromChannel, deleteVideo, updateVideo } from '../stores/videos';
 
 const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, onActionError }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +9,11 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedChannelId, setSelectedChannelId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState(video.title);
+  const [editDescription, setEditDescription] = useState(video.description);
+  const [editIsPrivate, setEditIsPrivate] = useState(video.visibility === 0); // private = 0
+
   const channels = useStore($channels);
 
   // Determine what actions are available based on video location and user permissions
@@ -129,6 +134,22 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
                   Remove from Channel
                 </button>
               )}
+
+              <button
+                onClick={() => {
+                  setEditTitle(video.title);
+                  setEditDescription(video.description);
+                  setEditIsPrivate(video.visibility === 0);
+                  setShowEditModal(true);
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-base-200 flex items-center gap-2 cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5m-5-5l5 5M14 3l7 7" />
+                </svg>
+                Edit Details
+              </button>
+
               
               {canDelete && (
                 <button
@@ -253,6 +274,85 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
           </div>
         </div>
       )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Edit Video Details</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Title</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                className="textarea textarea-bordered w-full"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="form-control mb-6">
+              <label className="cursor-pointer label justify-start gap-4">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={editIsPrivate}
+                  onChange={() => setEditIsPrivate(!editIsPrivate)}
+                />
+                <span className="label-text">Private Video</span>
+              </label>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="btn btn-ghost flex-1"
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsLoading(true);
+                  onActionStart?.("Updating video details...");
+
+                  try {
+                    await updateVideo(video.id, editTitle, editDescription, editIsPrivate);
+                    onActionComplete?.("Video updated successfully.");
+                    setShowEditModal(false);
+                    setIsOpen(false);
+                  } catch (error) {
+                    onActionError?.("Failed to update video.");
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="btn btn-primary flex-1"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
