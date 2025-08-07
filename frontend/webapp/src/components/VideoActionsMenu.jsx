@@ -12,7 +12,6 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTitle, setEditTitle] = useState(video.title);
   const [editDescription, setEditDescription] = useState(video.description);
-  const [editIsPrivate, setEditIsPrivate] = useState(video.visibility === 0); // private = 0
 
   const channels = useStore($channels);
 
@@ -139,7 +138,6 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
                 onClick={() => {
                   setEditTitle(video.title);
                   setEditDescription(video.description);
-                  setEditIsPrivate(video.visibility === 0);
                   setShowEditModal(true);
                 }}
                 className="w-full px-4 py-2 text-left hover:bg-base-200 flex items-center gap-2 cursor-pointer"
@@ -300,18 +298,6 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
               />
             </div>
 
-            <div className="form-control mb-6">
-              <label className="cursor-pointer label justify-start gap-4">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={editIsPrivate}
-                  onChange={() => setEditIsPrivate(!editIsPrivate)}
-                />
-                <span className="label-text">Private Video</span>
-              </label>
-            </div>
-
             <div className="flex gap-2">
               <button
                 onClick={() => setShowEditModal(false)}
@@ -326,7 +312,7 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
                   onActionStart?.("Updating video details...");
 
                   try {
-                    await updateVideo(video.id, editTitle, editDescription, editIsPrivate);
+                    await updateVideo(video.id, editTitle, editDescription);
                     onActionComplete?.("Video updated successfully.");
                     setShowEditModal(false);
                     setIsOpen(false);

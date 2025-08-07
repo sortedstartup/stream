@@ -291,7 +291,7 @@ func (s *VideoAPI) UpdateVideo(ctx context.Context, req *proto.UpdateVideoReques
 		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
-	s.log.Info("UpdateVideo request received", "video_id", req.VideoId, "title", req.Title, "description", req.Description, "visibility", req.Visibility)
+	s.log.Info("UpdateVideo request received", "video_id", req.VideoId, "title", req.Title, "description", req.Description)
 
 	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
 	if err != nil {
@@ -317,17 +317,10 @@ func (s *VideoAPI) UpdateVideo(ctx context.Context, req *proto.UpdateVideoReques
 		return nil, status.Error(codes.PermissionDenied, "permission denied: only uploader can update the video")
 	}
 
-	// Convert proto Visibility to sql.NullBool
-	isPrivate := sql.NullBool{
-		Bool:  req.Visibility == proto.Visibility_VISIBILITY_PRIVATE,
-		Valid: true,
-	}
-
-	err = s.dbQueries.UpdateVideoTitleDescriptionIsPrivate(ctx, db.UpdateVideoTitleDescriptionIsPrivateParams{
+	err = s.dbQueries.UpdateVideoTitleDescription(ctx, db.UpdateVideoTitleDescriptionParams{
 		ID:          video.ID,
 		Title:       req.Title,
 		Description: req.Description,
-		IsPrivate:   isPrivate,
 	})
 	if err != nil {
 		s.log.Error("Failed to update video", "err", err)
@@ -346,22 +339,12 @@ func (s *VideoAPI) UpdateVideo(ctx context.Context, req *proto.UpdateVideoReques
 		return nil, status.Error(codes.Internal, "failed to get updated video")
 	}
 
-	// Convert sql.NullBool to proto.Visibility enum safely
-	visibility := proto.Visibility_VISIBILITY_PUBLIC // default fallback
-
-	if updated.IsPrivate.Valid && updated.IsPrivate.Bool {
-		visibility = proto.Visibility_VISIBILITY_PRIVATE
-	} else {
-		visibility = proto.Visibility_VISIBILITY_PUBLIC
-	}
-
 	return &proto.Video{
 		Id:          updated.ID,
 		Title:       updated.Title,
 		Description: updated.Description,
 		Url:         updated.Url,
 		ChannelId:   updated.ChannelID.String,
-		Visibility:  visibility,
 		CreatedAt:   timestamppb.New(updated.CreatedAt),
 	}, nil
 }

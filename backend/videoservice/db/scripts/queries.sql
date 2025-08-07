@@ -60,11 +60,10 @@ WHERE v.tenant_id = @tenant_id AND v.is_deleted = FALSE
   )
 ORDER BY v.created_at DESC;
 
--- name: UpdateVideoTitleDescriptionIsPrivate :exec
+-- name: UpdateVideoTitleDescription :exec
 UPDATE videoservice_videos
 SET title = @title,
     description = @description,
-    is_private = @is_private,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = @id
   AND is_deleted = FALSE;
