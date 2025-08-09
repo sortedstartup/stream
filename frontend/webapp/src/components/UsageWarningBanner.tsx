@@ -84,13 +84,13 @@ export const UsageWarningBanner: React.FC<UsageWarningBannerProps> = ({
   const getIcon = (level: string) => {
     switch (level) {
       case 'critical':
-        return <XCircle className="h-5 w-5" />
+        return <XCircle className="h-4 w-4" />
       case 'danger':
-        return <AlertCircle className="h-5 w-5" />
+        return <AlertCircle className="h-4 w-4" />
       case 'warning':
-        return <AlertTriangle className="h-5 w-5" />
+        return <AlertTriangle className="h-4 w-4" />
       default:
-        return <AlertTriangle className="h-5 w-5" />
+        return <AlertTriangle className="h-4 w-4" />
     }
   }
 
@@ -100,52 +100,33 @@ export const UsageWarningBanner: React.FC<UsageWarningBannerProps> = ({
   }
 
   return (
-    <div className={`border rounded-lg p-4 ${getAlertStyles(level)} ${className}`}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {getIcon(level)}
-        </div>
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium">
-            {level === 'critical' ? 'Action Required' : 'Usage Warning'}
-          </h3>
-          <div className="mt-2 text-sm">
-            <p>{getUsageWarningMessage(primaryWarning.type as 'storage' | 'users', primaryWarning.percent)}</p>
-            
-            {/* Usage details */}
-            <div className="mt-3 space-y-2">
-              {showStorageWarning && (
-                <div className="flex items-center justify-between text-xs">
-                  <span>Storage:</span>
-                  <span>
-                    {formatStorageUsed(subscription.usage.storage_used_bytes || 0)} / {formatStorageLimit(subscription.plan.storage_limit_bytes || 0)} 
-                    ({storagePercent.toFixed(1)}%)
-                  </span>
-                </div>
-              )}
-              {showUsersWarning && (
-                <div className="flex items-center justify-between text-xs">
-                  <span>Users:</span>
-                  <span>
-                    {subscription.usage.users_count || 0} / {subscription.plan.users_limit || 0} 
-                    ({usersPercent.toFixed(1)}%)
-                  </span>
-                </div>
-              )}
-            </div>
+    <div className={`border rounded px-3 py-2 ${getAlertStyles(level)} ${className}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 mr-2">
+            {getIcon(level)}
+          </div>
+          <div className="text-sm">
+            <span className="font-medium mr-2">
+              {level === 'critical' ? 'Storage Full' : 'Storage Warning'}:
+            </span>
+            <span>
+              {primaryWarning.type === 'storage' 
+                ? `${formatStorageUsed(subscription.usage.storage_used_bytes || 0)} / ${formatStorageLimit(subscription.plan.storage_limit_bytes || 0)} (${primaryWarning.percent.toFixed(1)}%)`
+                : `${subscription.usage.users_count || 0} / ${subscription.plan.users_limit || 0} users (${primaryWarning.percent.toFixed(1)}%)`
+              }
+            </span>
           </div>
         </div>
         
-        {/* Upgrade button for free users */}
+        {/* Compact upgrade button for free users */}
         {subscription.plan.id === 'free' && (
-          <div className="ml-4 flex-shrink-0">
-            <button
-              onClick={handleUpgradeClick}
-              className="btn btn-sm btn-primary"
-            >
-              Upgrade Plan
-            </button>
-          </div>
+          <button
+            onClick={handleUpgradeClick}
+            className="btn btn-xs btn-primary ml-3"
+          >
+            Upgrade
+          </button>
         )}
       </div>
     </div>

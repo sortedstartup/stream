@@ -16,7 +16,7 @@ import {
   getUsersUsagePercent
 } from '../stores/payment'
 import { showSuccessToast, showErrorToast } from '../utils/toast'
-import { UsageWarningBanner } from '../components/UsageWarningBanner'
+
 import { $currentUser, $authInitialized } from '../auth/store/auth'
 import { Layout } from '../components/layout/Layout'
 
@@ -32,6 +32,9 @@ export const BillingPage = () => {
   
   // Check if user data is ready for checkout - wait for auth to initialize
   const isUserReady = authInitialized && Boolean(currentUser?.uid)
+  
+  // Debug log
+  console.log('BillingPage - currentUser:', currentUser, 'uid:', currentUser?.uid, 'isUserReady:', isUserReady)
 
   useEffect(() => {
     // Load subscription when billing page is accessed and auth is ready
@@ -120,9 +123,6 @@ export const BillingPage = () => {
             <h1 className="text-3xl font-bold text-gray-900">Billing & Usage</h1>
             <p className="mt-2 text-gray-600">Manage your subscription and monitor usage</p>
           </div>
-
-          {/* Usage Warning Banner */}
-          <UsageWarningBanner subscription={subscription} className="mb-6" />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Current Plan */}

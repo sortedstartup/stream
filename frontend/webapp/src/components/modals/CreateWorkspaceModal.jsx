@@ -1,13 +1,9 @@
 import React, { useState } from 'react'
-import { useStore } from '@nanostores/react'
-import { X, AlertCircle, CreditCard } from 'react-feather'
-import { $userSubscription, isFreePlan } from '../../stores/payment'
+import { X, AlertCircle } from 'react-feather'
 
 export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const userSubscription = useStore($userSubscription)
-  const isFreeUser = isFreePlan(userSubscription)
 
   if (!isOpen) return null
 
@@ -22,12 +18,12 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
     
     if (name) {
       try {
-        const success = await onSubmit(name, description || '')
-        if (success) {
+        const result = await onSubmit(name, description || '')
+        if (result.success) {
           // Success - modal will be closed by parent
           setError('')
         } else {
-          setError('Failed to create workspace. Please try again.')
+          setError(result.error || 'Failed to create workspace. Please try again.')
         }
       } catch (err) {
         setError('Failed to create workspace. Please try again.')
@@ -54,17 +50,6 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
         </button>
 
         <h3 className="font-bold text-lg mb-4">Create New Workspace</h3>
-        
-        {/* Payment Restriction Notice for Free Users */}
-        {isFreeUser && (
-          <div className="alert alert-warning mb-4">
-            <CreditCard className="stroke-current shrink-0 h-4 w-4" />
-            <div className="flex-1">
-              <span className="text-sm font-medium">Upgrade Required</span>
-              <p className="text-xs mt-1">Creating additional workspaces requires a paid subscription. Upgrade to unlock unlimited workspaces.</p>
-            </div>
-          </div>
-        )}
         
         {error && (
           <div className="alert alert-error mb-4">

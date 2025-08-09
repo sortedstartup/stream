@@ -7,7 +7,6 @@ import {  AlertCircle, User, Users, UserPlus, X } from 'react-feather'
 import {  AddUserModal } from '../components/modals'
 import { $currentUser } from '../auth/store/auth'
 import { $userSubscription } from '../stores/payment'
-import { UsageWarningBanner } from '../components/UsageWarningBanner'
 
 export const TeamPage = () => {
   const currentTenant = useStore($currentTenant)
@@ -48,17 +47,19 @@ export const TeamPage = () => {
 
   const handleAddUser = async (username, role) => {
     if (username && currentTenant && currentTenant.tenant) {
-      const success = await addUserToTenant(currentTenant.tenant.id, username, role)
-      if (success) {
+      const result = await addUserToTenant(currentTenant.tenant.id, username, role)
+      if (result.success) {
         setShowAddUserModal(false)
         showSuccessToast(`User ${username} added successfully!`)
         // Refresh the user list
         const users = await getTenantUsers(currentTenant.tenant.id)
         setTenantUsers(users)
-        return true
+        return { success: true }
+      } else {
+        return { success: false, error: result.error }
       }
     }
-    return false
+    return { success: false, error: 'Invalid parameters' }
   }
 
   const dismissError = () => {
@@ -79,9 +80,6 @@ export const TeamPage = () => {
             </p>
           </div>
         </div>
-
-        {/* Usage Warning Banner */}
-        <UsageWarningBanner subscription={userSubscription} />
 
         {/* Error Alert */}
         {tenantError && (

@@ -25,12 +25,7 @@ export const LoginPage = () => {
     const token = await user.getIdToken()
 
     setAuthState({
-      user: {
-        id: user.uid,
-        email: user.email,
-        name: user.displayName,
-        photoURL: user.photoURL
-      },
+      user,  // Pass the Firebase user object directly
       token
     })
 
