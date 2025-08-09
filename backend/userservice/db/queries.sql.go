@@ -141,6 +141,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 	return i, err
 }
 
+const getTenantByID = `-- name: GetTenantByID :one
+SELECT id, name, description, is_personal, created_at, created_by FROM userservice_tenants WHERE id = ?1
+`
+
+func (q *Queries) GetTenantByID(ctx context.Context, id string) (UserserviceTenant, error) {
+	row := q.db.QueryRowContext(ctx, getTenantByID, id)
+	var i UserserviceTenant
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.IsPersonal,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
 const getTenantUsers = `-- name: GetTenantUsers :many
 SELECT 
     tu.role, tu.created_at,

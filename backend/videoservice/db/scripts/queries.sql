@@ -15,6 +15,7 @@ INSERT INTO videoservice_videos (
     channel_id,
     is_private,
     is_deleted,
+    file_size_bytes,
     created_at,
     updated_at
 ) VALUES (
@@ -27,6 +28,7 @@ INSERT INTO videoservice_videos (
     @channel_id,
     @is_private,
     @is_deleted,
+    @file_size_bytes,
     @created_at,
     @updated_at
 );
@@ -176,4 +178,17 @@ WHERE id = @video_id AND tenant_id = @tenant_id AND channel_id = @channel_id AND
 UPDATE videoservice_videos 
 SET is_deleted = TRUE, updated_at = @updated_at
 WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
+
+-- name: GetVideoFileSizeForDeletion :one
+SELECT file_size_bytes, uploaded_user_id FROM videoservice_videos 
+WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
+
+-- name: GetVideosWithoutFileSize :many
+SELECT * FROM videoservice_videos 
+WHERE (file_size_bytes IS NULL OR file_size_bytes = 0) AND is_deleted = FALSE;
+
+-- name: UpdateVideoFileSize :exec
+UPDATE videoservice_videos 
+SET file_size_bytes = @file_size_bytes, updated_at = @updated_at
+WHERE id = @video_id;
 

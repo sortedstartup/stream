@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Settings, Users, Video, Circle, Upload as UploadIcon, Folder } from 'react-feather'
+import { Home, Settings, Users, Video, Circle, Upload as UploadIcon, Folder, CreditCard } from 'react-feather'
 import { Link } from 'react-router'
 
 export const Sidebar = ({ onItemClick }) => {
@@ -9,6 +9,7 @@ export const Sidebar = ({ onItemClick }) => {
     { to: '/channels', icon: Folder, label: 'Dashboard', className: 'text-blue-500' },
     { to: '/record', icon: Circle, label: 'Record', className: 'text-red-500' },
     { to: '/upload', icon: UploadIcon, label: 'Upload' },
+    { to: '/billing', icon: CreditCard, label: 'Billing', className: 'text-green-500' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ]
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/viper"
 	c "sortedstartup.com/stream/commentservice/config"
+	p "sortedstartup.com/stream/paymentservice/config"
 	u "sortedstartup.com/stream/userservice/config"
 	s "sortedstartup.com/stream/videoservice/config"
 )
@@ -18,6 +19,7 @@ type MonolithConfig struct {
 	VideoService   s.VideoServiceConfig   `json:"videoService" mapstructure:"videoService"`
 	CommentService c.CommentServiceConfig `json:"commentService" mapstructure:"commentService"`
 	UserService    u.UserServiceConfig    `json:"userService" mapstructure:"userService"`
+	PaymentService p.PaymentServiceConfig `json:"paymentService" mapstructure:"paymentService"`
 }
 
 type ServerConfig struct {
@@ -61,6 +63,15 @@ func New() (MonolithConfig, error) {
 	viper.SetDefault("userService.db.driver", "sqlite")
 	viper.SetDefault("userService.db.url", "db.sqlite")
 	viper.SetDefault("userService.cacheSize", 10000)
+
+	viper.SetDefault("paymentService.db.driver", "sqlite")
+	viper.SetDefault("paymentService.db.url", "db.sqlite")
+	viper.SetDefault("paymentService.paymentProvider", "stripe")
+	viper.SetDefault("paymentService.stripe.secretKey", "")
+	viper.SetDefault("paymentService.stripe.publishableKey", "pk_test_51RpGge2QDgkP0mKu485q09VvgvRjXnAw64jjx0K6D55uJX3gVFtBwnLTm7RD651o5b5Ftopi50xlPqCUXhyH75Ar00iOOH6iNT")
+	viper.SetDefault("paymentService.stripe.webhookSecret", "")
+	viper.SetDefault("paymentService.stripe.standardPriceId", "")
+	viper.SetDefault("paymentService.stripe.premiumPriceId", "")
 
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {

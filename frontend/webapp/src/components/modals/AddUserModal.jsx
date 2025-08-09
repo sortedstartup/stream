@@ -18,12 +18,12 @@ export const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
     
     if (username && role) {
       try {
-        const success = await onSubmit(username, role)
-        if (success) {
+        const result = await onSubmit(username, role)
+        if (result.success) {
           // Success - modal will be closed by parent
           setError('')
         } else {
-          setError('Failed to add user. Please check the email address and try again.')
+          setError(result.error || 'Failed to add user. Please check the email address and try again.')
         }
       } catch (err) {
         setError('Failed to add user. Please try again.')
