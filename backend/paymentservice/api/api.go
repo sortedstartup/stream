@@ -44,10 +44,13 @@ func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAc
 	}
 
 	// Get user access info from database
+	log.Printf("CheckUserAccess: Checking access for user %s, usage type %s, requested usage %d", req.UserId, req.UsageType, req.RequestedUsage)
 	accessInfo, err := s.db.CheckUserAccess(ctx, req.UserId)
 	if err != nil {
+		log.Printf("CheckUserAccess: Database error for user %s: %v", req.UserId, err)
 		if err == sql.ErrNoRows {
 			// User doesn't have subscription - need to initialize with free plan
+			log.Printf("CheckUserAccess: No subscription found for user %s", req.UserId)
 			return &pb.CheckUserAccessResponse{
 				HasAccess:      false,
 				Reason:         "no_subscription",
@@ -55,8 +58,11 @@ func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAc
 				WarningMessage: "No subscription found. Please upgrade to continue.",
 			}, nil
 		}
-		return nil, status.Error(codes.Internal, "failed to check user access")
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to check user access: %v", err))
 	}
+
+	log.Printf("CheckUserAccess: Successfully retrieved access info for user %s - plan: %s, status: %s, storage limit: %v",
+		req.UserId, accessInfo.PlanID, accessInfo.SubscriptionStatus, accessInfo.StorageLimitBytes)
 
 	// Determine access based on usage type and requested amount
 	hasAccess := false
@@ -66,7 +72,11 @@ func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAc
 
 	switch req.UsageType {
 	case "storage":
-		wouldExceed := accessInfo.CurrentStorageBytes+req.RequestedUsage > accessInfo.StorageLimitBytes.Int64
+		storageLimit := int64(0)
+		if accessInfo.StorageLimitBytes.Valid {
+			storageLimit = accessInfo.StorageLimitBytes.Int64
+		}
+		wouldExceed := accessInfo.CurrentStorageBytes+req.RequestedUsage > storageLimit
 		hasAccess = accessInfo.HasStorageAccess == 1 && !wouldExceed
 		if !hasAccess {
 			if accessInfo.SubscriptionStatus != "active" {
@@ -78,7 +88,11 @@ func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAc
 		isNearLimit = accessInfo.StorageUsagePercent > 75
 
 	case "users":
-		wouldExceed := accessInfo.CurrentUsersCount+req.RequestedUsage > accessInfo.UsersLimit.Int64
+		usersLimit := int64(0)
+		if accessInfo.UsersLimit.Valid {
+			usersLimit = accessInfo.UsersLimit.Int64
+		}
+		wouldExceed := accessInfo.CurrentUsersCount+req.RequestedUsage > usersLimit
 		hasAccess = accessInfo.HasUsersAccess == 1 && !wouldExceed
 		if !hasAccess {
 			if accessInfo.SubscriptionStatus != "active" {
@@ -223,6 +237,7 @@ func (s *PaymentServer) CreateCheckoutSession(ctx context.Context, req *pb.Creat
 
 		sessionURL, sessionID, err := s.stripe.CreateCheckoutSession(
 			req.UserId,
+			req.PlanId,
 			priceID,
 			req.SuccessUrl,
 			req.CancelUrl,

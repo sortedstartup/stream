@@ -101,31 +101,52 @@ func (s *HTTPServer) handleCheckoutSessionCompleted(event stripe.Event) error {
 		return fmt.Errorf("failed to parse checkout session: %w", err)
 	}
 
-	// Extract user ID from metadata
+	// Extract user ID and plan ID from metadata
 	userID, exists := session.Metadata["user_id"]
 	if !exists {
 		return fmt.Errorf("user_id not found in session metadata")
 	}
 
-	log.Printf("Processing checkout completion for user: %s, session: %s", userID, session.ID)
+	planID, exists := session.Metadata["plan_id"]
+	if !exists {
+		return fmt.Errorf("plan_id not found in session metadata")
+	}
 
-	// Update user subscription with Stripe details
+	log.Printf("Processing checkout completion for user: %s, plan: %s, session: %s", userID, planID, session.ID)
+
+	// Get the subscription from Stripe
+	if session.Subscription == nil {
+		return fmt.Errorf("no subscription found in checkout session")
+	}
+
 	now := time.Now().Unix()
 	customerID := sql.NullString{String: session.Customer.ID, Valid: session.Customer.ID != ""}
 	subscriptionID := sql.NullString{String: session.Subscription.ID, Valid: session.Subscription.ID != ""}
 
+	// Update provider details first
 	err := s.db.UpdateUserSubscriptionProvider(context.Background(), db.UpdateUserSubscriptionProviderParams{
 		UserID:                 userID,
 		ProviderCustomerID:     customerID,
 		ProviderSubscriptionID: subscriptionID,
 		UpdatedAt:              now,
 	})
-
 	if err != nil {
-		return fmt.Errorf("failed to update subscription after checkout: %w", err)
+		return fmt.Errorf("failed to update subscription provider details: %w", err)
 	}
 
-	log.Printf("Successfully updated subscription for user %s", userID)
+	// Update the user's plan
+	err = s.db.UpdateUserSubscriptionPlan(context.Background(), db.UpdateUserSubscriptionPlanParams{
+		UserID:    userID,
+		PlanID:    planID,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update plan to %s for user %s: %w", planID, userID, err)
+	}
+
+	log.Printf("Successfully updated user %s to plan %s via checkout completion", userID, planID)
+
+	log.Printf("Successfully updated subscription provider details for user %s", userID)
 	return nil
 }
 
@@ -144,26 +165,45 @@ func (s *HTTPServer) handleSubscriptionCreated(event stripe.Event) error {
 
 	log.Printf("Processing subscription creation: %s with plan %s", subscription.ID, planID)
 
-	// For now, we'll update the subscription status - in a full implementation
-	// we would need more sophisticated logic to handle plan changes
+	// Try to find user by provider_subscription_id
+	userID, err := s.findUserBySubscriptionID(subscription.ID)
+	if err != nil {
+		// This is expected if checkout.session.completed hasn't run yet
+		// We'll just log and continue - the plan will be set by checkout.session.completed
+		log.Printf("Could not find user for subscription %s (checkout may not be complete yet): %v", subscription.ID, err)
+		return nil
+	}
+
 	now := time.Now().Unix()
+
+	// Update the user's plan (backup in case checkout.session.completed missed it)
+	err = s.db.UpdateUserSubscriptionPlan(context.Background(), db.UpdateUserSubscriptionPlanParams{
+		UserID:    userID,
+		PlanID:    planID,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		log.Printf("Warning: failed to update user plan to %s: %v", planID, err)
+	} else {
+		log.Printf("Successfully updated user %s to plan %s via subscription.created", userID, planID)
+	}
+
+	// Update subscription status and billing period
 	periodStart := sql.NullInt64{Int64: subscription.CurrentPeriodStart, Valid: true}
 	periodEnd := sql.NullInt64{Int64: subscription.CurrentPeriodEnd, Valid: true}
 
-	err := s.db.UpdateUserSubscriptionStatus(context.Background(), db.UpdateUserSubscriptionStatusParams{
-		UserID:             "", // We need to find user by provider_subscription_id
+	err = s.db.UpdateUserSubscriptionStatus(context.Background(), db.UpdateUserSubscriptionStatusParams{
+		UserID:             userID,
 		Status:             string(subscription.Status),
 		CurrentPeriodStart: periodStart,
 		CurrentPeriodEnd:   periodEnd,
 		UpdatedAt:          now,
 	})
-
 	if err != nil {
 		log.Printf("Warning: Could not update subscription status for %s: %v", subscription.ID, err)
-		// Don't return error to Stripe - this is a limitation of our current schema
 	}
 
-	log.Printf("Successfully processed subscription creation %s", subscription.ID)
+	log.Printf("Successfully updated user %s to plan %s via subscription %s", userID, planID, subscription.ID)
 	return nil
 }
 
@@ -220,4 +260,16 @@ func (s *HTTPServer) getPlanIDFromPriceID(priceID string) string {
 		return "premium"
 	}
 	return ""
+}
+
+// findUserBySubscriptionID finds a user by their Stripe subscription ID
+func (s *HTTPServer) findUserBySubscriptionID(subscriptionID string) (string, error) {
+	userID, err := s.db.GetUserByProviderSubscriptionID(context.Background(), sql.NullString{
+		String: subscriptionID,
+		Valid:  subscriptionID != "",
+	})
+	if err != nil {
+		return "", fmt.Errorf("user not found for subscription ID %s: %w", subscriptionID, err)
+	}
+	return userID, nil
 }

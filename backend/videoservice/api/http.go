@@ -283,6 +283,16 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("File streamed successfully", "filename", fileName, "original", originalFilename)
 
+	// Get file size to store in database
+	fileInfo, err := outFile.Stat()
+	if err != nil {
+		os.Remove(outputPath)
+		slog.Error("Failed to get file size for database storage", "err", err, "filename", fileName)
+		http.Error(w, "Failed to process file", http.StatusInternalServerError)
+		return
+	}
+	fileSizeForDB := fileInfo.Size()
+
 	// Save video details to the database
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
@@ -294,6 +304,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		ChannelID:      sql.NullString{String: channelID, Valid: channelID != ""},
 		IsPrivate:      sql.NullBool{Bool: true, Valid: true},  // All videos are private by default
 		IsDeleted:      sql.NullBool{Bool: false, Valid: true}, // All videos start as not deleted
+		FileSizeBytes:  sql.NullInt64{Int64: fileSizeForDB, Valid: true},
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	})
@@ -306,24 +317,18 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update storage usage in payment service
-	fileInfo, err := outFile.Stat()
-	if err != nil {
-		slog.Error("Failed to get file size for usage tracking", "err", err, "filename", fileName)
-	} else {
-		fileSize := fileInfo.Size()
-		slog.Info("Updating storage usage", "userID", userID, "fileSize", fileSize)
+	slog.Info("Updating storage usage", "userID", userID, "fileSize", fileSizeForDB)
 
-		_, err = api.paymentServiceClient.UpdateUserUsage(r.Context(), &paymentProto.UpdateUserUsageRequest{
-			UserId:      userID,
-			UsageType:   "storage",
-			UsageChange: fileSize,
-		})
-		if err != nil {
-			slog.Error("Failed to update storage usage in payment service", "err", err, "userID", userID, "fileSize", fileSize)
-			// Don't fail the upload, just log the error
-		} else {
-			slog.Info("Storage usage updated successfully", "userID", userID, "fileSize", fileSize)
-		}
+	_, err = api.paymentServiceClient.UpdateUserUsage(r.Context(), &paymentProto.UpdateUserUsageRequest{
+		UserId:      userID,
+		UsageType:   "storage",
+		UsageChange: fileSizeForDB,
+	})
+	if err != nil {
+		slog.Error("Failed to update storage usage in payment service", "err", err, "userID", userID, "fileSize", fileSizeForDB)
+		// Don't fail the upload, just log the error
+	} else {
+		slog.Info("Storage usage updated successfully", "userID", userID, "fileSize", fileSizeForDB)
 	}
 
 	// Success! Respond and exit

@@ -21,7 +21,7 @@ func NewStripeProvider(cfg config.StripeConfig) *StripeProvider {
 }
 
 // CreateCheckoutSession creates a Stripe checkout session
-func (s *StripeProvider) CreateCheckoutSession(userID, priceID, successURL, cancelURL string) (string, string, error) {
+func (s *StripeProvider) CreateCheckoutSession(userID, planID, priceID, successURL, cancelURL string) (string, string, error) {
 	params := &stripe.CheckoutSessionParams{
 		Mode: stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -35,6 +35,7 @@ func (s *StripeProvider) CreateCheckoutSession(userID, priceID, successURL, canc
 		ClientReferenceID: stripe.String(userID), // Store user ID for webhook processing
 		Metadata: map[string]string{
 			"user_id": userID,
+			"plan_id": planID,
 		},
 	}
 
@@ -48,7 +49,9 @@ func (s *StripeProvider) CreateCheckoutSession(userID, priceID, successURL, canc
 
 // VerifyWebhook verifies Stripe webhook signature
 func (s *StripeProvider) VerifyWebhook(payload []byte, signature string) (stripe.Event, error) {
-	event, err := webhook.ConstructEvent(payload, signature, s.config.WebhookSecret)
+	event, err := webhook.ConstructEventWithOptions(payload, signature, s.config.WebhookSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+	})
 	if err != nil {
 		return stripe.Event{}, fmt.Errorf("webhook signature verification failed: %w", err)
 	}

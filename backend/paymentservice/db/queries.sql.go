@@ -43,9 +43,9 @@ SELECT
         ELSE 0 
     END as has_users_access,
     
-    -- Usage percentages for warnings
-    CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 as storage_usage_percent,
-    CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 as users_usage_percent
+    -- Usage percentages for warnings (rounded to integer)
+    CAST(CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 AS INTEGER) as storage_usage_percent,
+    CAST(CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 AS INTEGER) as users_usage_percent
 
 FROM paymentservice_user_subscriptions s
 LEFT JOIN paymentservice_plans p ON s.plan_id = p.id  
@@ -242,6 +242,18 @@ func (q *Queries) GetPlan(ctx context.Context, id string) (PaymentservicePlan, e
 	return i, err
 }
 
+const getUserByProviderSubscriptionID = `-- name: GetUserByProviderSubscriptionID :one
+SELECT user_id FROM paymentservice_user_subscriptions 
+WHERE provider_subscription_id = ? LIMIT 1
+`
+
+func (q *Queries) GetUserByProviderSubscriptionID(ctx context.Context, providerSubscriptionID sql.NullString) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserByProviderSubscriptionID, providerSubscriptionID)
+	var user_id string
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getUserSubscription = `-- name: GetUserSubscription :one
 SELECT id, user_id, plan_id, provider, provider_customer_id, provider_subscription_id, status, current_period_start, current_period_end, created_at, updated_at FROM paymentservice_user_subscriptions WHERE user_id = ? LIMIT 1
 `
@@ -308,6 +320,23 @@ func (q *Queries) UpdateUserStorageUsage(ctx context.Context, arg UpdateUserStor
 	return err
 }
 
+const updateUserSubscriptionPlan = `-- name: UpdateUserSubscriptionPlan :exec
+UPDATE paymentservice_user_subscriptions 
+SET plan_id = ?, updated_at = ?
+WHERE user_id = ?
+`
+
+type UpdateUserSubscriptionPlanParams struct {
+	PlanID    string
+	UpdatedAt int64
+	UserID    string
+}
+
+func (q *Queries) UpdateUserSubscriptionPlan(ctx context.Context, arg UpdateUserSubscriptionPlanParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserSubscriptionPlan, arg.PlanID, arg.UpdatedAt, arg.UserID)
+	return err
+}
+
 const updateUserSubscriptionProvider = `-- name: UpdateUserSubscriptionProvider :exec
 UPDATE paymentservice_user_subscriptions 
 SET provider_customer_id = ?, provider_subscription_id = ?, updated_at = ?
@@ -350,32 +379,6 @@ func (q *Queries) UpdateUserSubscriptionStatus(ctx context.Context, arg UpdateUs
 		arg.Status,
 		arg.CurrentPeriodStart,
 		arg.CurrentPeriodEnd,
-		arg.UpdatedAt,
-		arg.UserID,
-	)
-	return err
-}
-
-const updateUserUsage = `-- name: UpdateUserUsage :exec
-UPDATE paymentservice_user_usage 
-SET storage_used_bytes = ?, users_count = ?,
-    last_calculated_at = ?, updated_at = ?
-WHERE user_id = ?
-`
-
-type UpdateUserUsageParams struct {
-	StorageUsedBytes sql.NullInt64
-	UsersCount       sql.NullInt64
-	LastCalculatedAt sql.NullInt64
-	UpdatedAt        int64
-	UserID           string
-}
-
-func (q *Queries) UpdateUserUsage(ctx context.Context, arg UpdateUserUsageParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserUsage,
-		arg.StorageUsedBytes,
-		arg.UsersCount,
-		arg.LastCalculatedAt,
 		arg.UpdatedAt,
 		arg.UserID,
 	)
