@@ -409,6 +409,16 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 		return nil, err
 	}
 
+	// Get video file size for storage usage update before deletion
+	videoInfo, err := s.dbQueries.GetVideoFileSizeForDeletion(ctx, db.GetVideoFileSizeForDeletionParams{
+		VideoID:  req.VideoId,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
+	if err != nil {
+		s.log.Error("Error getting video file size for deletion", "err", err, "videoID", req.VideoId)
+		return nil, status.Error(codes.Internal, "failed to get video information")
+	}
+
 	// Soft delete the video
 	err = s.dbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
 		VideoID:   req.VideoId,
@@ -418,6 +428,25 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 	if err != nil {
 		s.log.Error("Error soft deleting video", "err", err, "videoID", req.VideoId)
 		return nil, status.Error(codes.Internal, "failed to delete video")
+	}
+
+	// Update storage usage in payment service (subtract the file size)
+	if videoInfo.FileSizeBytes.Valid && videoInfo.FileSizeBytes.Int64 > 0 {
+		s.log.Info("Updating storage usage for video deletion", "userID", videoInfo.UploadedUserID, "fileSize", videoInfo.FileSizeBytes.Int64)
+
+		_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
+			UserId:      videoInfo.UploadedUserID,
+			UsageType:   "storage",
+			UsageChange: -videoInfo.FileSizeBytes.Int64, // Negative to subtract
+		})
+		if err != nil {
+			s.log.Error("Failed to update storage usage for video deletion", "err", err, "userID", videoInfo.UploadedUserID, "fileSize", videoInfo.FileSizeBytes.Int64)
+			// Don't fail the deletion, just log the error
+		} else {
+			s.log.Info("Storage usage updated for video deletion", "userID", videoInfo.UploadedUserID, "freedBytes", videoInfo.FileSizeBytes.Int64)
+		}
+	} else {
+		s.log.Warn("Video has no file size recorded, storage usage not updated for deletion", "videoID", req.VideoId, "userID", videoInfo.UploadedUserID)
 	}
 
 	return &proto.DeleteVideoResponse{

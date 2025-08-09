@@ -103,14 +103,15 @@ type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI      *videoAPI.VideoAPI
-	CommentAPI    *commentAPI.CommentAPI
-	UserAPI       *userAPI.UserAPI
-	TenantAPI     *userAPI.TenantAPI
-	ChannelAPI    *videoAPI.ChannelAPI
-	PaymentAPI    *paymentAPI.PaymentServer
-	GRPCServer    *grpc.Server
-	GRPCWebServer *http.Server
+	VideoAPI       *videoAPI.VideoAPI
+	CommentAPI     *commentAPI.CommentAPI
+	UserAPI        *userAPI.UserAPI
+	TenantAPI      *userAPI.TenantAPI
+	ChannelAPI     *videoAPI.ChannelAPI
+	PaymentAPI     *paymentAPI.PaymentServer
+	PaymentHTTPAPI *paymentAPI.HTTPServer
+	GRPCServer     *grpc.Server
+	GRPCWebServer  *http.Server
 
 	log *slog.Logger
 }
@@ -191,6 +192,7 @@ func NewMonolith() (*Monolith, error) {
 
 	paymentQueries := paymentDB.New(paymentDBConn)
 	paymentAPIServer := paymentAPI.NewPaymentServer(paymentQueries, &config.PaymentService)
+	paymentHTTPServer := paymentAPI.NewHTTPServer(paymentQueries, &config.PaymentService)
 
 	// Create payment service client wrapper for other services
 	paymentServiceClientWrapper := &PaymentServiceClientWrapper{paymentAPI: paymentAPIServer}
@@ -248,6 +250,9 @@ func NewMonolith() (*Monolith, error) {
 
 	// Wrap the gRPC web handler with Firebase auth middleware
 	authenticatedGrpcWebHandler := interceptors.FirebaseHTTPHeaderAuthMiddleware(firebase, grpcWebHandler)
+
+	// Register webhook endpoint (no auth required for Stripe webhooks)
+	parentMux.HandleFunc("/api/paymentservice/webhook/stripe", paymentHTTPServer.StripeWebhook)
 
 	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
@@ -309,17 +314,18 @@ func NewMonolith() (*Monolith, error) {
 	}
 
 	return &Monolith{
-		Config:        &config,
-		VideoAPI:      videoAPI,
-		ChannelAPI:    channelAPI,
-		CommentAPI:    commentAPI,
-		UserAPI:       userAPI,
-		TenantAPI:     tenantAPI,
-		PaymentAPI:    paymentAPIServer,
-		Firebase:      firebase,
-		GRPCServer:    grpcServer,
-		GRPCWebServer: httpServer,
-		log:           log,
+		Config:         &config,
+		VideoAPI:       videoAPI,
+		ChannelAPI:     channelAPI,
+		CommentAPI:     commentAPI,
+		UserAPI:        userAPI,
+		TenantAPI:      tenantAPI,
+		PaymentAPI:     paymentAPIServer,
+		PaymentHTTPAPI: paymentHTTPServer,
+		Firebase:       firebase,
+		GRPCServer:     grpcServer,
+		GRPCWebServer:  httpServer,
+		log:            log,
 	}, nil
 }
 

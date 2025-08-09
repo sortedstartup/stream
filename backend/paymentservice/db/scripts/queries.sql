@@ -29,6 +29,15 @@ UPDATE paymentservice_user_subscriptions
 SET provider_customer_id = ?, provider_subscription_id = ?, updated_at = ?
 WHERE user_id = ?;
 
+-- name: UpdateUserSubscriptionPlan :exec
+UPDATE paymentservice_user_subscriptions 
+SET plan_id = ?, updated_at = ?
+WHERE user_id = ?;
+
+-- name: GetUserByProviderSubscriptionID :one
+SELECT user_id FROM paymentservice_user_subscriptions 
+WHERE provider_subscription_id = ? LIMIT 1;
+
 -- User usage queries (core functionality)
 -- name: GetUserUsage :one
 SELECT * FROM paymentservice_user_usage WHERE user_id = ? LIMIT 1;
@@ -40,11 +49,6 @@ INSERT INTO paymentservice_user_usage (
 ) VALUES (?, ?, ?, ?, ?, ?)
 RETURNING *;
 
--- name: UpdateUserUsage :exec
-UPDATE paymentservice_user_usage 
-SET storage_used_bytes = ?, users_count = ?,
-    last_calculated_at = ?, updated_at = ?
-WHERE user_id = ?;
 
 -- name: UpdateUserStorageUsage :exec
 UPDATE paymentservice_user_usage 
@@ -90,9 +94,9 @@ SELECT
         ELSE 0 
     END as has_users_access,
     
-    -- Usage percentages for warnings
-    CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 as storage_usage_percent,
-    CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 as users_usage_percent
+    -- Usage percentages for warnings (rounded to integer)
+    CAST(CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 AS INTEGER) as storage_usage_percent,
+    CAST(CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 AS INTEGER) as users_usage_percent
 
 FROM paymentservice_user_subscriptions s
 LEFT JOIN paymentservice_plans p ON s.plan_id = p.id  
