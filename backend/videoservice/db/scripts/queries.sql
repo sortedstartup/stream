@@ -60,6 +60,14 @@ WHERE v.tenant_id = @tenant_id AND v.is_deleted = FALSE
   )
 ORDER BY v.created_at DESC;
 
+-- name: UpdateVideoTitleDescription :exec
+UPDATE videoservice_videos
+SET title = @title,
+    description = @description,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = @id
+  AND is_deleted = FALSE;
+
 -- Channel queries
 -- name: CreateChannel :one
 INSERT INTO videoservice_channels (
