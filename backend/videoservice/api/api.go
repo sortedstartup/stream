@@ -27,7 +27,7 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
 	userServiceClient userProto.UserServiceClient
