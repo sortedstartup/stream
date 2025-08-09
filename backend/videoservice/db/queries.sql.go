@@ -124,6 +124,7 @@ INSERT INTO videoservice_videos (
     channel_id,
     is_private,
     is_deleted,
+    file_size_bytes,
     created_at,
     updated_at
 ) VALUES (
@@ -137,7 +138,8 @@ INSERT INTO videoservice_videos (
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12
 )
 `
 
@@ -151,6 +153,7 @@ type CreateVideoUploadedParams struct {
 	ChannelID      sql.NullString
 	IsPrivate      sql.NullBool
 	IsDeleted      sql.NullBool
+	FileSizeBytes  sql.NullInt64
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -166,6 +169,7 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 		arg.ChannelID,
 		arg.IsPrivate,
 		arg.IsDeleted,
+		arg.FileSizeBytes,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -188,7 +192,7 @@ func (q *Queries) DeleteChannelMember(ctx context.Context, arg DeleteChannelMemb
 }
 
 const getAllAccessibleVideosByTenantID = `-- name: GetAllAccessibleVideosByTenantID :many
-SELECT DISTINCT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at, v.is_private, v.tenant_id, v.channel_id, v.is_deleted FROM videoservice_videos v
+SELECT DISTINCT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at, v.is_private, v.tenant_id, v.channel_id, v.is_deleted, v.file_size_bytes FROM videoservice_videos v
 LEFT JOIN videoservice_channels c ON v.channel_id = c.id
 LEFT JOIN videoservice_channel_members cm ON c.id = cm.channel_id
 WHERE v.tenant_id = ?1 AND v.is_deleted = FALSE
@@ -228,6 +232,7 @@ func (q *Queries) GetAllAccessibleVideosByTenantID(ctx context.Context, arg GetA
 			&i.TenantID,
 			&i.ChannelID,
 			&i.IsDeleted,
+			&i.FileSizeBytes,
 		); err != nil {
 			return nil, err
 		}
@@ -243,7 +248,7 @@ func (q *Queries) GetAllAccessibleVideosByTenantID(ctx context.Context, arg GetA
 }
 
 const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
 WHERE uploaded_user_id = ?1 AND is_deleted = FALSE
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET ?2
@@ -276,6 +281,7 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 			&i.TenantID,
 			&i.ChannelID,
 			&i.IsDeleted,
+			&i.FileSizeBytes,
 		); err != nil {
 			return nil, err
 		}
@@ -501,7 +507,7 @@ func (q *Queries) GetUserRoleInChannel(ctx context.Context, arg GetUserRoleInCha
 }
 
 const getVideoByVideoIDAndTenantID = `-- name: GetVideoByVideoIDAndTenantID :one
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
 WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
 LIMIT 1
 `
@@ -526,12 +532,35 @@ func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideo
 		&i.TenantID,
 		&i.ChannelID,
 		&i.IsDeleted,
+		&i.FileSizeBytes,
 	)
 	return i, err
 }
 
+const getVideoFileSizeForDeletion = `-- name: GetVideoFileSizeForDeletion :one
+SELECT file_size_bytes, uploaded_user_id FROM videoservice_videos 
+WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
+`
+
+type GetVideoFileSizeForDeletionParams struct {
+	VideoID  string
+	TenantID sql.NullString
+}
+
+type GetVideoFileSizeForDeletionRow struct {
+	FileSizeBytes  sql.NullInt64
+	UploadedUserID string
+}
+
+func (q *Queries) GetVideoFileSizeForDeletion(ctx context.Context, arg GetVideoFileSizeForDeletionParams) (GetVideoFileSizeForDeletionRow, error) {
+	row := q.db.QueryRowContext(ctx, getVideoFileSizeForDeletion, arg.VideoID, arg.TenantID)
+	var i GetVideoFileSizeForDeletionRow
+	err := row.Scan(&i.FileSizeBytes, &i.UploadedUserID)
+	return i, err
+}
+
 const getVideosByTenantID = `-- name: GetVideosByTenantID :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
 WHERE tenant_id = ?1 AND is_deleted = FALSE
 ORDER BY created_at DESC
 `
@@ -557,6 +586,7 @@ func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullStri
 			&i.TenantID,
 			&i.ChannelID,
 			&i.IsDeleted,
+			&i.FileSizeBytes,
 		); err != nil {
 			return nil, err
 		}
@@ -572,7 +602,7 @@ func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullStri
 }
 
 const getVideosByTenantIDAndChannelID = `-- name: GetVideosByTenantIDAndChannelID :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
 WHERE tenant_id = ?1 AND channel_id = ?2 AND is_deleted = FALSE
 ORDER BY created_at DESC
 `
@@ -603,6 +633,48 @@ func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVi
 			&i.TenantID,
 			&i.ChannelID,
 			&i.IsDeleted,
+			&i.FileSizeBytes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getVideosWithoutFileSize = `-- name: GetVideosWithoutFileSize :many
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
+WHERE (file_size_bytes IS NULL OR file_size_bytes = 0) AND is_deleted = FALSE
+`
+
+func (q *Queries) GetVideosWithoutFileSize(ctx context.Context) ([]VideoserviceVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getVideosWithoutFileSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VideoserviceVideo
+	for rows.Next() {
+		var i VideoserviceVideo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
+			&i.ChannelID,
+			&i.IsDeleted,
+			&i.FileSizeBytes,
 		); err != nil {
 			return nil, err
 		}
@@ -728,5 +800,22 @@ func (q *Queries) UpdateVideoChannel(ctx context.Context, arg UpdateVideoChannel
 		arg.UploadedUserID,
 		arg.CurrentChannelID,
 	)
+	return err
+}
+
+const updateVideoFileSize = `-- name: UpdateVideoFileSize :exec
+UPDATE videoservice_videos 
+SET file_size_bytes = ?1, updated_at = ?2
+WHERE id = ?3
+`
+
+type UpdateVideoFileSizeParams struct {
+	FileSizeBytes sql.NullInt64
+	UpdatedAt     time.Time
+	VideoID       string
+}
+
+func (q *Queries) UpdateVideoFileSize(ctx context.Context, arg UpdateVideoFileSizeParams) error {
+	_, err := q.db.ExecContext(ctx, updateVideoFileSize, arg.FileSizeBytes, arg.UpdatedAt, arg.VideoID)
 	return err
 }
