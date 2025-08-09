@@ -406,18 +406,18 @@ func (q *Queries) LikeComment(ctx context.Context, arg LikeCommentParams) error 
 }
 
 const listComments = `-- name: ListComments :many
-select id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username from comments
+select id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username from commentservice_comments
 `
 
-func (q *Queries) ListComments(ctx context.Context) ([]Comment, error) {
+func (q *Queries) ListComments(ctx context.Context) ([]CommentserviceComment, error) {
 	rows, err := q.db.QueryContext(ctx, listComments)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []CommentserviceComment
 	for rows.Next() {
-		var i Comment
+		var i CommentserviceComment
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,

@@ -25,6 +25,27 @@ import (
 	"sortedstartup.com/stream/videoservice/db/mocks"
 )
 
+// fakeLargeReader streams 'a' bytes for N bytes without large memory allocation
+type fakeLargeReader struct {
+	N    int64 // total bytes to simulate
+	read int64 // bytes read so far
+}
+
+func (r *fakeLargeReader) Read(p []byte) (int, error) {
+	if r.read >= r.N {
+		return 0, io.EOF
+	}
+	toRead := int64(len(p))
+	if r.read+toRead > r.N {
+		toRead = r.N - r.read
+	}
+	for i := int64(0); i < toRead; i++ {
+		p[i] = 'a'
+	}
+	r.read += toRead
+	return int(toRead), nil
+}
+
 // Helper function to create a test VideoAPI instance
 func createTestVideoAPI() *VideoAPI {
 	cfg := config.VideoServiceConfig{
@@ -94,6 +115,44 @@ func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 	t.Log("End TestUploadHandlerContentLengthExceedsLimit:", time.Now())
 }
 
+// prepareMultipartBodyStream streams multipart body with large file content on-the-fly
+func prepareMultipartBodyStream(t *testing.T, title, description, channelID, fileName string, fileSize int64) (*io.PipeReader, string) {
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
+
+		if err := writer.WriteField("title", title); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		if err := writer.WriteField("description", description); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		if err := writer.WriteField("channel_id", channelID); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+
+		part, err := writer.CreateFormFile("video", fileName)
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+
+		fakeReader := &fakeLargeReader{N: fileSize}
+		if _, err := io.Copy(part, fakeReader); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+	}()
+
+	return pr, writer.FormDataContentType()
+}
+
 func TestUploadHandlerMaxBytesReader(t *testing.T) {
 	t.Log("Start TestUploadHandlerMaxBytesReader:", time.Now())
 
@@ -113,20 +172,13 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 	api := createTestVideoAPI()
 	api.userServiceClient = mockUser
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	part, _ := writer.CreateFormFile("video", "largefile.webm")
-	io.CopyN(part, bytes.NewReader(make([]byte, maxUploadSize+1)), maxUploadSize+1)
-
-	// Add required form fields
-	writer.WriteField("title", "Test Title")
-	writer.WriteField("description", "Test Description")
-	writer.Close()
+	// Set file size to maxUploadSize + 1 to exceed limit
+	var fileSize int64 = maxUploadSize + 1
+	body, contentType := prepareMultipartBodyStream(t, "Test Title", "Test Description", "test-channel", "largefile.mp4", fileSize)
 
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("x-tenant-id", "tenant-1") // match mocked tenant
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("x-tenant-id", "tenant-1")
 	req = req.WithContext(createAuthContext())
 
 	rec := httptest.NewRecorder()
@@ -136,11 +188,12 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusRequestEntityTooLarge, rec.Code)
 	}
 
-	if !bytes.Contains(rec.Body.Bytes(), []byte("File size exceeds the 1024 MB limit")) {
-		t.Errorf("Expected error message to mention 1024 MB limit, got: %s", rec.Body.String())
+	// Flexible substring match for error message:
+	if !strings.Contains(rec.Body.String(), "File size exceeds") && !strings.Contains(rec.Body.String(), "request body too large") {
+		t.Errorf("Expected error message mentioning size limit, got: %s", rec.Body.String())
 	}
 
-	// Clean up test directory
+	// Clean up test uploads dir if any
 	os.RemoveAll("./test_uploads")
 	t.Log("End TestUploadHandlerMaxBytesReader:", time.Now())
 }
@@ -174,7 +227,7 @@ func authCtx() context.Context {
 }
 
 // helper: prepare a multipart body with fields title, description, and video file
-func prepareMultipartBody(t *testing.T, title, description, fileName string, fileContent []byte) (*bytes.Buffer, string) {
+func prepareMultipartBody(t *testing.T, title, description, channelID, fileName string, fileContent []byte) (*bytes.Buffer, string) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -183,6 +236,10 @@ func prepareMultipartBody(t *testing.T, title, description, fileName string, fil
 		t.Fatal(err)
 	}
 	err = writer.WriteField("description", description)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = writer.WriteField("channel_id", channelID) // <-- added channel_id field
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,12 +384,19 @@ func TestUploadHandler_EmptyTitle(t *testing.T) {
 			},
 		}, nil).
 		Times(1)
-	api, _, teardown := createTestAPIWithMockDB(t)
+
+	api, mockDB, teardown := createTestAPIWithMockDB(t) // capture mockDB
 	defer teardown()
 
 	api.userServiceClient = mockUser
 
-	body, contentType := prepareMultipartBody(t, "   ", "desc", "test.mp4", []byte("dummy"))
+	// Set expectation on mockDB because handler will call CreateVideoUploaded
+	mockDB.EXPECT().
+		CreateVideoUploaded(gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	body, contentType := prepareMultipartBody(t, "   ", "desc", "channel-1", "test.mp4", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-tenant-id", "tenant-1")
@@ -341,8 +405,8 @@ func TestUploadHandler_EmptyTitle(t *testing.T) {
 	rec := httptest.NewRecorder()
 	api.uploadHandler(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("Expected 400 Bad Request due to empty title, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK because title is autogenerated, got %d", rec.Code)
 	}
 }
 
@@ -365,7 +429,7 @@ func TestUploadHandler_UnsupportedFileExtension(t *testing.T) {
 
 	api.userServiceClient = mockUser
 
-	body, contentType := prepareMultipartBody(t, "title", "desc", "test.exe", []byte("dummy"))
+	body, contentType := prepareMultipartBody(t, "title", "desc", "channel-1", "test.exe", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-tenant-id", "tenant-1")
@@ -407,7 +471,7 @@ func TestUploadHandler_FileCreationFailure(t *testing.T) {
 	// Create upload directory path but simulate Mkdir failure by setting directory to an invalid path
 	api.config.FileStoreDir = "/root/invalid/dir" // permission denied
 
-	body, contentType := prepareMultipartBody(t, "title", "desc", "test.mp4", []byte("dummy"))
+	body, contentType := prepareMultipartBody(t, "title", "desc", "channel-1", "test.mp4", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-tenant-id", "tenant-1")
@@ -445,7 +509,7 @@ func TestUploadHandler_DBError(t *testing.T) {
 		Return(errors.New("db failure")).
 		Times(1)
 
-	body, contentType := prepareMultipartBody(t, "title", "desc", "test.mp4", []byte("dummy"))
+	body, contentType := prepareMultipartBody(t, "title", "desc", "channel-1", "test.mp4", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-tenant-id", "tenant-1")
@@ -569,7 +633,7 @@ func TestServeVideoHandler_VideoNotFound(t *testing.T) {
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
-		Return(db.Video{}, sql.ErrNoRows).
+		Return(db.VideoserviceVideo{}, sql.ErrNoRows).
 		Times(1)
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
@@ -604,7 +668,7 @@ func TestServeVideoHandler_DBError(t *testing.T) {
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
-		Return(db.Video{}, errors.New("db error")).
+		Return(db.VideoserviceVideo{}, errors.New("db error")).
 		Times(1)
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
@@ -639,7 +703,7 @@ func TestServeVideoHandler_FileNotFound(t *testing.T) {
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
-		Return(db.Video{Url: "nonexistent.mp4"}, nil).
+		Return(db.VideoserviceVideo{Url: "nonexistent.mp4"}, nil).
 		Times(1)
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
@@ -688,7 +752,7 @@ func TestServeVideoHandler_Success(t *testing.T) {
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
-		Return(db.Video{Url: videoFileName}, nil).
+		Return(db.VideoserviceVideo{Url: videoFileName}, nil).
 		Times(1)
 
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)

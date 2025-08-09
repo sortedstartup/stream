@@ -50,11 +50,26 @@ func (mr *MockDBQuerierMockRecorder) CreateVideoUploaded(ctx, params interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVideoUploaded", reflect.TypeOf((*MockDBQuerier)(nil).CreateVideoUploaded), ctx, params)
 }
 
+// GetAllAccessibleVideosByTenantID mocks base method.
+func (m *MockDBQuerier) GetAllAccessibleVideosByTenantID(ctx context.Context, params db.GetAllAccessibleVideosByTenantIDParams) ([]db.VideoserviceVideo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllAccessibleVideosByTenantID", ctx, params)
+	ret0, _ := ret[0].([]db.VideoserviceVideo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllAccessibleVideosByTenantID indicates an expected call of GetAllAccessibleVideosByTenantID.
+func (mr *MockDBQuerierMockRecorder) GetAllAccessibleVideosByTenantID(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllAccessibleVideosByTenantID", reflect.TypeOf((*MockDBQuerier)(nil).GetAllAccessibleVideosByTenantID), ctx, params)
+}
+
 // GetVideoByVideoIDAndTenantID mocks base method.
-func (m *MockDBQuerier) GetVideoByVideoIDAndTenantID(ctx context.Context, params db.GetVideoByVideoIDAndTenantIDParams) (db.Video, error) {
+func (m *MockDBQuerier) GetVideoByVideoIDAndTenantID(ctx context.Context, params db.GetVideoByVideoIDAndTenantIDParams) (db.VideoserviceVideo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVideoByVideoIDAndTenantID", ctx, params)
-	ret0, _ := ret[0].(db.Video)
+	ret0, _ := ret[0].(db.VideoserviceVideo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +81,10 @@ func (mr *MockDBQuerierMockRecorder) GetVideoByVideoIDAndTenantID(ctx, params in
 }
 
 // GetVideosByTenantID mocks base method.
-func (m *MockDBQuerier) GetVideosByTenantID(ctx context.Context, tenantID sql.NullString) ([]db.Video, error) {
+func (m *MockDBQuerier) GetVideosByTenantID(ctx context.Context, tenantID sql.NullString) ([]db.VideoserviceVideo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVideosByTenantID", ctx, tenantID)
-	ret0, _ := ret[0].([]db.Video)
+	ret0, _ := ret[0].([]db.VideoserviceVideo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -78,4 +93,61 @@ func (m *MockDBQuerier) GetVideosByTenantID(ctx context.Context, tenantID sql.Nu
 func (mr *MockDBQuerierMockRecorder) GetVideosByTenantID(ctx, tenantID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideosByTenantID", reflect.TypeOf((*MockDBQuerier)(nil).GetVideosByTenantID), ctx, tenantID)
+}
+
+// GetVideosByTenantIDAndChannelID mocks base method.
+func (m *MockDBQuerier) GetVideosByTenantIDAndChannelID(ctx context.Context, params db.GetVideosByTenantIDAndChannelIDParams) ([]db.VideoserviceVideo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVideosByTenantIDAndChannelID", ctx, params)
+	ret0, _ := ret[0].([]db.VideoserviceVideo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVideosByTenantIDAndChannelID indicates an expected call of GetVideosByTenantIDAndChannelID.
+func (mr *MockDBQuerierMockRecorder) GetVideosByTenantIDAndChannelID(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVideosByTenantIDAndChannelID", reflect.TypeOf((*MockDBQuerier)(nil).GetVideosByTenantIDAndChannelID), ctx, params)
+}
+
+// RemoveVideoFromChannel mocks base method.
+func (m *MockDBQuerier) RemoveVideoFromChannel(ctx context.Context, params db.RemoveVideoFromChannelParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveVideoFromChannel", ctx, params)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveVideoFromChannel indicates an expected call of RemoveVideoFromChannel.
+func (mr *MockDBQuerierMockRecorder) RemoveVideoFromChannel(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveVideoFromChannel", reflect.TypeOf((*MockDBQuerier)(nil).RemoveVideoFromChannel), ctx, params)
+}
+
+// SoftDeleteVideo mocks base method.
+func (m *MockDBQuerier) SoftDeleteVideo(ctx context.Context, params db.SoftDeleteVideoParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SoftDeleteVideo", ctx, params)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SoftDeleteVideo indicates an expected call of SoftDeleteVideo.
+func (mr *MockDBQuerierMockRecorder) SoftDeleteVideo(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SoftDeleteVideo", reflect.TypeOf((*MockDBQuerier)(nil).SoftDeleteVideo), ctx, params)
+}
+
+// UpdateVideoChannel mocks base method.
+func (m *MockDBQuerier) UpdateVideoChannel(ctx context.Context, params db.UpdateVideoChannelParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateVideoChannel", ctx, params)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateVideoChannel indicates an expected call of UpdateVideoChannel.
+func (mr *MockDBQuerierMockRecorder) UpdateVideoChannel(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateVideoChannel", reflect.TypeOf((*MockDBQuerier)(nil).UpdateVideoChannel), ctx, params)
 }

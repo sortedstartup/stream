@@ -1,5 +1,5 @@
 -- name: ListComments :many
-select * from comments;
+select * from commentservice_comments;
 
 -- name: CreateComment :exec
 INSERT INTO commentservice_comments (

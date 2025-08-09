@@ -134,11 +134,10 @@ func TestGetComment(t *testing.T) {
 	commentAPI := NewCommentAPITest(mockDB, logger)
 	ctx := buildAuthContext()
 
-	mockComment := db.Comment{
+	mockComment := db.CommentserviceComment{
 		ID:      "mock-id",
 		Content: "Mock comment",
 		VideoID: "vid1",
-		UserID:  "test-user-id",
 		UserID:  "test-user-id",
 	}
 
@@ -220,7 +219,7 @@ func TestGetComment_NotFound(t *testing.T) {
 
 	mockDB.EXPECT().
 		GetCommentByID(gomock.Any(), gomock.Any()).
-		Return(db.Comment{}, sql.ErrNoRows).
+		Return(db.CommentserviceComment{}, sql.ErrNoRows).
 		Times(1)
 
 	resp, err := commentAPI.GetComment(ctx, &proto.GetCommentRequest{
@@ -242,7 +241,7 @@ func TestGetComment_PermissionDenied(t *testing.T) {
 
 	ctx := buildAuthContext()
 
-	mockComment := db.Comment{
+	mockComment := db.CommentserviceComment{
 		ID:      "mock-id",
 		Content: "Mock comment",
 		VideoID: "vid1",
