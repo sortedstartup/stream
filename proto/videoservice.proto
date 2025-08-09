@@ -14,7 +14,11 @@ service VideoService {
   rpc GetVideo(GetVideoRequest) returns (Video);
   rpc ListVideos(ListVideosRequest) returns (ListVideosResponse);
   rpc UpdateVideo(UpdateVideoRequest) returns (Video);
-  rpc DeleteVideo(DeleteVideoRequest) returns (Empty);
+  rpc DeleteVideo(DeleteVideoRequest) returns (DeleteVideoResponse);
+
+  // Video-Channel Management
+  rpc MoveVideoToChannel(MoveVideoToChannelRequest) returns (MoveVideoToChannelResponse);
+  rpc RemoveVideoFromChannel(RemoveVideoFromChannelRequest) returns (RemoveVideoFromChannelResponse);
 
   // Sharing
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
@@ -39,6 +43,7 @@ message Video {
   VideoStatus status = 7;
   Visibility visibility = 8;
   google.protobuf.Timestamp created_at = 9;
+  string channel_id = 10; // Optional: channel this video belongs to
 }
 
 enum VideoStatus {
@@ -66,11 +71,9 @@ message GetVideoRequest {
 }
 
 message ListVideosRequest {
-  // user id is implicit from auth context
-  int32 pageSize = 2;
-  int32 pageNumber = 3;
-  string channel_id = 4; // Optional: filter by channel within tenant
-  // tenant_id comes from x-tenant-id header, not request body
+  int32 page_number = 1;
+  int32 page_size = 2;
+  string channel_id = 3; // Optional: filter by channel
 }
 
 message ListVideosResponse {
@@ -86,6 +89,10 @@ message UpdateVideoRequest {
 
 message DeleteVideoRequest {
   string video_id = 1;
+}
+
+message DeleteVideoResponse {
+  string message = 1;
 }
 
 message ShareVideoRequest {
@@ -107,14 +114,15 @@ message Channel {
   string created_by = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
+  string user_role = 9; // Current user's role in this channel: owner, uploader, viewer
+  int32 member_count = 10; // Number of members (only populated for owners)
 }
 
 message ChannelMember {
-  Channel channel = 1;
-  userservice.User user = 2;
-  userservice.Role role = 3;
-  string added_by = 4;
-  google.protobuf.Timestamp created_at = 5;
+  userservice.User user = 1;
+  string role = 2; // owner, uploader, viewer
+  string added_by = 3;
+  google.protobuf.Timestamp created_at = 4;
 }
 
 message CreateChannelRequest {
@@ -172,4 +180,24 @@ message RemoveChannelMemberRequest {
 
 message RemoveChannelMemberResponse {
   string message = 1;
+}
+
+// Video-Channel Management Messages
+message MoveVideoToChannelRequest {
+  string video_id = 1;
+  string channel_id = 2;
+}
+
+message MoveVideoToChannelResponse {
+  string message = 1;
+  Video video = 2;
+}
+
+message RemoveVideoFromChannelRequest {
+  string video_id = 1;
+}
+
+message RemoveVideoFromChannelResponse {
+  string message = 1;
+  Video video = 2;
 }

@@ -64,7 +64,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = api.isUserInTenant(r.Context(), tenantID, userID)
+	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, userID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		slog.Error("Tenant access denied", "tenantID", tenantID, "userID", userID, "err", err)
@@ -112,12 +112,6 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	title := strings.TrimSpace(string(titleData))
 
-	if title == "" {
-		http.Error(w, "Title cannot be empty", http.StatusBadRequest)
-		slog.Error("Title cannot be empty")
-		return
-	}
-
 	// Read description (part 2)
 	descPart, err := reader.NextPart()
 	if err != nil {
@@ -141,13 +135,30 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	description := strings.TrimSpace(string(descData))
 
-	if description == "" {
-		http.Error(w, "Description cannot be empty", http.StatusBadRequest)
-		slog.Error("Description cannot be empty")
+	// Read channel_id (part 3)
+	channelPart, err := reader.NextPart()
+	if err != nil {
+		http.Error(w, "Missing channel_id field", http.StatusBadRequest)
+		slog.Error("Missing channel_id field", "err", err)
+		return
+	}
+	defer channelPart.Close()
+
+	if channelPart.FormName() != "channel_id" {
+		http.Error(w, "Expected channel_id field third", http.StatusBadRequest)
+		slog.Error("Expected channel_id field third, got", "field", channelPart.FormName())
 		return
 	}
 
-	// Read video file (part 3)
+	channelData, err := io.ReadAll(channelPart)
+	if err != nil {
+		http.Error(w, "Error reading channel_id", http.StatusBadRequest)
+		slog.Error("Error reading channel_id", "err", err)
+		return
+	}
+	channelID := strings.TrimSpace(string(channelData))
+
+	// Read video file (part 4)
 	videoPart, err := reader.NextPart()
 	if err != nil {
 		http.Error(w, "Missing video file", http.StatusBadRequest)
@@ -157,8 +168,8 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	defer videoPart.Close()
 
 	if videoPart.FormName() != "video" {
-		http.Error(w, "Expected video field third", http.StatusBadRequest)
-		slog.Error("Expected video field third, got", "field", videoPart.FormName())
+		http.Error(w, "Expected video field fourth", http.StatusBadRequest)
+		slog.Error("Expected video field fourth, got", "field", videoPart.FormName())
 		return
 	}
 
@@ -168,6 +179,18 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("No file selected")
 		return
 	}
+
+	// Auto-generate title if not provided
+	if title == "" {
+		// Remove extension and use filename as title
+		title = strings.TrimSuffix(originalFilename, filepath.Ext(originalFilename))
+		if title == "" {
+			// Fallback to timestamp if filename is empty
+			title = "Recording " + time.Now().Format("2006-01-02 15:04")
+		}
+	}
+
+	// Description is optional, can be empty
 
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(originalFilename))
@@ -233,7 +256,9 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		Url:            fileName,
 		UploadedUserID: userID,
 		TenantID:       sql.NullString{String: tenantID, Valid: true},
-		IsPrivate:      sql.NullBool{Bool: true, Valid: true}, // All videos are private by default
+		ChannelID:      sql.NullString{String: channelID, Valid: channelID != ""},
+		IsPrivate:      sql.NullBool{Bool: true, Valid: true},  // All videos are private by default
+		IsDeleted:      sql.NullBool{Bool: false, Valid: true}, // All videos start as not deleted
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	})
@@ -295,7 +320,7 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = api.isUserInTenant(r.Context(), tenantID, authContext.User.ID)
+	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, authContext.User.ID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		return

@@ -12,7 +12,7 @@ import (
 )
 
 const checkUserLikedComment = `-- name: CheckUserLikedComment :one
-SELECT COUNT(*) FROM comment_likes 
+SELECT COUNT(*) FROM commentservice_comment_likes 
 WHERE user_id = ?1 AND comment_id = ?2
 `
 
@@ -29,7 +29,7 @@ func (q *Queries) CheckUserLikedComment(ctx context.Context, arg CheckUserLikedC
 }
 
 const createComment = `-- name: CreateComment :exec
-INSERT INTO comments (
+INSERT INTO commentservice_comments (
     id,
     content,
     video_id,
@@ -72,7 +72,7 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) er
 }
 
 const deleteComment = `-- name: DeleteComment :exec
-DELETE FROM comments 
+DELETE FROM commentservice_comments 
 WHERE id = ?1 AND user_id = ?2
 `
 
@@ -87,7 +87,7 @@ func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) er
 }
 
 const getAllCommentsByUserPaginated = `-- name: GetAllCommentsByUserPaginated :many
-SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM commentservice_comments 
 WHERE user_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET (?2 * ?3)
@@ -99,15 +99,15 @@ type GetAllCommentsByUserPaginatedParams struct {
 	PageSize   int64
 }
 
-func (q *Queries) GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllCommentsByUserPaginatedParams) ([]Comment, error) {
+func (q *Queries) GetAllCommentsByUserPaginated(ctx context.Context, arg GetAllCommentsByUserPaginatedParams) ([]CommentserviceComment, error) {
 	rows, err := q.db.QueryContext(ctx, getAllCommentsByUserPaginated, arg.UserID, arg.PageNumber, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []CommentserviceComment
 	for rows.Next() {
-		var i Comment
+		var i CommentserviceComment
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,
@@ -156,8 +156,8 @@ SELECT
         ) FILTER (WHERE c2.id IS NOT NULL), 
         '[]'
     ) AS replies
-FROM comments c1
-LEFT JOIN comments c2 ON c1.id = c2.parent_comment_id
+FROM commentservice_comments c1
+LEFT JOIN commentservice_comments c2 ON c1.id = c2.parent_comment_id
 WHERE c1.video_id = ?1 
 AND c1.parent_comment_id IS NULL
 GROUP BY c1.id
@@ -210,7 +210,7 @@ func (q *Queries) GetComentsAndRepliesForVideoID(ctx context.Context, videoID st
 }
 
 const getCommentByID = `-- name: GetCommentByID :one
-SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM commentservice_comments 
 WHERE id = ?1 AND user_id = ?2
 LIMIT 1
 `
@@ -220,9 +220,9 @@ type GetCommentByIDParams struct {
 	UserID string
 }
 
-func (q *Queries) GetCommentByID(ctx context.Context, arg GetCommentByIDParams) (Comment, error) {
+func (q *Queries) GetCommentByID(ctx context.Context, arg GetCommentByIDParams) (CommentserviceComment, error) {
 	row := q.db.QueryRowContext(ctx, getCommentByID, arg.ID, arg.UserID)
-	var i Comment
+	var i CommentserviceComment
 	err := row.Scan(
 		&i.ID,
 		&i.Content,
@@ -237,7 +237,7 @@ func (q *Queries) GetCommentByID(ctx context.Context, arg GetCommentByIDParams) 
 }
 
 const getCommentCount = `-- name: GetCommentCount :one
-SELECT COUNT(*) FROM comments WHERE video_id = ?1
+SELECT COUNT(*) FROM commentservice_comments WHERE video_id = ?1
 `
 
 func (q *Queries) GetCommentCount(ctx context.Context, videoID string) (int64, error) {
@@ -248,7 +248,7 @@ func (q *Queries) GetCommentCount(ctx context.Context, videoID string) (int64, e
 }
 
 const getCommentLikesCount = `-- name: GetCommentLikesCount :one
-SELECT COUNT(*) FROM comment_likes 
+SELECT COUNT(*) FROM commentservice_comment_likes 
 WHERE comment_id = ?1
 `
 
@@ -260,20 +260,20 @@ func (q *Queries) GetCommentLikesCount(ctx context.Context, commentID string) (i
 }
 
 const getCommentsByVideo = `-- name: GetCommentsByVideo :many
-SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM commentservice_comments 
 WHERE video_id = ?1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetCommentsByVideo(ctx context.Context, videoID string) ([]Comment, error) {
+func (q *Queries) GetCommentsByVideo(ctx context.Context, videoID string) ([]CommentserviceComment, error) {
 	rows, err := q.db.QueryContext(ctx, getCommentsByVideo, videoID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []CommentserviceComment
 	for rows.Next() {
-		var i Comment
+		var i CommentserviceComment
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,
@@ -298,7 +298,7 @@ func (q *Queries) GetCommentsByVideo(ctx context.Context, videoID string) ([]Com
 }
 
 const getCommentsByVideoPaginated = `-- name: GetCommentsByVideoPaginated :many
-SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM commentservice_comments 
 WHERE video_id = ?1
 ORDER BY created_at DESC
 LIMIT ?3 OFFSET (?2 * ?3)
@@ -310,15 +310,15 @@ type GetCommentsByVideoPaginatedParams struct {
 	PageSize   int64
 }
 
-func (q *Queries) GetCommentsByVideoPaginated(ctx context.Context, arg GetCommentsByVideoPaginatedParams) ([]Comment, error) {
+func (q *Queries) GetCommentsByVideoPaginated(ctx context.Context, arg GetCommentsByVideoPaginatedParams) ([]CommentserviceComment, error) {
 	rows, err := q.db.QueryContext(ctx, getCommentsByVideoPaginated, arg.VideoID, arg.PageNumber, arg.PageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []CommentserviceComment
 	for rows.Next() {
-		var i Comment
+		var i CommentserviceComment
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,
@@ -343,20 +343,20 @@ func (q *Queries) GetCommentsByVideoPaginated(ctx context.Context, arg GetCommen
 }
 
 const getRepliesByCommentID = `-- name: GetRepliesByCommentID :many
-SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM comments 
+SELECT id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username FROM commentservice_comments 
 WHERE parent_comment_id = ?1
 ORDER BY created_at ASC
 `
 
-func (q *Queries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]Comment, error) {
+func (q *Queries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullString) ([]CommentserviceComment, error) {
 	rows, err := q.db.QueryContext(ctx, getRepliesByCommentID, commentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []CommentserviceComment
 	for rows.Next() {
-		var i Comment
+		var i CommentserviceComment
 		if err := rows.Scan(
 			&i.ID,
 			&i.Content,
@@ -381,7 +381,7 @@ func (q *Queries) GetRepliesByCommentID(ctx context.Context, commentID sql.NullS
 }
 
 const likeComment = `-- name: LikeComment :exec
-INSERT INTO comment_likes (
+INSERT INTO commentservice_comment_likes (
     id,
     user_id,
     comment_id,
@@ -442,7 +442,7 @@ func (q *Queries) ListComments(ctx context.Context) ([]Comment, error) {
 }
 
 const unlikeComment = `-- name: UnlikeComment :exec
-DELETE FROM comment_likes 
+DELETE FROM commentservice_comment_likes 
 WHERE user_id = ?1 AND comment_id = ?2
 `
 
@@ -457,7 +457,7 @@ func (q *Queries) UnlikeComment(ctx context.Context, arg UnlikeCommentParams) er
 }
 
 const updateComment = `-- name: UpdateComment :exec
-UPDATE comments 
+UPDATE commentservice_comments 
 SET content = ?1, updated_at = CURRENT_TIMESTAMP
 WHERE id = ?2 AND user_id = ?3
 `

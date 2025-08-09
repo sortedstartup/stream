@@ -12,7 +12,7 @@ import (
 )
 
 const createChannel = `-- name: CreateChannel :one
-INSERT INTO channels (
+INSERT INTO videoservice_channels (
     id,
     tenant_id,
     name,
@@ -42,7 +42,7 @@ type CreateChannelParams struct {
 }
 
 // Channel queries
-func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
+func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (VideoserviceChannel, error) {
 	row := q.db.QueryRowContext(ctx, createChannel,
 		arg.ID,
 		arg.TenantID,
@@ -52,7 +52,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	var i Channel
+	var i VideoserviceChannel
 	err := row.Scan(
 		&i.ID,
 		&i.TenantID,
@@ -66,7 +66,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 }
 
 const createChannelMember = `-- name: CreateChannelMember :one
-INSERT INTO channel_members (
+INSERT INTO videoservice_channel_members (
     id,
     channel_id,
     user_id,
@@ -92,7 +92,7 @@ type CreateChannelMemberParams struct {
 	CreatedAt time.Time
 }
 
-func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemberParams) (ChannelMember, error) {
+func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemberParams) (VideoserviceChannelMember, error) {
 	row := q.db.QueryRowContext(ctx, createChannelMember,
 		arg.ID,
 		arg.ChannelID,
@@ -101,7 +101,7 @@ func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemb
 		arg.AddedBy,
 		arg.CreatedAt,
 	)
-	var i ChannelMember
+	var i VideoserviceChannelMember
 	err := row.Scan(
 		&i.ID,
 		&i.ChannelID,
@@ -114,14 +114,16 @@ func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemb
 }
 
 const createVideoUploaded = `-- name: CreateVideoUploaded :exec
-INSERT INTO videos (
+INSERT INTO videoservice_videos (
     id,
     title,
     description,
     url,
     uploaded_user_id,
     tenant_id,
+    channel_id,
     is_private,
+    is_deleted,
     created_at,
     updated_at
 ) VALUES (
@@ -133,7 +135,9 @@ INSERT INTO videos (
     ?6,
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10,
+    ?11
 )
 `
 
@@ -144,7 +148,9 @@ type CreateVideoUploadedParams struct {
 	Url            string
 	UploadedUserID string
 	TenantID       sql.NullString
+	ChannelID      sql.NullString
 	IsPrivate      sql.NullBool
+	IsDeleted      sql.NullBool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -157,7 +163,9 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 		arg.Url,
 		arg.UploadedUserID,
 		arg.TenantID,
+		arg.ChannelID,
 		arg.IsPrivate,
+		arg.IsDeleted,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -165,7 +173,7 @@ func (q *Queries) CreateVideoUploaded(ctx context.Context, arg CreateVideoUpload
 }
 
 const deleteChannelMember = `-- name: DeleteChannelMember :exec
-DELETE FROM channel_members 
+DELETE FROM videoservice_channel_members 
 WHERE channel_id = ?1 AND user_id = ?2
 `
 
@@ -179,28 +187,35 @@ func (q *Queries) DeleteChannelMember(ctx context.Context, arg DeleteChannelMemb
 	return err
 }
 
-const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, "CONSTRAINT" FROM videos 
-WHERE uploaded_user_id = ?1
-ORDER BY created_at DESC
-LIMIT ?3 OFFSET ?2
+const getAllAccessibleVideosByTenantID = `-- name: GetAllAccessibleVideosByTenantID :many
+SELECT DISTINCT v.id, v.title, v.description, v.url, v.created_at, v.uploaded_user_id, v.updated_at, v.is_private, v.tenant_id, v.channel_id, v.is_deleted FROM videoservice_videos v
+LEFT JOIN videoservice_channels c ON v.channel_id = c.id
+LEFT JOIN videoservice_channel_members cm ON c.id = cm.channel_id
+WHERE v.tenant_id = ?1 AND v.is_deleted = FALSE
+  AND (
+    -- User's own videos (private)
+    (v.uploaded_user_id = ?2 AND (v.channel_id IS NULL OR v.channel_id = ''))
+    OR 
+    -- Videos in channels user is member of
+    (v.channel_id IS NOT NULL AND v.channel_id != '' AND cm.user_id = ?2)
+  )
+ORDER BY v.created_at DESC
 `
 
-type GetAllVideoUploadedByUserPaginatedParams struct {
-	UserID     string
-	PageNumber int64
-	PageSize   int64
+type GetAllAccessibleVideosByTenantIDParams struct {
+	TenantID sql.NullString
+	UserID   string
 }
 
-func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg GetAllVideoUploadedByUserPaginatedParams) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, getAllVideoUploadedByUserPaginated, arg.UserID, arg.PageNumber, arg.PageSize)
+func (q *Queries) GetAllAccessibleVideosByTenantID(ctx context.Context, arg GetAllAccessibleVideosByTenantIDParams) ([]VideoserviceVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getAllAccessibleVideosByTenantID, arg.TenantID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Video
+	var items []VideoserviceVideo
 	for rows.Next() {
-		var i Video
+		var i VideoserviceVideo
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -212,7 +227,55 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 			&i.IsPrivate,
 			&i.TenantID,
 			&i.ChannelID,
-			&i.CONSTRAINT,
+			&i.IsDeleted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllVideoUploadedByUserPaginated = `-- name: GetAllVideoUploadedByUserPaginated :many
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+WHERE uploaded_user_id = ?1 AND is_deleted = FALSE
+ORDER BY created_at DESC
+LIMIT ?3 OFFSET ?2
+`
+
+type GetAllVideoUploadedByUserPaginatedParams struct {
+	UserID     string
+	PageNumber int64
+	PageSize   int64
+}
+
+func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg GetAllVideoUploadedByUserPaginatedParams) ([]VideoserviceVideo, error) {
+	rows, err := q.db.QueryContext(ctx, getAllVideoUploadedByUserPaginated, arg.UserID, arg.PageNumber, arg.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VideoserviceVideo
+	for rows.Next() {
+		var i VideoserviceVideo
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UploadedUserID,
+			&i.UpdatedAt,
+			&i.IsPrivate,
+			&i.TenantID,
+			&i.ChannelID,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -228,7 +291,7 @@ func (q *Queries) GetAllVideoUploadedByUserPaginated(ctx context.Context, arg Ge
 }
 
 const getChannelByIDAndTenantID = `-- name: GetChannelByIDAndTenantID :one
-SELECT id, tenant_id, name, description, created_by, created_at, updated_at FROM channels 
+SELECT id, tenant_id, name, description, created_by, created_at, updated_at FROM videoservice_channels 
 WHERE id = ?1 AND tenant_id = ?2
 `
 
@@ -237,9 +300,9 @@ type GetChannelByIDAndTenantIDParams struct {
 	TenantID string
 }
 
-func (q *Queries) GetChannelByIDAndTenantID(ctx context.Context, arg GetChannelByIDAndTenantIDParams) (Channel, error) {
+func (q *Queries) GetChannelByIDAndTenantID(ctx context.Context, arg GetChannelByIDAndTenantIDParams) (VideoserviceChannel, error) {
 	row := q.db.QueryRowContext(ctx, getChannelByIDAndTenantID, arg.ID, arg.TenantID)
-	var i Channel
+	var i VideoserviceChannel
 	err := row.Scan(
 		&i.ID,
 		&i.TenantID,
@@ -262,8 +325,8 @@ SELECT
     cm.created_at,
     c.name as channel_name,
     c.tenant_id
-FROM channel_members cm
-JOIN channels c ON cm.channel_id = c.id
+FROM videoservice_channel_members cm
+JOIN videoservice_channels c ON cm.channel_id = c.id
 WHERE cm.channel_id = ?1 AND c.tenant_id = ?2
 ORDER BY cm.created_at ASC
 `
@@ -316,21 +379,86 @@ func (q *Queries) GetChannelMembersByChannelIDAndTenantID(ctx context.Context, a
 	return items, nil
 }
 
+const getChannelMembersByChannelIDExcludingUser = `-- name: GetChannelMembersByChannelIDExcludingUser :many
+SELECT 
+    cm.id as channel_member_id,
+    cm.channel_id,
+    cm.user_id,
+    cm.role,
+    cm.added_by,
+    cm.created_at,
+    c.name as channel_name,
+    c.tenant_id
+FROM videoservice_channel_members cm
+JOIN videoservice_channels c ON cm.channel_id = c.id
+WHERE cm.channel_id = ?1 AND c.tenant_id = ?2 AND cm.user_id != ?3
+ORDER BY cm.created_at ASC
+`
+
+type GetChannelMembersByChannelIDExcludingUserParams struct {
+	ChannelID string
+	TenantID  string
+	UserID    string
+}
+
+type GetChannelMembersByChannelIDExcludingUserRow struct {
+	ChannelMemberID string
+	ChannelID       string
+	UserID          string
+	Role            string
+	AddedBy         string
+	CreatedAt       time.Time
+	ChannelName     string
+	TenantID        string
+}
+
+func (q *Queries) GetChannelMembersByChannelIDExcludingUser(ctx context.Context, arg GetChannelMembersByChannelIDExcludingUserParams) ([]GetChannelMembersByChannelIDExcludingUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getChannelMembersByChannelIDExcludingUser, arg.ChannelID, arg.TenantID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetChannelMembersByChannelIDExcludingUserRow
+	for rows.Next() {
+		var i GetChannelMembersByChannelIDExcludingUserRow
+		if err := rows.Scan(
+			&i.ChannelMemberID,
+			&i.ChannelID,
+			&i.UserID,
+			&i.Role,
+			&i.AddedBy,
+			&i.CreatedAt,
+			&i.ChannelName,
+			&i.TenantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getChannelsByTenantID = `-- name: GetChannelsByTenantID :many
-SELECT id, tenant_id, name, description, created_by, created_at, updated_at FROM channels 
+SELECT id, tenant_id, name, description, created_by, created_at, updated_at FROM videoservice_channels 
 WHERE tenant_id = ?1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetChannelsByTenantID(ctx context.Context, tenantID string) ([]Channel, error) {
+func (q *Queries) GetChannelsByTenantID(ctx context.Context, tenantID string) ([]VideoserviceChannel, error) {
 	rows, err := q.db.QueryContext(ctx, getChannelsByTenantID, tenantID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Channel
+	var items []VideoserviceChannel
 	for rows.Next() {
-		var i Channel
+		var i VideoserviceChannel
 		if err := rows.Scan(
 			&i.ID,
 			&i.TenantID,
@@ -354,8 +482,8 @@ func (q *Queries) GetChannelsByTenantID(ctx context.Context, tenantID string) ([
 }
 
 const getUserRoleInChannel = `-- name: GetUserRoleInChannel :one
-SELECT cm.role FROM channel_members cm
-JOIN channels c ON cm.channel_id = c.id
+SELECT cm.role FROM videoservice_channel_members cm
+JOIN videoservice_channels c ON cm.channel_id = c.id
 WHERE cm.channel_id = ?1 AND cm.user_id = ?2 AND c.tenant_id = ?3
 `
 
@@ -373,8 +501,8 @@ func (q *Queries) GetUserRoleInChannel(ctx context.Context, arg GetUserRoleInCha
 }
 
 const getVideoByVideoIDAndTenantID = `-- name: GetVideoByVideoIDAndTenantID :one
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, "CONSTRAINT" FROM videos 
-WHERE id = ?1 AND tenant_id = ?2
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
 LIMIT 1
 `
 
@@ -383,9 +511,9 @@ type GetVideoByVideoIDAndTenantIDParams struct {
 	TenantID sql.NullString
 }
 
-func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideoByVideoIDAndTenantIDParams) (Video, error) {
+func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideoByVideoIDAndTenantIDParams) (VideoserviceVideo, error) {
 	row := q.db.QueryRowContext(ctx, getVideoByVideoIDAndTenantID, arg.ID, arg.TenantID)
-	var i Video
+	var i VideoserviceVideo
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
@@ -397,26 +525,26 @@ func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideo
 		&i.IsPrivate,
 		&i.TenantID,
 		&i.ChannelID,
-		&i.CONSTRAINT,
+		&i.IsDeleted,
 	)
 	return i, err
 }
 
 const getVideosByTenantID = `-- name: GetVideosByTenantID :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, "CONSTRAINT" FROM videos 
-WHERE tenant_id = ?1 
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+WHERE tenant_id = ?1 AND is_deleted = FALSE
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullString) ([]Video, error) {
+func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullString) ([]VideoserviceVideo, error) {
 	rows, err := q.db.QueryContext(ctx, getVideosByTenantID, tenantID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Video
+	var items []VideoserviceVideo
 	for rows.Next() {
-		var i Video
+		var i VideoserviceVideo
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -428,7 +556,7 @@ func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullStri
 			&i.IsPrivate,
 			&i.TenantID,
 			&i.ChannelID,
-			&i.CONSTRAINT,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -444,8 +572,8 @@ func (q *Queries) GetVideosByTenantID(ctx context.Context, tenantID sql.NullStri
 }
 
 const getVideosByTenantIDAndChannelID = `-- name: GetVideosByTenantIDAndChannelID :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, "CONSTRAINT" FROM videos 
-WHERE tenant_id = ?1 AND channel_id = ?2
+SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted FROM videoservice_videos 
+WHERE tenant_id = ?1 AND channel_id = ?2 AND is_deleted = FALSE
 ORDER BY created_at DESC
 `
 
@@ -454,15 +582,15 @@ type GetVideosByTenantIDAndChannelIDParams struct {
 	ChannelID sql.NullString
 }
 
-func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVideosByTenantIDAndChannelIDParams) ([]Video, error) {
+func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVideosByTenantIDAndChannelIDParams) ([]VideoserviceVideo, error) {
 	rows, err := q.db.QueryContext(ctx, getVideosByTenantIDAndChannelID, arg.TenantID, arg.ChannelID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Video
+	var items []VideoserviceVideo
 	for rows.Next() {
-		var i Video
+		var i VideoserviceVideo
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -474,7 +602,7 @@ func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVi
 			&i.IsPrivate,
 			&i.TenantID,
 			&i.ChannelID,
-			&i.CONSTRAINT,
+			&i.IsDeleted,
 		); err != nil {
 			return nil, err
 		}
@@ -489,8 +617,48 @@ func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVi
 	return items, nil
 }
 
+const removeVideoFromChannel = `-- name: RemoveVideoFromChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = NULL, updated_at = ?1
+WHERE id = ?2 AND tenant_id = ?3 AND channel_id = ?4 AND is_deleted = FALSE
+`
+
+type RemoveVideoFromChannelParams struct {
+	UpdatedAt time.Time
+	VideoID   string
+	TenantID  sql.NullString
+	ChannelID sql.NullString
+}
+
+func (q *Queries) RemoveVideoFromChannel(ctx context.Context, arg RemoveVideoFromChannelParams) error {
+	_, err := q.db.ExecContext(ctx, removeVideoFromChannel,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.ChannelID,
+	)
+	return err
+}
+
+const softDeleteVideo = `-- name: SoftDeleteVideo :exec
+UPDATE videoservice_videos 
+SET is_deleted = TRUE, updated_at = ?1
+WHERE id = ?2 AND tenant_id = ?3 AND is_deleted = FALSE
+`
+
+type SoftDeleteVideoParams struct {
+	UpdatedAt time.Time
+	VideoID   string
+	TenantID  sql.NullString
+}
+
+func (q *Queries) SoftDeleteVideo(ctx context.Context, arg SoftDeleteVideoParams) error {
+	_, err := q.db.ExecContext(ctx, softDeleteVideo, arg.UpdatedAt, arg.VideoID, arg.TenantID)
+	return err
+}
+
 const updateChannel = `-- name: UpdateChannel :one
-UPDATE channels 
+UPDATE videoservice_channels 
 SET 
     name = ?1,
     description = ?2,
@@ -507,7 +675,7 @@ type UpdateChannelParams struct {
 	TenantID    string
 }
 
-func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
+func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (VideoserviceChannel, error) {
 	row := q.db.QueryRowContext(ctx, updateChannel,
 		arg.Name,
 		arg.Description,
@@ -515,7 +683,7 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		arg.ID,
 		arg.TenantID,
 	)
-	var i Channel
+	var i VideoserviceChannel
 	err := row.Scan(
 		&i.ID,
 		&i.TenantID,
@@ -526,4 +694,39 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateVideoChannel = `-- name: UpdateVideoChannel :exec
+UPDATE videoservice_videos 
+SET channel_id = ?1, updated_at = ?2
+WHERE id = ?3 AND tenant_id = ?4 AND is_deleted = FALSE
+  AND (
+    -- For tenant-level videos: validate uploader ownership
+    (channel_id IS NULL OR channel_id = '') AND uploaded_user_id = ?5
+    OR
+    -- For channel videos: validate current channel (permission checked in API)
+    channel_id = ?6
+  )
+`
+
+type UpdateVideoChannelParams struct {
+	ChannelID        sql.NullString
+	UpdatedAt        time.Time
+	VideoID          string
+	TenantID         sql.NullString
+	UploadedUserID   string
+	CurrentChannelID sql.NullString
+}
+
+// Video-Channel Management Queries
+func (q *Queries) UpdateVideoChannel(ctx context.Context, arg UpdateVideoChannelParams) error {
+	_, err := q.db.ExecContext(ctx, updateVideoChannel,
+		arg.ChannelID,
+		arg.UpdatedAt,
+		arg.VideoID,
+		arg.TenantID,
+		arg.UploadedUserID,
+		arg.CurrentChannelID,
+	)
+	return err
 }

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { $authToken } from "../auth/store/auth";
 import { $currentTenant } from "../stores/tenants";
+import { $channels, fetchChannels } from "../stores/channels";
 import { useStore } from "@nanostores/react";
 
-export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
+export default function ScreenRecorder({ onUploadSuccess, onUploadError, contextChannelId }) {
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -11,6 +12,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const [uploadFailed, setUploadFailed] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedChannelId, setSelectedChannelId] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const [statusType, setStatusType] = useState("info");
@@ -19,9 +21,24 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   const writableStreamRef = useRef(null);
   const authToken = useStore($authToken);
   const currentTenant = useStore($currentTenant);
+  const channels = useStore($channels);
 
   // --- OPFS Helpers ---
   const fileName = "recording.webm";
+
+  useEffect(() => {
+    // Fetch channels when component mounts
+    if (currentTenant?.tenant?.id) {
+      fetchChannels();
+    }
+  }, [currentTenant]);
+
+  useEffect(() => {
+    // Auto-select channel if context is provided
+    if (contextChannelId) {
+      setSelectedChannelId(contextChannelId);
+    }
+  }, [contextChannelId]);
 
   const getRecordingFileHandle = async () => {
     const root = await navigator.storage.getDirectory();
@@ -45,6 +62,7 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       setShowForm(false);
       setTitle("");
       setDescription("");
+      setSelectedChannelId(contextChannelId || "");
       setStatusMessage("Recording discarded.");
     } catch (error) {
       console.error("Error discarding recording:", error);
@@ -61,6 +79,10 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         setCurrentVideoBlob(file);
         setVideoUrl(URL.createObjectURL(file));
         setShowForm(true);
+        // Auto-generate title for existing recording
+        if (!title) {
+          setTitle(`Recording ${new Date().toLocaleString()}`);
+        }
       }
     } catch (_) {
       // No previous recording
@@ -116,6 +138,11 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
         setVideoUrl(URL.createObjectURL(file));
         setShowForm(true);
         setStatusMessage(null);
+        
+        // Auto-generate title with timestamp
+        if (!title) {
+          setTitle(`Recording ${new Date().toLocaleString()}`);
+        }
       };
 
       mediaRecorder.current.start();
@@ -147,11 +174,6 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
   };
 
   const uploadVideo = async () => {
-    if (!title || !description) {
-      setStatusMessage("Please enter both title and description before uploading.");
-      return;
-    }
-
     if (!currentVideoBlob) {
       setStatusMessage("No video to upload.");
       return;
@@ -167,8 +189,13 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
     setStatusMessage("Uploading video...");
 
     const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
+    
+    // Use auto-generated title if user hasn't provided one
+    const finalTitle = title.trim() || `Recording ${new Date().toLocaleString()}`;
+    
+    formData.append("title", finalTitle);
+    formData.append("description", description.trim()); // Optional, can be empty
+    formData.append("channel_id", selectedChannelId); // Optional, can be empty for personal videos
     formData.append("video", currentVideoBlob, fileName);
     
     try {
@@ -196,6 +223,9 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       setShowForm(false);
       setVideoUrl(null);
       setCurrentVideoBlob(null);
+      setTitle("");
+      setDescription("");
+      setSelectedChannelId(contextChannelId || "");
     } catch (error) {
       console.error("Error uploading video:", error);
       setUploadFailed(true);
@@ -211,6 +241,9 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
       uploadVideo();
     }
   };
+
+  // Determine if we should show channel selector
+  const shouldShowChannelSelector = !contextChannelId && channels.length > 0;
 
   return (
     <div className="space-y-4">
@@ -241,28 +274,66 @@ export default function ScreenRecorder({ onUploadSuccess, onUploadError }) {
           <video controls src={videoUrl} className="w-full max-w-2xl mx-auto rounded-lg shadow-lg" />
 
           {showForm && (
-            <div className="space-y-2">
-              <label className="block">
-                Title:
+            <div className="space-y-4">
+              {/* Title Input */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter video title"
-                  className="input input-bordered w-full mt-1"
+                  placeholder="Auto-generated from timestamp"
+                  className="input input-bordered w-full"
                 />
-              </label>
-              <label className="block">
-                Description:
+                <div className="text-xs text-base-content/60 mt-1">
+                  Leave empty to use timestamp as title
+                </div>
+              </div>
+
+              {/* Description Input */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Description (Optional)</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter video description"
-                  className="textarea textarea-bordered w-full mt-1"
+                  placeholder="Add a description for your recording"
+                  className="textarea textarea-bordered w-full"
                 />
-              </label>
+              </div>
+
+              {/* Channel Selector - Only show if needed */}
+              {shouldShowChannelSelector && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Channel</label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={selectedChannelId}
+                    onChange={(e) => setSelectedChannelId(e.target.value)}
+                  >
+                    <option value="">My Videos (Personal)</option>
+                    {channels.map((channel) => (
+                      <option key={channel.id} value={channel.id}>
+                        {channel.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="text-xs text-base-content/60 mt-1">
+                    Select a channel to share with team members
+                  </div>
+                </div>
+              )}
+
+              {/* Context Channel Info */}
+              {contextChannelId && (
+                <div className="bg-base-200 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-base-content/70">
+                    Recording will be saved to: {channels.find(c => c.id === contextChannelId)?.name || 'Selected Channel'}
+                  </div>
+                </div>
+              )}
+
               <button className="btn btn-success w-full" onClick={uploadVideo} disabled={isUploading}>
-                Upload Video
+                {isUploading ? 'Uploading...' : 'Upload Recording'}
               </button>
             </div>
           )}

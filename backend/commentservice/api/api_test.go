@@ -139,6 +139,7 @@ func TestGetComment(t *testing.T) {
 		Content: "Mock comment",
 		VideoID: "vid1",
 		UserID:  "test-user-id",
+		UserID:  "test-user-id",
 	}
 
 	mockDB.EXPECT().
