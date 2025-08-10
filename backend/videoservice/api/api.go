@@ -179,7 +179,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
-		return nil, err
+		return nil, status.Error(codes.Unauthenticated, "auth context not found")
 	}
 
 	// Get tenant ID from headers/metadata
