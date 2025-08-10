@@ -2,21 +2,22 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
+	"sortedstartup.com/stream/common/auth"
+	"sortedstartup.com/stream/common/interceptors"
 	userProto "sortedstartup.com/stream/userservice/proto"
 	db "sortedstartup.com/stream/videoservice/db"
 	dbMock "sortedstartup.com/stream/videoservice/db/mocks"
 	"sortedstartup.com/stream/videoservice/proto"
-	"sortedstartup.com/stream/common/auth"
-	"sortedstartup.com/stream/common/interceptors"
 )
 
 // createAuthContextWithTenant creates a context with auth and tenant metadata
@@ -169,6 +170,134 @@ func TestListVideos(t *testing.T) {
 		}
 		if st, _ := status.FromError(err); st.Code() != codes.Internal {
 			t.Errorf("Expected Internal code, got %v", err)
+		}
+	})
+}
+
+func TestGetVideo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := dbMock.NewMockDBQuerier(ctrl)
+	mockUser := userProto.NewMockUserServiceClient(ctrl)
+
+	api := createTestVideoAPI()
+	api.dbQueries = mockDB
+	api.userServiceClient = mockUser
+
+	tenantID := "tenant-1"
+	videoID := "video-123"
+	ctx := createAuthContextWithTenant(tenantID)
+
+	t.Run("Positive_Success", func(t *testing.T) {
+		// Mock user tenant validation
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{Tenant: &userProto.Tenant{Id: tenantID}},
+				},
+			}, nil)
+
+		// Mock DB returning a video
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(gomock.Any(), db.GetVideoByVideoIDAndTenantIDParams{
+				ID: videoID,
+				TenantID: sql.NullString{
+					String: tenantID,
+					Valid:  true,
+				},
+			}).
+			Return(db.VideoserviceVideo{
+				ID:          videoID,
+				Title:       "Test Video",
+				Description: "Test Desc",
+				Url:         "http://example.com/video.mp4",
+				CreatedAt:   time.Now(),
+			}, nil)
+
+		resp, err := api.GetVideo(ctx, &proto.GetVideoRequest{VideoId: videoID})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if resp.Id != videoID {
+			t.Errorf("Expected video ID %s, got %s", videoID, resp.Id)
+		}
+	})
+
+	t.Run("Negative_MissingAuth", func(t *testing.T) {
+		_, err := api.GetVideo(context.Background(), &proto.GetVideoRequest{VideoId: videoID})
+		if err == nil {
+			t.Fatalf("Expected error for missing auth, got nil")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.Unauthenticated {
+			t.Errorf("Expected Unauthenticated error, got %v", err)
+		}
+	})
+
+	t.Run("Negative_MissingTenantID", func(t *testing.T) {
+		// Context with auth but no tenant ID
+		authCtx := createAuthContextWithTenant("")
+		_, err := api.GetVideo(authCtx, &proto.GetVideoRequest{VideoId: videoID})
+		if err == nil {
+			t.Fatalf("Expected error for missing tenant ID, got nil")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+			t.Errorf("Expected InvalidArgument error, got %v", err)
+		}
+	})
+
+	t.Run("Negative_UserNotInTenant", func(t *testing.T) {
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{}, nil) // empty tenants
+
+		_, err := api.GetVideo(ctx, &proto.GetVideoRequest{VideoId: videoID})
+		if err == nil {
+			t.Fatalf("Expected error for user not in tenant, got nil")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.PermissionDenied {
+			t.Errorf("Expected PermissionDenied error, got %v", err)
+		}
+	})
+
+	t.Run("Negative_VideoNotFound", func(t *testing.T) {
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{{Tenant: &userProto.Tenant{Id: tenantID}}},
+			}, nil)
+
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceVideo{}, sql.ErrNoRows)
+
+		_, err := api.GetVideo(ctx, &proto.GetVideoRequest{VideoId: videoID})
+		if err == nil {
+			t.Fatalf("Expected error for video not found, got nil")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.NotFound {
+			t.Errorf("Expected NotFound error, got %v", err)
+		}
+	})
+
+	t.Run("Negative_InternalDBError", func(t *testing.T) {
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{{Tenant: &userProto.Tenant{Id: tenantID}}},
+			}, nil)
+
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceVideo{}, errors.New("db error"))
+
+		_, err := api.GetVideo(ctx, &proto.GetVideoRequest{VideoId: videoID})
+		if err == nil {
+			t.Fatalf("Expected error for internal DB error, got nil")
+		}
+		if st, ok := status.FromError(err); !ok || st.Code() != codes.Internal {
+			t.Errorf("Expected Internal error, got %v", err)
 		}
 	})
 }

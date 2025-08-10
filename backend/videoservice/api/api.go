@@ -237,13 +237,13 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
-		return nil, err
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
 	}
 
 	// Get tenant ID from headers/metadata
 	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
 	// Validate user has access to this tenant
