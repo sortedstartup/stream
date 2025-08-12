@@ -690,3 +690,135 @@ func TestRemoveVideoFromChannel(t *testing.T) {
 		}
 	})
 }
+
+func TestDeleteVideo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := dbMock.NewMockDBQuerier(ctrl)
+	mockPolicyValidator := mockApi.NewMockPolicyValidator(ctrl)
+	mockChannelAPI := mockApi.NewMockChannelAPIInterface(ctrl)
+
+	api := api.CreateTestVideoAPI()
+	api.DbQueries = mockDB
+	api.PolicyValidator = mockPolicyValidator
+	api.ChannelAPI = mockChannelAPI
+
+	ctx := context.Background()
+	req := &proto.DeleteVideoRequest{
+		VideoId: "vid-1",
+	}
+
+	tenantID := "tenant-1"
+	authCtx := &auth.AuthContext{
+		User: &auth.User{ID: "user-1"},
+	}
+
+	video := db.VideoserviceVideo{
+		ID:             "vid-1",
+		UploadedUserID: "user-1",
+		ChannelID:      sql.NullString{String: "ch-1", Valid: true},
+	}
+
+		t.Run("Success", func(t *testing.T) {
+			mockPolicyValidator.EXPECT().
+				ValidateBasicRequest(ctx).
+				Return(authCtx, tenantID, nil)
+
+			mockPolicyValidator.EXPECT().
+				GetAndValidateVideo(ctx, req.VideoId, tenantID).
+				Return(&video, nil) 
+
+			mockPolicyValidator.EXPECT().
+				ValidateVideoDeletionPermissions(ctx, mockChannelAPI, &video, authCtx.User.ID, tenantID).
+				Return(nil)
+
+			mockDB.EXPECT().
+				SoftDeleteVideo(ctx, gomock.AssignableToTypeOf(db.SoftDeleteVideoParams{})).
+				DoAndReturn(func(ctx context.Context, params db.SoftDeleteVideoParams) error {
+					if params.VideoID != req.VideoId {
+						return errors.New("unexpected VideoID")
+					}
+					if !params.TenantID.Valid || params.TenantID.String != tenantID {
+						return errors.New("unexpected TenantID")
+					}
+					return nil
+				})
+
+			resp, err := api.DeleteVideo(ctx, req)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if resp.Message != "Video deleted successfully" {
+				t.Errorf("Expected success message, got %s", resp.Message)
+			}
+		})
+
+	t.Run("Fail_ValidateBasicRequest", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(nil, "", status.Error(codes.Unauthenticated, "no auth"))
+
+		_, err := api.DeleteVideo(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
+			t.Errorf("Expected Unauthenticated, got %v", err)
+		}
+	})
+
+	t.Run("Fail_GetAndValidateVideo", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(nil, status.Error(codes.NotFound, "video not found")) // Return nil pointer + error
+
+		_, err := api.DeleteVideo(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+			t.Errorf("Expected NotFound, got %v", err)
+		}
+	})
+
+	t.Run("Fail_ValidateVideoDeletionPermissions", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+
+		mockPolicyValidator.EXPECT().
+			ValidateVideoDeletionPermissions(ctx, mockChannelAPI, &video, authCtx.User.ID, tenantID).
+			Return(status.Error(codes.PermissionDenied, "no permission"))
+
+		_, err := api.DeleteVideo(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.PermissionDenied {
+			t.Errorf("Expected PermissionDenied, got %v", err)
+		}
+	})
+
+	t.Run("Fail_SoftDeleteVideo", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+
+		mockPolicyValidator.EXPECT().
+			ValidateVideoDeletionPermissions(ctx, mockChannelAPI, &video, authCtx.User.ID, tenantID).
+			Return(nil)
+
+		mockDB.EXPECT().
+			SoftDeleteVideo(ctx, gomock.AssignableToTypeOf(db.SoftDeleteVideoParams{})).
+			Return(errors.New("db error"))
+
+		_, err := api.DeleteVideo(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.Internal {
+			t.Errorf("Expected Internal error, got %v", err)
+		}
+	})
+}
