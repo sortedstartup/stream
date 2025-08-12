@@ -1,4 +1,4 @@
-package api
+package api_test
 
 import (
 	"context"
@@ -17,6 +17,8 @@ import (
 	userProto "sortedstartup.com/stream/userservice/proto"
 	db "sortedstartup.com/stream/videoservice/db"
 	dbMock "sortedstartup.com/stream/videoservice/db/mocks"
+	mockApi "sortedstartup.com/stream/videoservice/api/mocks"
+	api "sortedstartup.com/stream/videoservice/api"
 	"sortedstartup.com/stream/videoservice/proto"
 )
 
@@ -62,9 +64,9 @@ func TestListVideos(t *testing.T) {
 	mockDB := dbMock.NewMockDBQuerier(ctrl)
 	mockUser := userProto.NewMockUserServiceClient(ctrl)
 
-	api := createTestVideoAPI()
-	api.dbQueries = mockDB
-	api.userServiceClient = mockUser
+	api := api.CreateTestVideoAPI()
+	api.DbQueries = mockDB
+	api.UserServiceClient = mockUser
 
 	tenantID := "tenant-1"
 	ctx := createAuthContextWithTenant(tenantID)
@@ -181,9 +183,9 @@ func TestGetVideo(t *testing.T) {
 	mockDB := dbMock.NewMockDBQuerier(ctrl)
 	mockUser := userProto.NewMockUserServiceClient(ctrl)
 
-	api := createTestVideoAPI()
-	api.dbQueries = mockDB
-	api.userServiceClient = mockUser
+	api := api.CreateTestVideoAPI()
+	api.DbQueries = mockDB
+	api.UserServiceClient = mockUser
 
 	tenantID := "tenant-1"
 	videoID := "video-123"
@@ -298,6 +300,217 @@ func TestGetVideo(t *testing.T) {
 		}
 		if st, ok := status.FromError(err); !ok || st.Code() != codes.Internal {
 			t.Errorf("Expected Internal error, got %v", err)
+		}
+	})
+}
+
+func TestMoveVideoToChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := dbMock.NewMockDBQuerier(ctrl)
+	mockPolicyValidator := mockApi.NewMockPolicyValidator(ctrl)
+	mockChannelAPI := mockApi.NewMockChannelAPIInterface(ctrl)
+
+	api := api.CreateTestVideoAPI()
+	api.DbQueries = mockDB
+	api.PolicyValidator = mockPolicyValidator
+	api.ChannelAPI = mockChannelAPI
+
+	ctx := context.Background()
+	req := &proto.MoveVideoToChannelRequest{
+		VideoId:   "vid-1",
+		ChannelId: "ch-1",
+	}
+
+	tenantID := "tenant-1"
+	authCtx := &auth.AuthContext{
+		User: &auth.User{ID: "user-1"},
+	}
+	video := db.VideoserviceVideo{
+		ID:             "vid-1",
+		UploadedUserID: "user-1",
+		ChannelID:      sql.NullString{String: "old-channel", Valid: true},
+	}
+
+	updatedVideo := db.VideoserviceVideo{
+		ID:        "vid-1",
+		ChannelID: sql.NullString{String: "ch-1", Valid: true},
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		// Return pointer here
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+
+		// Pass pointer to ValidateVideoMovePermissions
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &video, "user-1", tenantID, req.ChannelId).
+			Return(nil)
+
+		mockDB.EXPECT().
+			UpdateVideoChannel(ctx, gomock.Any()).
+			Return(nil)
+
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(ctx, gomock.Any()).
+			Return(updatedVideo, nil)
+
+		mockPolicyValidator.EXPECT().
+			ConvertVideoToProto(&updatedVideo).
+			Return(&proto.Video{Id: "vid-1"})
+
+		resp, err := api.MoveVideoToChannel(ctx, req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if resp.Video.Id != "vid-1" {
+			t.Errorf("Expected vid-1, got %s", resp.Video.Id)
+		}
+	})
+
+	t.Run("Fail_ValidateBasicRequest", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(nil, "", status.Error(codes.Unauthenticated, "no auth"))
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
+			t.Errorf("Expected Unauthenticated, got %v", err)
+		}
+	})
+
+	t.Run("Fail_GetAndValidateVideo", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		// Return pointer here as well
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(nil, status.Error(codes.NotFound, "video not found"))
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+			t.Errorf("Expected NotFound, got %v", err)
+		}
+	})
+
+	t.Run("Fail_ValidateVideoMovePermissions", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+
+		// Return pointer here
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &video, "user-1", tenantID, req.ChannelId).
+			Return(status.Error(codes.PermissionDenied, "no permission"))
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.PermissionDenied {
+			t.Errorf("Expected PermissionDenied, got %v", err)
+		}
+	})
+
+	t.Run("Fail_UpdateVideoChannel", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &video, "user-1", tenantID, req.ChannelId).
+			Return(nil)
+
+		mockDB.EXPECT().
+			UpdateVideoChannel(ctx, gomock.Any()).
+			Return(errors.New("db error"))
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.Internal {
+			t.Errorf("Expected Internal, got %v", err)
+		}
+	})
+
+	t.Run("Fail_GetVideoAfterUpdate", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &video, "user-1", tenantID, req.ChannelId).
+			Return(nil)
+		mockDB.EXPECT().
+			UpdateVideoChannel(ctx, gomock.Any()).
+			Return(nil)
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(ctx, gomock.Any()).
+			Return(db.VideoserviceVideo{}, errors.New("db error"))
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.Internal {
+			t.Errorf("Expected Internal, got %v", err)
+		}
+	})
+
+	t.Run("Fail_ChannelNotUpdated_TenantLevelVideo", func(t *testing.T) {
+		videoWithoutChannel := video
+		videoWithoutChannel.ChannelID = sql.NullString{}
+
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&videoWithoutChannel, nil)
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &videoWithoutChannel, "user-1", tenantID, req.ChannelId).
+			Return(nil)
+		mockDB.EXPECT().
+			UpdateVideoChannel(ctx, gomock.Any()).
+			Return(nil)
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(ctx, gomock.Any()).
+			Return(videoWithoutChannel, nil)
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.PermissionDenied {
+			t.Errorf("Expected PermissionDenied, got %v", err)
+		}
+	})
+
+	t.Run("Fail_ChannelNotUpdated_ChannelVideo", func(t *testing.T) {
+		mockPolicyValidator.EXPECT().
+			ValidateBasicRequest(ctx).
+			Return(authCtx, tenantID, nil)
+		mockPolicyValidator.EXPECT().
+			GetAndValidateVideo(ctx, req.VideoId, tenantID).
+			Return(&video, nil)
+		mockPolicyValidator.EXPECT().
+			ValidateVideoMovePermissions(ctx, mockChannelAPI, &video, "user-1", tenantID, req.ChannelId).
+			Return(nil)
+		mockDB.EXPECT().
+			UpdateVideoChannel(ctx, gomock.Any()).
+			Return(nil)
+		mockDB.EXPECT().
+			GetVideoByVideoIDAndTenantID(ctx, gomock.Any()).
+			Return(video, nil)
+
+		_, err := api.MoveVideoToChannel(ctx, req)
+		if st, _ := status.FromError(err); st.Code() != codes.PermissionDenied {
+			t.Errorf("Expected PermissionDenied, got %v", err)
 		}
 	})
 }
