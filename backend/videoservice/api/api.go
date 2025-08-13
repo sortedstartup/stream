@@ -424,8 +424,8 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 
 // ===== CHANNEL API METHODS =====
 
-// validateChannelRole validates that the role is one of the allowed channel roles
-func (s *ChannelAPI) validateChannelRole(role string) error {
+// ValidateChannelRole validates that the role is one of the allowed channel roles
+func (s *ChannelAPI) ValidateChannelRole(role string) error {
 	if !constants.IsValidChannelRole(role) {
 		return status.Error(codes.InvalidArgument, "invalid role. Valid roles are: owner, uploader, viewer")
 	}
@@ -787,7 +787,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate role
-	err = s.validateChannelRole(req.Role)
+	err = s.ValidateChannelRole(req.Role)
 	if err != nil {
 		return nil, err
 	}

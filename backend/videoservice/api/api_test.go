@@ -822,3 +822,41 @@ func TestDeleteVideo(t *testing.T) {
 		}
 	})
 }
+
+func TestValidateChannelRole(t *testing.T) {
+	chAPI := &api.ChannelAPI{}
+
+	validRoles := []string{"owner", "uploader", "viewer"}
+	for _, role := range validRoles {
+		t.Run("ValidRole_"+role, func(t *testing.T) {
+			err := chAPI.ValidateChannelRole(role)
+			if err != nil {
+				t.Errorf("Expected no error for valid role %q, got %v", role, err)
+			}
+		})
+	}
+
+	invalidRoles := []string{"admin", "guest", "", "Owner", "UPLOADER", "viewer1", "user", " "}
+
+	for _, role := range invalidRoles {
+		t.Run("InvalidRole_"+role, func(t *testing.T) {
+			err := chAPI.ValidateChannelRole(role)
+			if err == nil {
+				t.Errorf("Expected error for invalid role %q, got nil", role)
+				return
+			}
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Errorf("Expected gRPC status error for invalid role %q, got %v", role, err)
+				return
+			}
+			if st.Code() != codes.InvalidArgument {
+				t.Errorf("Expected InvalidArgument code for invalid role %q, got %v", role, st.Code())
+			}
+			expectedMsg := "invalid role. Valid roles are: owner, uploader, viewer"
+			if st.Message() != expectedMsg {
+				t.Errorf("Expected error message %q, got %q", expectedMsg, st.Message())
+			}
+		})
+	}
+}
