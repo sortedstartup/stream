@@ -449,7 +449,7 @@ func (s *ChannelAPI) GetUserRoleInChannel(ctx context.Context, channelID, userID
 }
 
 // getChannelMemberCount returns the number of members in a channel
-func (s *ChannelAPI) getChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
+func (s *ChannelAPI) GetChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
 	members, err := s.DbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: channelID,
 		TenantID:  tenantID,
@@ -586,7 +586,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 
 			// Only include member count for channel owners
 			if userRole == constants.ChannelRoleOwner {
-				memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+				memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 				if err != nil {
 					s.log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
 					memberCount = 0 // Default to 0 if we can't get the count
@@ -669,7 +669,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Include member count since only owners can update channels
-	memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+	memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 	if err != nil {
 		s.log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
 		memberCount = 0 // Default to 0 if we can't get the count

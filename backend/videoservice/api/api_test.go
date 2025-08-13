@@ -926,3 +926,69 @@ func TestGetUserRoleInChannel(t *testing.T) {
 		}
 	})
 }
+
+func TestGetChannelMemberCount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockApi.NewMockChannelDB(ctrl)
+	api := &api.ChannelAPI{
+		DbQueries: mockDB,
+	}
+
+	ctx := context.Background()
+	channelID := "ch-1"
+	tenantID := "tenant-1"
+
+	t.Run("Success - multiple members", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+				ChannelID: channelID,
+				TenantID:  tenantID,
+			}).
+			Return([]db.GetChannelMembersByChannelIDAndTenantIDRow{
+				{UserID: "user1", Role: "owner"},
+				{UserID: "user2", Role: "viewer"},
+				{UserID: "user3", Role: "uploader"},
+			}, nil)
+
+		count, err := api.GetChannelMemberCount(ctx, channelID, tenantID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 3 {
+			t.Errorf("expected count 3, got %d", count)
+		}
+	})
+
+	t.Run("Success - zero members", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+				ChannelID: channelID,
+				TenantID:  tenantID,
+			}).
+			Return([]db.GetChannelMembersByChannelIDAndTenantIDRow{}, nil)
+
+		count, err := api.GetChannelMemberCount(ctx, channelID, tenantID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected count 0, got %d", count)
+		}
+	})
+
+	t.Run("Fail - database error", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+				ChannelID: channelID,
+				TenantID:  tenantID,
+			}).
+			Return(nil, errors.New("db error"))
+
+		_, err := api.GetChannelMemberCount(ctx, channelID, tenantID)
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+	})
+}
