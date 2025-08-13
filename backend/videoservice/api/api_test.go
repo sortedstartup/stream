@@ -860,3 +860,69 @@ func TestValidateChannelRole(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUserRoleInChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockApi.NewMockChannelDB(ctrl)
+
+	api := &api.ChannelAPI{
+		DbQueries: mockDB,
+	}
+
+	ctx := context.Background()
+	channelID := "ch-1"
+	userID := "user-1"
+	tenantID := "tenant-1"
+
+	t.Run("Success - user is member", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return("uploader", nil)
+
+		role, err := api.GetUserRoleInChannel(ctx, channelID, userID, tenantID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if role != "uploader" {
+			t.Errorf("expected role 'uploader', got %s", role)
+		}
+	})
+
+	t.Run("Fail - user not a member (sql.ErrNoRows)", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return("", sql.ErrNoRows)
+
+		_, err := api.GetUserRoleInChannel(ctx, channelID, userID, tenantID)
+		st, _ := status.FromError(err)
+		if st.Code() != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied, got %v", err)
+		}
+	})
+
+	t.Run("Fail - db error", func(t *testing.T) {
+		mockDB.EXPECT().
+			GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return("", errors.New("db error"))
+
+		_, err := api.GetUserRoleInChannel(ctx, channelID, userID, tenantID)
+		st, _ := status.FromError(err)
+		if st.Code() != codes.Internal {
+			t.Errorf("expected Internal error, got %v", err)
+		}
+	})
+}

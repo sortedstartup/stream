@@ -46,7 +46,7 @@ type ChannelAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	DbQueries ChannelDB
 
 	// gRPC clients for other services
 	userServiceClient   userProto.UserServiceClient
@@ -80,7 +80,7 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		config:              config,
 		db:                  _db,
 		log:                 childLogger,
-		dbQueries:           dbQueries,
+		DbQueries:           dbQueries,
 		userServiceClient:   userServiceClient,
 		tenantServiceClient: tenantServiceClient,
 	}
@@ -434,7 +434,7 @@ func (s *ChannelAPI) ValidateChannelRole(role string) error {
 
 // getUserRoleInChannel checks if user has access to channel and returns their role
 func (s *ChannelAPI) GetUserRoleInChannel(ctx context.Context, channelID, userID, tenantID string) (string, error) {
-	role, err := s.dbQueries.GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+	role, err := s.DbQueries.GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
 		ChannelID: channelID,
 		UserID:    userID,
 		TenantID:  tenantID,
@@ -450,7 +450,7 @@ func (s *ChannelAPI) GetUserRoleInChannel(ctx context.Context, channelID, userID
 
 // getChannelMemberCount returns the number of members in a channel
 func (s *ChannelAPI) getChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
-	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+	members, err := s.DbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: channelID,
 		TenantID:  tenantID,
 	})
@@ -494,7 +494,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	channelID := uuid.New().String()
 	now := time.Now()
 
-	channel, err := s.dbQueries.CreateChannel(ctx, db.CreateChannelParams{
+	channel, err := s.DbQueries.CreateChannel(ctx, db.CreateChannelParams{
 		ID:          channelID,
 		TenantID:    tenantID,
 		Name:        req.Name,
@@ -509,7 +509,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	}
 
 	// Add creator as owner
-	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+	_, err = s.DbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
 		ID:        uuid.New().String(),
 		ChannelID: channelID,
 		UserID:    authContext.User.ID,
@@ -560,7 +560,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 	}
 
 	// Get all channels in tenant
-	channels, err := s.dbQueries.GetChannelsByTenantID(ctx, tenantID)
+	channels, err := s.DbQueries.GetChannelsByTenantID(ctx, tenantID)
 	if err != nil {
 		s.log.Error("Failed to get channels", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channels")
@@ -641,7 +641,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Update channel
-	channel, err := s.dbQueries.UpdateChannel(ctx, db.UpdateChannelParams{
+	channel, err := s.DbQueries.UpdateChannel(ctx, db.UpdateChannelParams{
 		ID:          req.ChannelId,
 		TenantID:    tenantID,
 		Name:        req.Name,
@@ -712,7 +712,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 	}
 
 	// Get all channel members from database
-	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+	members, err := s.DbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: req.ChannelId,
 		TenantID:  tenantID,
 	})
@@ -808,7 +808,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Add member to channel
-	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+	_, err = s.DbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
 		ID:        uuid.New().String(),
 		ChannelID: req.ChannelId,
 		UserID:    req.UserId,
@@ -871,7 +871,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Remove member from channel
-	err = s.dbQueries.DeleteChannelMember(ctx, db.DeleteChannelMemberParams{
+	err = s.DbQueries.DeleteChannelMember(ctx, db.DeleteChannelMemberParams{
 		ChannelID: req.ChannelId,
 		UserID:    req.UserId,
 	})

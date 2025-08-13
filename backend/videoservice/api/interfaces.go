@@ -22,3 +22,17 @@ type PolicyValidator interface {
 type ChannelAPIInterface interface {
 	GetUserRoleInChannel(ctx context.Context, channelID, userID, tenantID string) (string, error)
 }
+
+type ChannelDB interface {
+	CreateChannel(ctx context.Context, arg db.CreateChannelParams) (db.VideoserviceChannel, error)
+	GetChannelsByTenantID(ctx context.Context, tenantID string) ([]db.VideoserviceChannel, error)
+	GetChannelByIDAndTenantID(ctx context.Context, arg db.GetChannelByIDAndTenantIDParams) (db.VideoserviceChannel, error)
+	UpdateChannel(ctx context.Context, arg db.UpdateChannelParams) (db.VideoserviceChannel, error)
+
+	CreateChannelMember(ctx context.Context, arg db.CreateChannelMemberParams) (db.VideoserviceChannelMember, error)
+	GetChannelMembersByChannelIDAndTenantID(ctx context.Context, arg db.GetChannelMembersByChannelIDAndTenantIDParams) ([]db.GetChannelMembersByChannelIDAndTenantIDRow, error)
+	GetChannelMembersByChannelIDExcludingUser(ctx context.Context, arg db.GetChannelMembersByChannelIDExcludingUserParams) ([]db.GetChannelMembersByChannelIDExcludingUserRow, error)
+	GetUserRoleInChannel(ctx context.Context, arg db.GetUserRoleInChannelParams) (string, error)
+
+	DeleteChannelMember(ctx context.Context, arg db.DeleteChannelMemberParams) error
+}
