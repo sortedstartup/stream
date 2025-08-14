@@ -1391,16 +1391,25 @@ func TestUpdateChannel(t *testing.T) {
 	t.Run("Positive - owner updates channel successfully", func(t *testing.T) {
 		ctx := makeCtx()
 
-		// Mock role check
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{
+							Id:       tenantID,
+							IsPersonal: true,
+						},
+						User: &userProto.User{Id: userID},
+						Role: &userProto.Role{Role: "admin"},
+					},
+				},
+			}, nil).AnyTimes()
+
 		mockDB.EXPECT().
-			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
-				ChannelID: channelID,
-				UserID:    userID,
-				TenantID:  tenantID,
-			}).
+			GetUserRoleInChannel(gomock.Any(), gomock.Any()).
 			Return(constants.ChannelRoleOwner, nil)
 
-		// Mock DB update
 		mockDB.EXPECT().
 			UpdateChannel(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, params db.UpdateChannelParams) (db.VideoserviceChannel, error) {
@@ -1415,13 +1424,12 @@ func TestUpdateChannel(t *testing.T) {
 				}, nil
 			})
 
-		// Mock member count
 		mockDB.EXPECT().
-			GetChannelMembersByChannelIDAndTenantID(gomock.Any(), db.GetChannelMembersByChannelIDAndTenantIDParams{
-				ChannelID: channelID,
-				TenantID:  tenantID,
-			}).
-			Return([]db.VideoserviceChannelMember{{}}, nil)
+			GetChannelMembersByChannelIDAndTenantID(gomock.Any(), gomock.Any()).
+			Return([]db.GetChannelMembersByChannelIDAndTenantIDRow{
+				{ChannelID: channelID, UserID: userID, Role: constants.ChannelRoleOwner},
+			}, nil)
+
 
 		req := &proto.UpdateChannelRequest{
 			ChannelId:   channelID,
