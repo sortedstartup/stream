@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -15,11 +18,11 @@ import (
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/interceptors"
 	userProto "sortedstartup.com/stream/userservice/proto"
+	api "sortedstartup.com/stream/videoservice/api"
+	mockApi "sortedstartup.com/stream/videoservice/api/mocks"
 	db "sortedstartup.com/stream/videoservice/db"
 	dbMock "sortedstartup.com/stream/videoservice/db/mocks"
-	mockApi "sortedstartup.com/stream/videoservice/api/mocks"
-	api "sortedstartup.com/stream/videoservice/api"
-	"sortedstartup.com/stream/videoservice/proto"
+	proto "sortedstartup.com/stream/videoservice/proto"
 )
 
 // createAuthContextWithTenant creates a context with auth and tenant metadata
@@ -991,4 +994,196 @@ func TestGetChannelMemberCount(t *testing.T) {
 			t.Fatalf("expected error, got nil")
 		}
 	})
+}
+
+func TestCreateChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockApi.NewMockChannelDB(ctrl)
+	mockUser := userProto.NewMockUserServiceClient(ctrl)
+
+	channelAPI := &api.ChannelAPI{
+		DbQueries:         mockDB,
+		UserServiceClient: mockUser,
+		Log: slog.New(
+        slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}),
+    	),
+	}
+
+	t.Run("Positive - personal tenant", func(t *testing.T) {
+		userID := "user-123"
+		tenantID := "tenant-456"
+
+		// Authenticated context with tenant ID
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, interceptors.TenantIDKey, tenantID)
+		ctx = context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User: &auth.User{
+				ID:    userID,
+				Name:  "Test User",
+				Email: "test@example.com",
+				Roles: []auth.Role{"admin"},
+			},
+			IsAuthenticated: true,
+		})
+
+		// Mock GetTenants response
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{
+							Id:        tenantID,
+							IsPersonal: true, // <- mark tenant as personal
+						},
+						User:   &userProto.User{Id: userID},
+						Role:   &userProto.Role{Role: "admin"},
+					},
+				},
+			}, nil)
+
+		// Mock CreateChannel
+		mockDB.EXPECT().
+			CreateChannel(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannel{
+				ID:       "channel-789",
+				TenantID: tenantID,
+				Name:     "My Test Channel",
+				CreatedBy: userID,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}, nil)
+
+		// Mock CreateChannelMember
+		mockDB.EXPECT().
+			CreateChannelMember(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannelMember{
+				ID:        "member-001",
+				ChannelID: "channel-789",
+				UserID:    userID,
+				Role:      "owner",
+				AddedBy:   userID,
+				CreatedAt: time.Now(),
+			}, nil)
+
+		// Run API call
+		req := &proto.CreateChannelRequest{
+			Name:        "My Test Channel",
+			Description: "Test description",
+		}
+
+		resp, err := channelAPI.CreateChannel(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if resp.Channel.Id != "channel-789" {
+			t.Errorf("expected channel ID 'channel-789', got %v", resp.Channel.Id)
+		}
+		if resp.Channel.UserRole != "owner" {
+			t.Errorf("expected user role 'owner', got %v", resp.Channel.UserRole)
+		}
+		if resp.Channel.MemberCount != 1 {
+			t.Errorf("expected member count 1, got %v", resp.Channel.MemberCount)
+		}
+	})
+
+	t.Run("Negative - missing auth", func(t *testing.T) {
+		ctx := context.Background() // no auth in context
+		req := &proto.CreateChannelRequest{Name: "Test"}
+
+		_, err := channelAPI.CreateChannel(ctx, req)
+		if status.Code(err) != codes.Unauthenticated {
+			t.Errorf("expected Unauthenticated error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing tenant ID", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User: &auth.User{
+				ID: "user-123",
+			},
+			IsAuthenticated: true,
+		})
+		req := &proto.CreateChannelRequest{Name: "Test"}
+
+		_, err := channelAPI.CreateChannel(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - org tenant, insufficient role", func(t *testing.T) {
+		userID := "user-123"
+		tenantID := "tenant-456"
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, interceptors.TenantIDKey, tenantID)
+		ctx = context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User: &auth.User{ID: userID},
+			IsAuthenticated: true,
+		})
+
+		// Mock GetTenants for organizational tenant
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{Id: tenantID, IsPersonal: false},
+						User:   &userProto.User{Id: userID},
+						Role:   &userProto.Role{Role: "member"}, // not super admin
+					},
+				},
+			}, nil)
+
+		req := &proto.CreateChannelRequest{Name: "Test"}
+
+		_, err := channelAPI.CreateChannel(ctx, req)
+		if status.Code(err) != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - DB CreateChannel fails", func(t *testing.T) {
+		userID := "user-123"
+		tenantID := "tenant-456"
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, interceptors.TenantIDKey, tenantID)
+		ctx = context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User: &auth.User{ID: userID},
+			IsAuthenticated: true,
+		})
+
+		// Mock GetTenants
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{Id: tenantID, IsPersonal: true},
+						User:   &userProto.User{Id: userID},
+						Role:   &userProto.Role{Role: "admin"},
+					},
+				},
+			}, nil)
+
+		// Simulate DB failure
+		mockDB.EXPECT().
+			CreateChannel(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannel{}, fmt.Errorf("db error"))
+
+		req := &proto.CreateChannelRequest{
+			Name: "Test Channel",
+		}
+
+		_, err := channelAPI.CreateChannel(ctx, req)
+		if status.Code(err) != codes.Internal {
+			t.Errorf("expected Internal error, got %v", err)
+		}
+	})
+
 }

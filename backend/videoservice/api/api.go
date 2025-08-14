@@ -45,11 +45,11 @@ type ChannelAPI struct {
 	HTTPServerMux *http.ServeMux
 	db            *sql.DB
 
-	log       *slog.Logger
+	Log       *slog.Logger
 	DbQueries ChannelDB
 
 	// gRPC clients for other services
-	userServiceClient   userProto.UserServiceClient
+	UserServiceClient   userProto.UserServiceClient
 	tenantServiceClient userProto.TenantServiceClient
 
 	//implemented proto server
@@ -79,9 +79,9 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		HTTPServerMux:       ServerMux,
 		config:              config,
 		db:                  _db,
-		log:                 childLogger,
+		Log:                 childLogger,
 		DbQueries:           dbQueries,
-		userServiceClient:   userServiceClient,
+		UserServiceClient:   userServiceClient,
 		tenantServiceClient: tenantServiceClient,
 	}
 
@@ -473,7 +473,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	}
 
 	// Get user's role and tenant type
-	userRole, isPersonal, err := getUserTenantInfo(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	userRole, isPersonal, err := getUserTenantInfo(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -504,7 +504,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		UpdatedAt:   now,
 	})
 	if err != nil {
-		s.log.Error("Failed to create channel", "error", err)
+		s.Log.Error("Failed to create channel", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create channel")
 	}
 
@@ -518,7 +518,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		CreatedAt: now,
 	})
 	if err != nil {
-		s.log.Error("Failed to add creator as channel owner", "error", err)
+		s.Log.Error("Failed to add creator as channel owner", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create channel")
 	}
 
@@ -554,7 +554,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +562,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 	// Get all channels in tenant
 	channels, err := s.DbQueries.GetChannelsByTenantID(ctx, tenantID)
 	if err != nil {
-		s.log.Error("Failed to get channels", "error", err)
+		s.Log.Error("Failed to get channels", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channels")
 	}
 
@@ -588,7 +588,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 			if userRole == constants.ChannelRoleOwner {
 				memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 				if err != nil {
-					s.log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
+					s.Log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
 					memberCount = 0 // Default to 0 if we can't get the count
 				}
 				channelProto.MemberCount = memberCount
@@ -618,7 +618,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +652,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 		if err == sql.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "channel not found")
 		}
-		s.log.Error("Failed to update channel", "error", err)
+		s.Log.Error("Failed to update channel", "error", err)
 		return nil, status.Error(codes.Internal, "failed to update channel")
 	}
 
@@ -671,7 +671,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	// Include member count since only owners can update channels
 	memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 	if err != nil {
-		s.log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
+		s.Log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
 		memberCount = 0 // Default to 0 if we can't get the count
 	}
 	channelProto.MemberCount = memberCount
@@ -695,7 +695,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +717,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		s.log.Error("failed to get channel members", "error", err)
+		s.Log.Error("failed to get channel members", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channel members")
 	}
 
@@ -726,7 +726,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		TenantId: tenantID,
 	})
 	if err != nil {
-		s.log.Error("failed to get tenant users", "error", err)
+		s.Log.Error("failed to get tenant users", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get user details")
 	}
 
@@ -742,7 +742,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		// Get user details from the map
 		user, exists := userMap[member.UserID]
 		if !exists {
-			s.log.Warn("user not found in tenant users", "user_id", member.UserID)
+			s.Log.Warn("user not found in tenant users", "user_id", member.UserID)
 			continue // Skip members whose user details we can't find
 		}
 
@@ -773,7 +773,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -802,7 +802,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate that the user being added is a member of the tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, req.UserId)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "user is not a member of this tenant")
 	}
@@ -817,7 +817,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		s.log.Error("Failed to add channel member", "error", err)
+		s.Log.Error("Failed to add channel member", "error", err)
 		return nil, status.Error(codes.Internal, "failed to add channel member")
 	}
 
@@ -839,7 +839,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -876,7 +876,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 		UserID:    req.UserId,
 	})
 	if err != nil {
-		s.log.Error("Failed to remove channel member", "error", err)
+		s.Log.Error("Failed to remove channel member", "error", err)
 		return nil, status.Error(codes.Internal, "failed to remove channel member")
 	}
 
