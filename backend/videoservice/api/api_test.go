@@ -1527,3 +1527,203 @@ func TestUpdateChannel(t *testing.T) {
 		}
 	})
 }
+
+func TestAddMember(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockApi.NewMockChannelDB(ctrl)
+	mockUser := userProto.NewMockUserServiceClient(ctrl)
+
+	channelAPI := &api.ChannelAPI{
+		DbQueries:         mockDB,
+		UserServiceClient: mockUser,
+	}
+
+	userID := "user-123"
+	tenantID := "tenant-456"
+	channelID := "channel-789"
+	memberID := "user-999"
+
+	// Common context with tenantID and authenticated user
+	baseCtx := context.Background()
+	baseCtx = context.WithValue(baseCtx, interceptors.TenantIDKey, tenantID)
+	baseCtx = context.WithValue(baseCtx, auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+		User: &auth.User{
+			ID:    userID,
+			Name:  "Test User",
+			Email: "test@example.com",
+			Roles: []auth.Role{"admin"},
+		},
+		IsAuthenticated: true,
+	})
+
+	t.Run("Positive - owner adds member successfully", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+			Role:      constants.ChannelRoleViewer,
+		}
+
+		// Owner check
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleOwner, nil)
+
+
+		// Validate that the new member is in tenant
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{Id: tenantID},
+						User:   &userProto.User{Id: memberID},
+						Role:   &userProto.Role{Role: "member"},
+					},
+				},
+			}, nil)
+
+		// Add member
+		mockDB.EXPECT().
+			CreateChannelMember(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannelMember{
+				ID:        "member-001",
+				ChannelID: channelID,
+				UserID:    memberID,
+				Role:      constants.ChannelRoleViewer,
+				AddedBy:   userID,
+				CreatedAt: time.Now(),
+			}, nil)
+
+		resp, err := channelAPI.AddMember(baseCtx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Message != "Member added successfully" {
+			t.Errorf("expected success message, got %v", resp.Message)
+		}
+	})
+
+	t.Run("Negative - unauthenticated user", func(t *testing.T) {
+		ctx := context.Background()
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		_, err := channelAPI.AddMember(ctx, req)
+		if status.Code(err) != codes.Unauthenticated {
+			t.Errorf("expected Unauthenticated error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing tenant ID", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User:            &auth.User{ID: userID},
+			IsAuthenticated: true,
+		})
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		_, err := channelAPI.AddMember(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error for missing tenant ID, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing channel ID", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error for missing channel ID, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing user ID", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, Role: constants.ChannelRoleViewer}
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error for missing user ID, got %v", err)
+		}
+	})
+
+	t.Run("Negative - invalid role", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: "invalid-role"}
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if err == nil {
+			t.Errorf("expected error for invalid role, got nil")
+		}
+	})
+
+	t.Run("Negative - non-owner trying to add member", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleOwner, nil)
+
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if status.Code(err) != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - user being added not in tenant", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleOwner, nil)
+
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{TenantUsers: []*userProto.TenantUser{}}, nil) // member not in tenant
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error for user not in tenant, got %v", err)
+		}
+	})
+
+	t.Run("Negative - DB create member fails", func(t *testing.T) {
+		req := &proto.AddChannelMemberRequest{ChannelId: channelID, UserId: memberID, Role: constants.ChannelRoleViewer}
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleOwner, nil)
+
+		mockUser.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{Tenant: &userProto.Tenant{Id: tenantID}, User: &userProto.User{Id: memberID}},
+				},
+			}, nil)
+
+		mockDB.EXPECT().
+			CreateChannelMember(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannelMember{}, fmt.Errorf("DB failure"))
+
+		_, err := channelAPI.AddMember(baseCtx, req)
+		if status.Code(err) != codes.Internal {
+			t.Errorf("expected Internal error for DB failure, got %v", err)
+		}
+	})
+}
