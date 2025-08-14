@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
 import { Layout } from "../components/layout/Layout"
-import { $tenants, $currentTenant, $tenantError, createTenant, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
-import { Plus, AlertCircle, User, Users, UserPlus, Check, X } from 'react-feather'
-import { CreateWorkspaceModal, AddUserModal } from '../components/modals'
+import { $currentTenant, $tenantError, getTenantUsers, addUserToTenant, $currentUserRole } from '../stores/tenants'
+import { showSuccessToast } from '../utils/toast'
+import {  AlertCircle, User, Users, UserPlus, X } from 'react-feather'
+import {  AddUserModal } from '../components/modals'
+import { $currentUser } from '../auth/store/auth'
 
 export const TeamPage = () => {
-  const tenants = useStore($tenants)
   const currentTenant = useStore($currentTenant)
   const tenantError = useStore($tenantError)
   const currentUserRole = useStore($currentUserRole)
+  const currentUser = useStore($currentUser)
   
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [tenantUsers, setTenantUsers] = useState([])
@@ -46,6 +48,7 @@ export const TeamPage = () => {
       const success = await addUserToTenant(currentTenant.tenant.id, username, role)
       if (success) {
         setShowAddUserModal(false)
+        showSuccessToast(`User ${username} added successfully!`)
         // Refresh the user list
         const users = await getTenantUsers(currentTenant.tenant.id)
         setTenantUsers(users)
@@ -63,6 +66,7 @@ export const TeamPage = () => {
   return (
     <Layout>
       <div className="space-y-8">
+
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -122,22 +126,23 @@ export const TeamPage = () => {
           </div>
         )}
 
-        {/* Team Members - Only show for super admins */}
-        {canManageMembers && currentTenant && currentTenant.tenant && !currentTenant.tenant.is_personal && (
-          <div className="card bg-base-100">
+        {/* Team Members */}
+        {currentTenant && currentTenant.tenant && (
+          <div className="card bg-base-100 mt-4">
             <div className="card-body">
               <h2 className="card-title flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Team Members
               </h2>
               
+              {/* Loading State */}
               {loadingUsers ? (
                 <div className="flex justify-center py-8">
                   <span className="loading loading-spinner loading-md"></span>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="table">
+                  <table className="table w-full">
                     <thead>
                       <tr>
                         <th>Member</th>
@@ -145,26 +150,53 @@ export const TeamPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
+                      {currentTenant.tenant.is_personal ? (
+                        /* Personal Workspace - Show Current User */
                         <tr>
                           <td>
                             <div className="flex items-center gap-3">
                               <div>
-                                <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
-                                <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
+                                <div className="font-medium">{currentUser?.displayName || currentUser?.email || 'User'}</div>
+                                <div className="text-sm text-gray-500">{currentUser?.email || 'No email'}</div>
                               </div>
                             </div>
                           </td>
                           <td>
-                            <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
-                              {tenantUser.role?.role}
-                              </span>
+                            <span className="badge badge-info">
+                              super_admin
+                            </span>
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        /* Organizational Workspace - Show All Members */
+                        canManageMembers && tenantUsers && tenantUsers.length > 0 && tenantUsers.map((tenantUser) => (
+                          <tr key={tenantUser.user?.id}>
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <div className="font-medium">{tenantUser.user?.username || 'Unknown'}</div>
+                                  <div className="text-sm text-gray-500">{tenantUser.user?.email || 'No email'}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`badge ${tenantUser.role?.role === 'super_admin' ? 'badge-primary' : 'badge-secondary'}`}>
+                                {tenantUser.role?.role}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
+              )}
+              
+              {/* Info Message for Personal Workspace */}
+              {currentTenant.tenant.is_personal && (
+                <p className="mt-4 text-sm text-gray-500 italic">
+                  You can't add members to personal workspace.
+                </p>
               )}
             </div>
           </div>
@@ -177,6 +209,8 @@ export const TeamPage = () => {
         onClose={() => setShowAddUserModal(false)}
         onSubmit={handleAddUser}
       />
+
+
     </Layout>
   )
 }

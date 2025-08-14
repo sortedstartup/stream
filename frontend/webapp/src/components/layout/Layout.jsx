@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
 import { CreateWorkspaceModal } from '../modals'
-import { createTenant } from '../../stores/tenants'
+import { createTenant, switchTenant } from '../../stores/tenants'
+import { showSuccessToast } from '../../utils/toast'
+import { useNavigate } from "react-router"
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const handler = () => setShowCreateModal(true)
@@ -18,16 +23,15 @@ export const Layout = ({ children }) => {
   const handleCreateTenant = async (name, description) => {
   try {
     const newTenant = await createTenant(name, description || '')
-    if (!newTenant) {
-      throw new Error('Failed to create workspace')
+    if (newTenant) {
+      setShowCreateModal(false)
+      switchTenant(newTenant)
+      showSuccessToast('Workspace created successfully!')
+      navigate('/workspace')
+      return true
     }
-    setShowCreateModal(false)
-    return true
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create workspace'
-    throw new Error(message)
+    return false
   }
-}
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -73,6 +77,20 @@ export const Layout = ({ children }) => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateTenant}
+      />
+
+      {/* Global Toast Container */}
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
       />
     </div>
   )

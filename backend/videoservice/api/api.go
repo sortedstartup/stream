@@ -27,7 +27,7 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
 	userServiceClient userProto.UserServiceClient
@@ -739,11 +739,6 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 	// Convert to proto format, excluding current user
 	var protoMembers []*proto.ChannelMember
 	for _, member := range members {
-		// Skip current user - they shouldn't see themselves in the members list
-		if member.UserID == authContext.User.ID {
-			continue
-		}
-
 		// Get user details from the map
 		user, exists := userMap[member.UserID]
 		if !exists {

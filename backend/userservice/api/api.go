@@ -23,7 +23,7 @@ type UserAPI struct {
 	config    config.UserServiceConfig
 	db        *sql.DB
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries db.Querier 
 	userCache *lru.Cache
 	proto.UnimplementedUserServiceServer
 	tenantAPI *TenantAPI
@@ -33,7 +33,7 @@ type TenantAPI struct {
 	config    config.UserServiceConfig
 	db        *sql.DB
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries db.Querier
 	proto.UnimplementedTenantServiceServer
 }
 
@@ -71,6 +71,22 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 	}
 
 	return userAPI, tenantAPI, nil
+}
+
+func NewUserAPITest(querier db.Querier, cache *lru.Cache, tenantAPI *TenantAPI, logger *slog.Logger) *UserAPI {
+    return &UserAPI{
+        dbQueries: querier,
+        userCache: cache,
+        tenantAPI: tenantAPI,
+        log:       logger,
+    }
+}
+
+func NewTenantAPITest(querier db.Querier, logger *slog.Logger) *TenantAPI {
+    return &TenantAPI{
+        dbQueries: querier,
+        log:       logger,
+    }
 }
 
 func (s *UserAPI) Start() error {
@@ -469,11 +485,6 @@ func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*
 	var tenantUsersProto []*proto.TenantUser
 
 	for _, user := range tenantUsers {
-		// Skip current user so they don't appear in "Add Member" dropdown
-		if user.UserID == authContext.User.ID {
-			continue
-		}
-
 		tenantUsersProto = append(tenantUsersProto, &proto.TenantUser{
 			Tenant: &proto.Tenant{
 				Name:      user.TenantName,
