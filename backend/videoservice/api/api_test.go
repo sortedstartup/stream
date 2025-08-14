@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"sortedstartup.com/stream/common/auth"
+	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
 	userProto "sortedstartup.com/stream/userservice/proto"
 	api "sortedstartup.com/stream/videoservice/api"
@@ -1348,6 +1349,181 @@ func TestGetChannels(t *testing.T) {
 		}
 		if len(resp.Channels) != 0 {
 			t.Errorf("expected 0 channels, got %d", len(resp.Channels))
+		}
+	})
+}
+
+func TestUpdateChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mockApi.NewMockChannelDB(ctrl)
+	mockUser := userProto.NewMockUserServiceClient(ctrl)
+
+	channelAPI := &api.ChannelAPI{
+		DbQueries:         mockDB,
+		UserServiceClient: mockUser,
+		Log:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+
+	userID := "user-123"
+	tenantID := "tenant-456"
+	channelID := "channel-789"
+
+	authCtx := &auth.AuthContext{
+		User: &auth.User{
+			ID:    userID,
+			Name:  "Test User",
+			Email: "test@example.com",
+			Roles: []auth.Role{"admin"},
+		},
+		IsAuthenticated: true,
+	}
+
+	// Helper: create context with auth and tenant
+	makeCtx := func() context.Context {
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, interceptors.TenantIDKey, tenantID)
+		ctx = context.WithValue(ctx, auth.AUTH_CONTEXT_KEY, authCtx)
+		return ctx
+	}
+
+	t.Run("Positive - owner updates channel successfully", func(t *testing.T) {
+		ctx := makeCtx()
+
+		// Mock role check
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleOwner, nil)
+
+		// Mock DB update
+		mockDB.EXPECT().
+			UpdateChannel(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, params db.UpdateChannelParams) (db.VideoserviceChannel, error) {
+				return db.VideoserviceChannel{
+					ID:          params.ID,
+					TenantID:    params.TenantID,
+					Name:        params.Name,
+					Description: params.Description,
+					CreatedBy:   userID,
+					CreatedAt:   time.Now().Add(-time.Hour),
+					UpdatedAt:   params.UpdatedAt,
+				}, nil
+			})
+
+		// Mock member count
+		mockDB.EXPECT().
+			GetChannelMembersByChannelIDAndTenantID(gomock.Any(), db.GetChannelMembersByChannelIDAndTenantIDParams{
+				ChannelID: channelID,
+				TenantID:  tenantID,
+			}).
+			Return([]db.VideoserviceChannelMember{{}}, nil)
+
+		req := &proto.UpdateChannelRequest{
+			ChannelId:   channelID,
+			Name:        "Updated Channel",
+			Description: "Updated Description",
+		}
+
+		resp, err := channelAPI.UpdateChannel(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Channel.Name != "Updated Channel" {
+			t.Errorf("expected updated name, got %v", resp.Channel.Name)
+		}
+		if resp.Channel.UserRole != constants.ChannelRoleOwner {
+			t.Errorf("expected role 'owner', got %v", resp.Channel.UserRole)
+		}
+	})
+
+	t.Run("Negative - missing auth", func(t *testing.T) {
+		ctx := context.Background()
+		req := &proto.UpdateChannelRequest{ChannelId: channelID, Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.Unauthenticated {
+			t.Errorf("expected Unauthenticated, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing tenant ID", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), auth.AUTH_CONTEXT_KEY, authCtx)
+		req := &proto.UpdateChannelRequest{ChannelId: channelID, Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing channel ID", func(t *testing.T) {
+		ctx := makeCtx()
+		req := &proto.UpdateChannelRequest{Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument for channel ID, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing channel name", func(t *testing.T) {
+		ctx := makeCtx()
+		req := &proto.UpdateChannelRequest{ChannelId: channelID}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument for name, got %v", err)
+		}
+	})
+
+	t.Run("Negative - non-owner cannot update channel", func(t *testing.T) {
+		ctx := makeCtx()
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), gomock.Any()).
+			Return("member", nil)
+
+		req := &proto.UpdateChannelRequest{ChannelId: channelID, Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied, got %v", err)
+		}
+	})
+
+	t.Run("Negative - DB update returns NotFound", func(t *testing.T) {
+		ctx := makeCtx()
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), gomock.Any()).
+			Return(constants.ChannelRoleOwner, nil)
+
+		mockDB.EXPECT().
+			UpdateChannel(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannel{}, sql.ErrNoRows)
+
+		req := &proto.UpdateChannelRequest{ChannelId: channelID, Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("expected NotFound, got %v", err)
+		}
+	})
+
+	t.Run("Negative - DB update fails with internal error", func(t *testing.T) {
+		ctx := makeCtx()
+
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), gomock.Any()).
+			Return(constants.ChannelRoleOwner, nil)
+
+		mockDB.EXPECT().
+			UpdateChannel(gomock.Any(), gomock.Any()).
+			Return(db.VideoserviceChannel{}, fmt.Errorf("db error"))
+
+		req := &proto.UpdateChannelRequest{ChannelId: channelID, Name: "New"}
+		_, err := channelAPI.UpdateChannel(ctx, req)
+		if status.Code(err) != codes.Internal {
+			t.Errorf("expected Internal error, got %v", err)
 		}
 	})
 }
