@@ -23,7 +23,7 @@ type UserAPI struct {
 	config    config.UserServiceConfig
 	db        *sql.DB
 	log       *slog.Logger
-	dbQueries db.Querier 
+	dbQueries db.Querier
 	userCache *lru.Cache
 	proto.UnimplementedUserServiceServer
 	tenantAPI *TenantAPI
@@ -74,19 +74,19 @@ func NewUserAPI(config config.UserServiceConfig) (*UserAPI, *TenantAPI, error) {
 }
 
 func NewUserAPITest(querier db.Querier, cache *lru.Cache, tenantAPI *TenantAPI, logger *slog.Logger) *UserAPI {
-    return &UserAPI{
-        dbQueries: querier,
-        userCache: cache,
-        tenantAPI: tenantAPI,
-        log:       logger,
-    }
+	return &UserAPI{
+		dbQueries: querier,
+		userCache: cache,
+		tenantAPI: tenantAPI,
+		log:       logger,
+	}
 }
 
 func NewTenantAPITest(querier db.Querier, logger *slog.Logger) *TenantAPI {
-    return &TenantAPI{
-        dbQueries: querier,
-        log:       logger,
-    }
+	return &TenantAPI{
+		dbQueries: querier,
+		log:       logger,
+	}
 }
 
 func (s *UserAPI) Start() error {
@@ -252,6 +252,20 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "tenant name is required")
+	}
+
+	// Check if tenant name already exists for this user
+	_, err = s.dbQueries.GetTenantByName(ctx, db.GetTenantByNameParams{
+		Name:      req.Name,
+		CreatedBy: authContext.User.ID,
+	})
+	if err == nil {
+		// Tenant with this name already exists
+		return nil, status.Error(codes.AlreadyExists, "A workspace with this name already exists")
+	} else if err != sql.ErrNoRows {
+		// Some other database error occurred
+		s.log.Error("Failed to check for existing tenant name", "error", err)
+		return nil, status.Error(codes.Internal, "failed to validate tenant name")
 	}
 
 	tenantID := uuid.New().String()
