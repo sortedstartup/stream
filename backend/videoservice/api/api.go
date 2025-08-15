@@ -27,7 +27,7 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries *db.Queries
+	dbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
 	userServiceClient userProto.UserServiceClient
@@ -490,6 +490,10 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		return nil, status.Error(codes.InvalidArgument, "channel name is required")
 	}
 
+	if len(req.Name) > 50 {
+    	return nil, status.Errorf(codes.InvalidArgument, "channel name cannot exceed 50 characters")
+	}
+
 	// Create channel
 	channelID := uuid.New().String()
 	now := time.Now()
@@ -566,6 +570,21 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 		return nil, status.Error(codes.Internal, "failed to get channels")
 	}
 
+	tenantIDParam := sql.NullString{String: tenantID, Valid: true}
+	videoCounts, err := s.dbQueries.GetVideoCountsPerChannelByTenantID(ctx, tenantIDParam)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get video counts: %v", err)
+	}
+
+	
+	// Build map for lookup
+	countMap := make(map[string]int32)
+	for _, vc := range videoCounts {
+		if vc.ChannelID.Valid {
+			countMap[vc.ChannelID.String] = int32(vc.VideoCount)
+		}
+	}
+
 	// Filter channels where user is a member and include their role
 	var userChannels []*proto.Channel
 	for _, channel := range channels {
@@ -582,6 +601,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 				CreatedAt:   timestamppb.New(channel.CreatedAt),
 				UpdatedAt:   timestamppb.New(channel.UpdatedAt),
 				UserRole:    userRole, // Include the user's role in this channel
+				VideoCount:  countMap[channel.ID],
 			}
 
 			// Only include member count for channel owners
