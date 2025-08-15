@@ -16,6 +16,10 @@ SELECT * FROM userservice_users
 WHERE email = @email;
 
 -- Tenant queries
+-- name: GetTenantByName :one
+SELECT * FROM userservice_tenants 
+WHERE name = @name AND created_by = @created_by;
+
 -- name: CreateTenant :one
 INSERT INTO userservice_tenants (
     id,
@@ -33,10 +37,6 @@ INSERT INTO userservice_tenants (
     @created_by
 ) RETURNING id, name, description, is_personal, created_at, created_by;
 
--- name: CheckDuplicateTenantName :one
-SELECT 1 FROM userservice_tenants
-WHERE name = ?1 AND created_by = ?2
-LIMIT 1;
 
 -- name: GetUserTenants :many
 SELECT 

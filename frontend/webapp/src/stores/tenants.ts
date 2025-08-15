@@ -97,8 +97,6 @@ export const createTenant = async (name: string, description: string = '') => {
     const response = await tenantServiceClient.CreateTenant(request, {})
     
     if (response.message && response.tenant_user) {
-     
-      
       const currentTenants = $tenants.get()
       $tenants.set([...currentTenants, response.tenant_user])
       
@@ -109,17 +107,30 @@ export const createTenant = async (name: string, description: string = '') => {
         [response.tenant_user.tenant.id]: response.tenant_user.role.role
       })
       
-      return response.tenant_user
+      return { success: true, tenant: response.tenant_user, error: null }
     } else {
-      // Return null or throw error so modal can handle message
-      throw new Error(response.message || 'Failed to create workspace')
+      return { success: false, tenant: null, error: 'Failed to create workspace' }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating tenant:', error)
-    // Propagate error message upwards
-    // error.details might hold gRPC error message, fallback to error.message
-    const message = error instanceof Error ? error.message : 'Failed to create workspace'
-    throw new Error(message)
+    
+    // Extract meaningful error message from gRPC error
+    let errorMessage = 'Failed to create workspace'
+    if (error && error.message) {
+      if (error.message.includes('already exists')) {
+        errorMessage = 'A workspace with this name already exists'
+      } else if (error.message.includes('InvalidArgument')) {
+        errorMessage = 'Workspace name is required'
+      } else {
+        // Try to extract the actual error message from gRPC
+        const match = error.message.match(/:\s*(.+)$/)
+        if (match) {
+          errorMessage = match[1]
+        }
+      }
+    }
+    
+    return { success: false, tenant: null, error: errorMessage }
   }
 }
 
