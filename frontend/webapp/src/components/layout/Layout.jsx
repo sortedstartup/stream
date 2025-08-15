@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
