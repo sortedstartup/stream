@@ -149,7 +149,7 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
 
       {/* Move to Channel Modal - Fixed background and improved UX */}
       {showMoveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50">
           <div className="bg-base-100 rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Move Video to Channel</h3>
             <p className="text-sm text-base-content/70 mb-4">
@@ -220,7 +220,7 @@ const VideoActionsMenu = ({ video, userRole, onActionStart, onActionComplete, on
 
       {/* Delete Confirmation Modal - Fixed background */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50">
           <div className="bg-base-100 rounded-lg p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold mb-4 text-error">Delete Video</h3>
             <p className="text-sm text-base-content/70 mb-6">
