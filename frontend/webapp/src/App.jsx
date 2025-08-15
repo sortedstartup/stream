@@ -1,5 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { HomePage } from './pages/HomePage'
 import { TeamPage } from './pages/TeamPage'
 import { RecordPage } from './pages/RecordPage'
@@ -63,6 +65,19 @@ function App() {
           </ProtectedRoute>
         } />
       </Routes>
+         {/* Global Toast Container - always available */}
+         <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </BrowserRouter>
   )
 }
