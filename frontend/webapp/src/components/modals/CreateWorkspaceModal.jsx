@@ -18,12 +18,12 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
     
     if (name) {
       try {
-        const success = await onSubmit(name, description || '')
-        if (success) {
+        const result = await onSubmit(name, description || '')
+        if (result.success) {
           // Success - modal will be closed by parent
           setError('')
         } else {
-          setError('Failed to create workspace. Please try again.')
+          setError(result.error || 'Failed to create workspace. Please try again.')
         }
       } catch (err) {
         setError('Failed to create workspace. Please try again.')
