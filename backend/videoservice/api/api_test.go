@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -1649,4 +1650,193 @@ func TestAddMember(t *testing.T) {
 		}
 	})
 
+	t.Run("Negative - non-owner trying to add member", func(t *testing.T) {
+		apiInstance, ctx, mockDB, mockUserSvc, ctrl := newAPI()
+		defer ctrl.Finish()
+
+		req := &proto.AddChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+			Role:      constants.ChannelRoleViewer,
+		}
+
+		// Mock: user belongs to tenant
+		mockUserSvc.EXPECT().
+			GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{
+						Tenant: &userProto.Tenant{Id: tenantID},
+						User:   &userProto.User{Id: userID},
+					},
+				},
+			}, nil).
+			Times(1)
+
+		// Mock: user is NOT owner
+		mockDB.EXPECT().
+			GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+				ChannelID: channelID,
+				UserID:    userID,
+				TenantID:  tenantID,
+			}).
+			Return(constants.ChannelRoleViewer, nil).
+			Times(1)
+
+		_, err := apiInstance.AddMember(ctx, req)
+		if status.Code(err) != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied error, got %v", err)
+		}
+	})
+
+}
+
+func TestRemoveMember(t *testing.T) {
+	userID := "user-123"
+	tenantID := "tenant-456"
+	channelID := "channel-789"
+	memberID := "user-999"
+
+	// Helper to create fresh API, context, and mocks for each subtest
+	newAPI := func() (*api.ChannelAPI, context.Context, *mockApi.MockChannelDB, *userProto.MockUserServiceClient, *gomock.Controller) {
+		ctrl := gomock.NewController(t)
+		mockDB := mockApi.NewMockChannelDB(ctrl)
+		mockUserSvc := userProto.NewMockUserServiceClient(ctrl)
+		channelAPI := &api.ChannelAPI{
+			DbQueries:         mockDB,
+			UserServiceClient: mockUserSvc,
+			Log:               slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})), // replace with your logger
+		}
+
+		baseCtx := context.Background()
+		baseCtx = context.WithValue(baseCtx, interceptors.TenantIDKey, tenantID)
+		baseCtx = context.WithValue(baseCtx, auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User: &auth.User{
+				ID:    userID,
+				Name:  "Test User",
+				Email: "test@example.com",
+				Roles: []auth.Role{"admin"},
+			},
+			IsAuthenticated: true,
+		})
+
+		return channelAPI, baseCtx, mockDB, mockUserSvc, ctrl
+	}
+
+	// ------------------------
+	// Positive test
+	// ------------------------
+	t.Run("Positive - owner removes member successfully", func(t *testing.T) {
+		apiInstance, ctx, mockDB, mockUserSvc, ctrl := newAPI()
+		defer ctrl.Finish()
+
+		req := &proto.RemoveChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+		}
+
+		// 1. Ensure user belongs to tenant
+		mockUserSvc.EXPECT().GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{Tenant: &userProto.Tenant{Id: tenantID}, User: &userProto.User{Id: userID}},
+				},
+			}, nil).Times(1)
+
+		// 2. Check caller role (owner)
+		mockDB.EXPECT().GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+			ChannelID: channelID,
+			UserID:    userID,
+			TenantID:  tenantID,
+		}).Return(constants.ChannelRoleOwner, nil).Times(1)
+
+		// 3. Check member role (viewer)
+		mockDB.EXPECT().GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+			ChannelID: channelID,
+			UserID:    memberID,
+			TenantID:  tenantID,
+		}).Return(constants.ChannelRoleViewer, nil).Times(1)
+
+		// 4. Remove member
+		mockDB.EXPECT().DeleteChannelMember(gomock.Any(), db.DeleteChannelMemberParams{
+			ChannelID: channelID,
+			UserID:    memberID,
+		}).Return(nil).Times(1)
+
+		resp, err := apiInstance.RemoveMember(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Message != "Member removed successfully" {
+			t.Errorf("expected success message, got %v", resp.Message)
+		}
+	})
+
+	// ------------------------
+	// Negative tests
+	// ------------------------
+	t.Run("Negative - unauthenticated user", func(t *testing.T) {
+		apiInstance, _, _, _, ctrl := newAPI()
+		defer ctrl.Finish()
+
+		ctx := context.Background()
+		req := &proto.RemoveChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+		}
+
+		_, err := apiInstance.RemoveMember(ctx, req)
+		if status.Code(err) != codes.Unauthenticated {
+			t.Errorf("expected Unauthenticated error, got %v", err)
+		}
+	})
+
+	t.Run("Negative - missing tenant ID", func(t *testing.T) {
+		apiInstance, _, _, _, ctrl := newAPI()
+		defer ctrl.Finish()
+
+		ctx := context.WithValue(context.Background(), auth.AUTH_CONTEXT_KEY, &auth.AuthContext{
+			User:            &auth.User{ID: userID},
+			IsAuthenticated: true,
+		})
+		req := &proto.RemoveChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+		}
+
+		_, err := apiInstance.RemoveMember(ctx, req)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected InvalidArgument error for missing tenant ID, got %v", err)
+		}
+	})
+
+	t.Run("Negative - non-owner trying to remove member", func(t *testing.T) {
+		apiInstance, ctx, mockDB, mockUserSvc, ctrl := newAPI()
+		defer ctrl.Finish()
+
+		req := &proto.RemoveChannelMemberRequest{
+			ChannelId: channelID,
+			UserId:    memberID,
+		}
+
+		// User belongs to tenant
+		mockUserSvc.EXPECT().GetTenants(gomock.Any(), gomock.Any()).
+			Return(&userProto.GetTenantsResponse{
+				TenantUsers: []*userProto.TenantUser{
+					{Tenant: &userProto.Tenant{Id: tenantID}, User: &userProto.User{Id: userID}},
+				},
+			}, nil).Times(1)
+
+		// Caller is not owner
+		mockDB.EXPECT().GetUserRoleInChannel(gomock.Any(), db.GetUserRoleInChannelParams{
+			ChannelID: channelID,
+			UserID:    userID,
+			TenantID:  tenantID,
+		}).Return(constants.ChannelRoleViewer, nil).Times(1)
+
+		_, err := apiInstance.RemoveMember(ctx, req)
+		if status.Code(err) != codes.PermissionDenied {
+			t.Errorf("expected PermissionDenied error, got %v", err)
+		}
+	})
 }
