@@ -21,7 +21,10 @@ export const $currentTenant = persistentAtom<TenantUser | null>(
         if (obj && obj.tenant && obj.tenant.id) {
           return TenantUser.fromObject(obj)
         }
-      } catch {}
+      } catch (error) {
+        console.warn('Failed to decode persisted tenant:', error)
+        localStorage.removeItem('currentTenant')
+      }
       return null
     },
   }
