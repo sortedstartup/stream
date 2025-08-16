@@ -405,6 +405,42 @@ func (q *Queries) LikeComment(ctx context.Context, arg LikeCommentParams) error 
 	return err
 }
 
+const listComments = `-- name: ListComments :many
+select id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username from commentservice_comments
+`
+
+func (q *Queries) ListComments(ctx context.Context) ([]CommentserviceComment, error) {
+	rows, err := q.db.QueryContext(ctx, listComments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CommentserviceComment
+	for rows.Next() {
+		var i CommentserviceComment
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.VideoID,
+			&i.UserID,
+			&i.ParentCommentID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const unlikeComment = `-- name: UnlikeComment :exec
 DELETE FROM commentservice_comment_likes 
 WHERE user_id = ?1 AND comment_id = ?2
@@ -435,40 +471,4 @@ type UpdateCommentParams struct {
 func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) error {
 	_, err := q.db.ExecContext(ctx, updateComment, arg.Content, arg.ID, arg.UserID)
 	return err
-}
-
-const test = `-- name: test :many
-select id, content, video_id, user_id, parent_comment_id, created_at, updated_at, username from commentservice_comments
-`
-
-func (q *Queries) test(ctx context.Context) ([]CommentserviceComment, error) {
-	rows, err := q.db.QueryContext(ctx, test)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CommentserviceComment
-	for rows.Next() {
-		var i CommentserviceComment
-		if err := rows.Scan(
-			&i.ID,
-			&i.Content,
-			&i.VideoID,
-			&i.UserID,
-			&i.ParentCommentID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Username,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
