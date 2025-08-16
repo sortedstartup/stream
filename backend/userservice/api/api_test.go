@@ -473,3 +473,159 @@ func TestGetTenants(t *testing.T) {
 		assert.Empty(t, resp.TenantUsers)
 	})
 }
+
+func TestAddUser(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQuerier := mocks.NewMockQuerier(ctrl)
+	logger := slog.Default()
+	tenantAPI := api.NewTenantAPITest(mockQuerier, logger)
+
+	testUser := &auth.User{
+		ID:    "caller-123",
+		Email: "caller@example.com",
+		Name:  "Caller",
+	}
+	ctx := withAuthContext(context.Background(), testUser)
+
+	targetUser := db.UserserviceUser{
+		ID:       "target-456",
+		Email:    "target@example.com",
+		Username: "target@example.com",
+	}
+
+	t.Run("success - super_admin adds user", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(targetUser, nil)
+
+		mockQuerier.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return(constants.TenantRoleSuperAdmin, nil)
+
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantUserParams) (db.UserserviceTenantUser, error) {
+				return db.UserserviceTenantUser{
+					ID:        uuid.New().String(),
+					TenantID:  p.TenantID,
+					UserID:    p.UserID,
+					Role:      p.Role,
+					CreatedAt: time.Now(),
+				}, nil
+			})
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.NoError(t, err)
+		assert.Equal(t, "User added to tenant successfully", resp.Message)
+	})
+
+	t.Run("fail - unauthenticated", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		resp, err := tenantAPI.AddUser(context.Background(), req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+
+	t.Run("fail - invalid input", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "", Username: ""}
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+
+	t.Run("fail - user not found", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "notfound@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "notfound@example.com").
+			Return(db.UserserviceUser{}, sql.ErrNoRows)
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.NotFound, st.Code())
+	})
+
+	t.Run("fail - db error checking user existence", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(db.UserserviceUser{}, errors.New("db error"))
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+
+	t.Run("fail - caller not in tenant", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(targetUser, nil)
+		mockQuerier.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), gomock.Any()).
+			Return("", sql.ErrNoRows)
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.PermissionDenied, st.Code())
+	})
+
+	t.Run("fail - db error checking role", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(targetUser, nil)
+		mockQuerier.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), gomock.Any()).
+			Return("", errors.New("db role error"))
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+
+	t.Run("fail - caller is not super_admin", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(targetUser, nil)
+		mockQuerier.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), gomock.Any()).
+			Return(constants.TenantRoleMember, nil)
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.PermissionDenied, st.Code())
+	})
+
+	t.Run("fail - db error creating tenant user", func(t *testing.T) {
+		req := &proto.AddUserRequest{TenantId: "tenant-1", Username: "target@example.com"}
+		mockQuerier.EXPECT().
+			GetUserByEmail(gomock.Any(), "target@example.com").
+			Return(targetUser, nil)
+		mockQuerier.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), gomock.Any()).
+			Return(constants.TenantRoleSuperAdmin, nil)
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			Return(db.UserserviceTenantUser{}, errors.New("insert failed"))
+
+		resp, err := tenantAPI.AddUser(ctx, req)
+		assert.Nil(t, resp)
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+}
