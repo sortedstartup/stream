@@ -150,7 +150,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			s.userCache.Add(userEmail, true)
 			s.log.Info("adding email to cache", "email", userEmail)
 
-			err = s.tenantAPI.createPersonalTenant(ctx)
+			err = s.tenantAPI.CreatePersonalTenant(ctx)
 			if err != nil {
 				s.log.Error("Failed to create personal tenant", "error", err)
 				// Don't fail the entire request, just log the error
@@ -191,7 +191,7 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 * @param ctx context.Context
 * @return error
  */
-func (s *TenantAPI) createPersonalTenant(ctx context.Context) error {
+func (s *TenantAPI) CreatePersonalTenant(ctx context.Context) error {
 
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
