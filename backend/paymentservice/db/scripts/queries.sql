@@ -7,6 +7,20 @@ SELECT * FROM paymentservice_plans WHERE id = ? LIMIT 1;
 -- name: GetActivePlans :many
 SELECT * FROM paymentservice_plans WHERE is_active = TRUE ORDER BY price_cents ASC;
 
+-- name: CreatePlan :one
+INSERT INTO paymentservice_plans (
+    id, name, storage_limit_bytes, users_limit, 
+    price_cents, is_active, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
+RETURNING *;
+
+-- name: UpdatePlan :one
+UPDATE paymentservice_plans 
+SET name = ?, storage_limit_bytes = ?, users_limit = ?, 
+    price_cents = ?, updated_at = ?
+WHERE id = ?
+RETURNING *;
+
 -- User subscription queries (core functionality)
 -- name: GetUserSubscription :one
 SELECT * FROM paymentservice_user_subscriptions WHERE user_id = ? LIMIT 1;
