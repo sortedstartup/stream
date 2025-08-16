@@ -388,3 +388,88 @@ func TestCreateTenant(t *testing.T) {
 		assert.Equal(t, "failed to add creator to tenant", st.Message())
 	})
 }
+
+func TestGetTenants(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQuerier := mocks.NewMockQuerier(ctrl)
+	logger := slog.Default()
+	userAPI := api.NewUserAPITest(mockQuerier, nil, nil, logger)
+
+	testUser := &auth.User{
+		ID:    "user-123",
+		Email: "test@example.com",
+		Name:  "Tester",
+	}
+	ctx := withAuthContext(context.Background(), testUser)
+
+	t.Run("success - tenants returned", func(t *testing.T) {
+		tenantRows := []db.GetUserTenantsRow{
+			{
+				TenantID:    "tenant-1",
+				Name:        "Team Alpha",
+				Description: sql.NullString{String: "First tenant", Valid: true},
+				IsPersonal:  false,
+				CreatedAt:   time.Now(),
+				CreatedBy:   testUser.ID,
+				Role:        "admin",
+			},
+			{
+				TenantID:    "tenant-2",
+				Name:        "Personal Space",
+				Description: sql.NullString{String: "Personal workspace", Valid: true},
+				IsPersonal:  true,
+				CreatedAt:   time.Now(),
+				CreatedBy:   testUser.ID,
+				Role:        "super_admin",
+			},
+		}
+
+		mockQuerier.EXPECT().
+			GetUserTenants(gomock.Any(), testUser.ID).
+			Return(tenantRows, nil)
+
+		resp, err := userAPI.GetTenants(ctx, &proto.GetTenantsRequest{})
+		assert.NoError(t, err)
+		assert.Equal(t, "User tenants retrieved successfully", resp.Message)
+		assert.Len(t, resp.TenantUsers, 2)
+		assert.Equal(t, "Team Alpha", resp.TenantUsers[0].Tenant.Name)
+		assert.Equal(t, "admin", resp.TenantUsers[0].Role.Role)
+		assert.Equal(t, "super_admin", resp.TenantUsers[1].Role.Role)
+	})
+
+	t.Run("fail - unauthenticated", func(t *testing.T) {
+		resp, err := userAPI.GetTenants(context.Background(), &proto.GetTenantsRequest{})
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+
+	t.Run("fail - db error", func(t *testing.T) {
+		mockQuerier.EXPECT().
+			GetUserTenants(gomock.Any(), testUser.ID).
+			Return(nil, errors.New("db connection failed"))
+
+		resp, err := userAPI.GetTenants(ctx, &proto.GetTenantsRequest{})
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+		assert.Equal(t, "failed to get user tenants", st.Message())
+	})
+
+	t.Run("success - no tenants", func(t *testing.T) {
+		mockQuerier.EXPECT().
+			GetUserTenants(gomock.Any(), testUser.ID).
+			Return([]db.GetUserTenantsRow{}, nil)
+
+		resp, err := userAPI.GetTenants(ctx, &proto.GetTenantsRequest{})
+		assert.NoError(t, err)
+		assert.Equal(t, "User tenants retrieved successfully", resp.Message)
+		assert.Empty(t, resp.TenantUsers)
+	})
+}
