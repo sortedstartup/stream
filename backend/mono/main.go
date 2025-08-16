@@ -337,6 +337,12 @@ func (m *Monolith) InitServices() error {
 		return err
 	}
 
+	m.log.Info("Initializing Payment Service")
+	err = m.PaymentAPI.Init(context.Background())
+	if err != nil {
+		return err
+	}
+
 	// Video service depends on user service
 
 	m.log.Info("Initializing Video Service")
@@ -350,8 +356,6 @@ func (m *Monolith) InitServices() error {
 	if err != nil {
 		return err
 	}
-
-	// Payment service doesn't need Init - it's already initialized
 
 	return nil
 }
