@@ -629,3 +629,139 @@ func TestAddUser(t *testing.T) {
 		assert.Equal(t, codes.Internal, st.Code())
 	})
 }
+
+func TestGetUsers(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDB := mocks.NewMockQuerier(ctrl)
+	logger := slog.Default()
+	tenantAPI := api.NewTenantAPITest(mockDB, logger)
+
+	testUser := &auth.User{
+		ID:    "user-123",
+		Email: "test@example.com",
+		Name:  "Tester",
+	}
+
+	withAuth := func(u *auth.User) context.Context {
+		return withAuthContext(context.Background(), u)
+	}
+
+	t.Run("success - super admin retrieves tenant users", func(t *testing.T) {
+		ctx := withAuth(testUser)
+
+		// mock: user is super_admin
+		mockDB.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return(constants.TenantRoleSuperAdmin, nil)
+
+		// mock: tenant users
+		mockDB.EXPECT().
+			GetTenantUsers(gomock.Any(), "tenant-1").
+			Return([]db.GetTenantUsersRow{
+				{
+					TenantName:      "Tenant One",
+					TenantCreatedAt: time.Now(),
+					UserID:          "u-1",
+					Username:        "alice",
+					Email:           "alice@example.com",
+					Role:            constants.TenantRoleMember,
+				},
+				{
+					TenantName:      "Tenant One",
+					TenantCreatedAt: time.Now(),
+					UserID:          "u-2",
+					Username:        "bob",
+					Email:           "bob@example.com",
+					Role:            constants.TenantRoleSuperAdmin,
+				},
+			}, nil)
+
+		resp, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, "Tenant users retrieved successfully", resp.Message)
+		assert.Len(t, resp.TenantUsers, 2)
+	})
+
+	t.Run("fail - missing auth context", func(t *testing.T) {
+		_, err := tenantAPI.GetUsers(context.Background(), &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unauthenticated")
+	})
+
+	t.Run("fail - missing tenant ID", func(t *testing.T) {
+		ctx := withAuth(testUser)
+		_, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: ""})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "tenant ID is required")
+	})
+
+	t.Run("fail - user not in tenant (no rows)", func(t *testing.T) {
+		ctx := withAuth(testUser)
+
+		mockDB.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return("", sql.ErrNoRows)
+
+		_, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "access denied")
+	})
+
+	t.Run("fail - db error on role lookup", func(t *testing.T) {
+		ctx := withAuth(testUser)
+
+		mockDB.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return("", errors.New("db connection lost"))
+
+		_, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to check permissions")
+	})
+
+	t.Run("fail - user is not super admin", func(t *testing.T) {
+		ctx := withAuth(testUser)
+
+		mockDB.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return(constants.TenantRoleMember, nil)
+
+		_, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "only super admins can view tenant members")
+	})
+
+	t.Run("fail - db error on GetTenantUsers", func(t *testing.T) {
+		ctx := withAuth(testUser)
+
+		mockDB.EXPECT().
+			GetUserRoleInTenant(gomock.Any(), db.GetUserRoleInTenantParams{
+				TenantID: "tenant-1",
+				UserID:   testUser.ID,
+			}).
+			Return(constants.TenantRoleSuperAdmin, nil)
+
+		mockDB.EXPECT().
+			GetTenantUsers(gomock.Any(), "tenant-1").
+			Return(nil, errors.New("query failed"))
+
+		_, err := tenantAPI.GetUsers(ctx, &proto.GetUsersRequest{TenantId: "tenant-1"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get tenant users")
+	})
+}
