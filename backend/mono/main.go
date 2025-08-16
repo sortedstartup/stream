@@ -380,8 +380,6 @@ func (m *Monolith) StartServices() error {
 		return err
 	}
 
-	// Payment service doesn't need Start - it's already ready
-
 	return nil
 
 }

@@ -61,8 +61,15 @@ func GetDefaultPlans() []PlanConfig {
 			ID:             "standard",
 			Name:           "Standard Plan",
 			StorageLimitMB: 102400, // 100 GB (100 * 1024 MB)
-			UsersLimit:     50,
-			PriceCents:     2900, // $29.00
+			UsersLimit:     10,     // Reduced from 50 to 10
+			PriceCents:     2900,   // $29.00
+		},
+		{
+			ID:             "premium",
+			Name:           "Premium Plan",
+			StorageLimitMB: 204800, // 200 GB (200 * 1024 MB)
+			UsersLimit:     25,
+			PriceCents:     9900, // $99.00
 		},
 	}
 }
