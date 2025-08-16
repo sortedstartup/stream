@@ -78,6 +78,22 @@ func NewUserAPI(config config.UserServiceConfig, paymentServiceClient paymentPro
 	return userAPI, tenantAPI, nil
 }
 
+func NewUserAPITest(querier db.Querier, cache *lru.Cache, tenantAPI *TenantAPI, logger *slog.Logger) *UserAPI {
+	return &UserAPI{
+		dbQueries: querier,
+		userCache: cache,
+		tenantAPI: tenantAPI,
+		log:       logger,
+	}
+}
+
+func NewTenantAPITest(querier db.Querier, logger *slog.Logger) *TenantAPI {
+	return &TenantAPI{
+		dbQueries: querier,
+		log:       logger,
+	}
+}
+
 func (s *UserAPI) Start() error {
 	return nil
 }
@@ -298,6 +314,20 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 
 	// Paid users can create unlimited organizational workspaces
 	s.log.Info("Paid user creating workspace", "userID", authContext.User.ID, "planID", accessResp.SubscriptionInfo.Plan.Id)
+
+	// Check if tenant name already exists for this user
+	_, err = s.dbQueries.GetTenantByName(ctx, db.GetTenantByNameParams{
+		Name:      req.Name,
+		CreatedBy: authContext.User.ID,
+	})
+	if err == nil {
+		// Tenant with this name already exists
+		return nil, status.Error(codes.AlreadyExists, "A workspace with this name already exists")
+	} else if err != sql.ErrNoRows {
+		// Some other database error occurred
+		s.log.Error("Failed to check for existing tenant name", "error", err)
+		return nil, status.Error(codes.Internal, "failed to validate tenant name")
+	}
 
 	tenantID := uuid.New().String()
 	tenantParams := db.CreateTenantParams{

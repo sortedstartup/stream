@@ -16,6 +16,10 @@ SELECT * FROM userservice_users
 WHERE email = @email;
 
 -- Tenant queries
+-- name: GetTenantByName :one
+SELECT * FROM userservice_tenants 
+WHERE name = @name AND created_by = @created_by;
+
 -- name: CreateTenant :one
 INSERT INTO userservice_tenants (
     id,

@@ -45,9 +45,4 @@ CREATE TABLE paymentservice_user_usage (
 -- Indexes for better performance
 CREATE INDEX idx_user_subscriptions_user_id ON paymentservice_user_subscriptions(user_id);
 CREATE INDEX idx_user_subscriptions_status ON paymentservice_user_subscriptions(status);
-CREATE INDEX idx_user_usage_user_id ON paymentservice_user_usage(user_id);
-
--- Insert default plans (for Stream application - can be customized per app)
-INSERT INTO paymentservice_plans (id, name, storage_limit_bytes, users_limit, price_cents, created_at, updated_at) VALUES
-('free', 'Free Plan', 1073741824, 5, 0, strftime('%s', 'now'), strftime('%s', 'now')),
-('standard', 'Standard Plan', 107374182400, 50, 2900, strftime('%s', 'now'), strftime('%s', 'now')); 
+CREATE INDEX idx_user_usage_user_id ON paymentservice_user_usage(user_id); 
