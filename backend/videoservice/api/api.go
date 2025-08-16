@@ -279,6 +279,76 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	}, nil
 }
 
+func (s *VideoAPI) UpdateVideo(ctx context.Context, req *proto.UpdateVideoRequest) (*proto.Video, error) {
+	authContext, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		s.log.Error("Error getting auth from context", "err", err)
+		return nil, err
+	}
+
+	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	s.log.Info("UpdateVideo request received", "video_id", req.VideoId, "title", req.Title, "description", req.Description)
+
+	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	video, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+		ID: req.VideoId,
+		TenantID: sql.NullString{
+			String: tenantID,
+			Valid:  true,
+		},
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "video not found")
+		}
+		s.log.Error("Error getting video", "err", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	if video.UploadedUserID != authContext.User.ID {
+		return nil, status.Error(codes.PermissionDenied, "permission denied: only uploader can update the video")
+	}
+
+	err = s.dbQueries.UpdateVideoTitleDescription(ctx, db.UpdateVideoTitleDescriptionParams{
+		ID:          video.ID,
+		Title:       req.Title,
+		Description: req.Description,
+	})
+	if err != nil {
+		s.log.Error("Failed to update video", "err", err)
+		return nil, status.Error(codes.Internal, "failed to update video")
+	}
+
+	updated, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+		ID: req.VideoId,
+		TenantID: sql.NullString{
+			String: tenantID,
+			Valid:  true,
+		},
+	})
+	if err != nil {
+		s.log.Error("Failed to get updated video", "err", err)
+		return nil, status.Error(codes.Internal, "failed to get updated video")
+	}
+
+	return &proto.Video{
+		Id:          updated.ID,
+		Title:       updated.Title,
+		Description: updated.Description,
+		Url:         updated.Url,
+		ChannelId:   updated.ChannelID.String,
+		CreatedAt:   timestamppb.New(updated.CreatedAt),
+	}, nil
+}
+
 // ===== VIDEO-CHANNEL MANAGEMENT METHODS =====
 
 func (s *VideoAPI) MoveVideoToChannel(ctx context.Context, req *proto.MoveVideoToChannelRequest) (*proto.MoveVideoToChannelResponse, error) {
