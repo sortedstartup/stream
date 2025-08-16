@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"embed"
 	"fmt"
 	"io"
@@ -28,6 +29,10 @@ import (
 
 	userAPI "sortedstartup.com/stream/userservice/api"
 	userProto "sortedstartup.com/stream/userservice/proto"
+
+	paymentAPI "sortedstartup.com/stream/paymentservice/api"
+	paymentDB "sortedstartup.com/stream/paymentservice/db"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 )
 
 //go:embed webapp/dist
@@ -69,17 +74,44 @@ func (w *TenantServiceClientWrapper) GetUsers(ctx context.Context, req *userProt
 	return w.tenantAPI.GetUsers(ctx, req)
 }
 
+// PaymentServiceClientWrapper wraps the PaymentAPI to implement the PaymentServiceClient interface
+type PaymentServiceClientWrapper struct {
+	paymentAPI *paymentAPI.PaymentServer
+}
+
+func (w *PaymentServiceClientWrapper) CheckUserAccess(ctx context.Context, req *paymentProto.CheckUserAccessRequest, opts ...grpc.CallOption) (*paymentProto.CheckUserAccessResponse, error) {
+	return w.paymentAPI.CheckUserAccess(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) GetUserSubscription(ctx context.Context, req *paymentProto.GetUserSubscriptionRequest, opts ...grpc.CallOption) (*paymentProto.GetUserSubscriptionResponse, error) {
+	return w.paymentAPI.GetUserSubscription(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) CreateCheckoutSession(ctx context.Context, req *paymentProto.CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*paymentProto.CreateCheckoutSessionResponse, error) {
+	return w.paymentAPI.CreateCheckoutSession(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) UpdateUserUsage(ctx context.Context, req *paymentProto.UpdateUserUsageRequest, opts ...grpc.CallOption) (*paymentProto.UpdateUserUsageResponse, error) {
+	return w.paymentAPI.UpdateUserUsage(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) InitializeUser(ctx context.Context, req *paymentProto.InitializeUserRequest, opts ...grpc.CallOption) (*paymentProto.InitializeUserResponse, error) {
+	return w.paymentAPI.InitializeUser(ctx, req)
+}
+
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI      *videoAPI.VideoAPI
-	CommentAPI    *commentAPI.CommentAPI
-	UserAPI       *userAPI.UserAPI
-	TenantAPI     *userAPI.TenantAPI
-	ChannelAPI    *videoAPI.ChannelAPI
-	GRPCServer    *grpc.Server
-	GRPCWebServer *http.Server
+	VideoAPI       *videoAPI.VideoAPI
+	CommentAPI     *commentAPI.CommentAPI
+	UserAPI        *userAPI.UserAPI
+	TenantAPI      *userAPI.TenantAPI
+	ChannelAPI     *videoAPI.ChannelAPI
+	PaymentAPI     *paymentAPI.PaymentServer
+	PaymentHTTPAPI *paymentAPI.HTTPServer
+	GRPCServer     *grpc.Server
+	GRPCWebServer  *http.Server
 
 	log *slog.Logger
 }
@@ -143,8 +175,30 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
+	log.Info("Creating paymentservice API")
+	// Create payment service database connection
+	paymentDBConn, err := sql.Open(config.PaymentService.DB.Driver, config.PaymentService.DB.Url)
+	if err != nil {
+		log.Error("Could not create payment database", "err", err)
+		return nil, err
+	}
+
+	// Run payment service migrations
+	err = paymentDB.MigrateDB(config.PaymentService.DB.Driver, config.PaymentService.DB.Url)
+	if err != nil {
+		log.Error("Could not migrate payment database", "err", err)
+		return nil, err
+	}
+
+	paymentQueries := paymentDB.New(paymentDBConn)
+	paymentAPIServer := paymentAPI.NewPaymentServer(paymentQueries, &config.PaymentService)
+	paymentHTTPServer := paymentAPI.NewHTTPServer(paymentQueries, &config.PaymentService)
+
+	// Create payment service client wrapper for other services
+	paymentServiceClientWrapper := &PaymentServiceClientWrapper{paymentAPI: paymentAPIServer}
+
 	log.Info("Creating userservice API")
-	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
+	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService, paymentServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create userservice API", "err", err)
 		return nil, err
@@ -154,7 +208,7 @@ func NewMonolith() (*Monolith, error) {
 	// Create wrapper to avoid circular dependency
 	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
 	tenantServiceClientWrapper := &TenantServiceClientWrapper{tenantAPI: tenantAPI}
-	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper)
+	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper, paymentServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err
@@ -196,6 +250,9 @@ func NewMonolith() (*Monolith, error) {
 
 	// Wrap the gRPC web handler with Firebase auth middleware
 	authenticatedGrpcWebHandler := interceptors.FirebaseHTTPHeaderAuthMiddleware(firebase, grpcWebHandler)
+
+	// Register webhook endpoint (no auth required for Stripe webhooks)
+	parentMux.HandleFunc("/api/paymentservice/webhook/stripe", paymentHTTPServer.StripeWebhook)
 
 	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
@@ -257,16 +314,18 @@ func NewMonolith() (*Monolith, error) {
 	}
 
 	return &Monolith{
-		Config:        &config,
-		VideoAPI:      videoAPI,
-		ChannelAPI:    channelAPI,
-		CommentAPI:    commentAPI,
-		UserAPI:       userAPI,
-		TenantAPI:     tenantAPI,
-		Firebase:      firebase,
-		GRPCServer:    grpcServer,
-		GRPCWebServer: httpServer,
-		log:           log,
+		Config:         &config,
+		VideoAPI:       videoAPI,
+		ChannelAPI:     channelAPI,
+		CommentAPI:     commentAPI,
+		UserAPI:        userAPI,
+		TenantAPI:      tenantAPI,
+		PaymentAPI:     paymentAPIServer,
+		PaymentHTTPAPI: paymentHTTPServer,
+		Firebase:       firebase,
+		GRPCServer:     grpcServer,
+		GRPCWebServer:  httpServer,
+		log:            log,
 	}, nil
 }
 
@@ -274,6 +333,12 @@ func (m *Monolith) InitServices() error {
 
 	m.log.Info("Initializing User Service")
 	err := m.UserAPI.Init()
+	if err != nil {
+		return err
+	}
+
+	m.log.Info("Initializing Payment Service")
+	err = m.PaymentAPI.Init(context.Background())
 	if err != nil {
 		return err
 	}
@@ -331,6 +396,7 @@ func (m *Monolith) startServer() error {
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
 	userProto.RegisterTenantServiceServer(m.GRPCServer, m.TenantAPI)
+	paymentProto.RegisterPaymentServiceServer(m.GRPCServer, m.PaymentAPI)
 
 	reflection.Register(m.GRPCServer)
 

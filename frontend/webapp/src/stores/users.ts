@@ -3,6 +3,9 @@ import { UnaryInterceptor } from "grpc-web";
 import { $authToken } from "../auth/store/auth";
 import { CreateUserRequest, User, UserServiceClient } from "../proto/userservice"
 
+
+// This user not available always, example if user is cache, then BE won't return user details
+// If you want to get current user then get it from auth store
 export const $currentDbUser = atom<User | null>(null)
 
 const unaryInterceptor: UnaryInterceptor<any, any> = {
@@ -35,4 +38,6 @@ export const createUserIfNotExists = async (): Promise<User> => {
         console.error("Error creating/fetching user:", error);
         throw error;
     }
-}; 
+};
+
+ 
