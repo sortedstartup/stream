@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/userservice/api"
@@ -268,5 +270,121 @@ func TestCreatePersonalTenant(t *testing.T) {
 		err := tenantAPI.CreatePersonalTenant(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to add creator to personal tenant")
+	})
+}
+
+func TestCreateTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQuerier := mocks.NewMockQuerier(ctrl)
+	logger := slog.Default()
+	tenantAPI := api.NewTenantAPITest(mockQuerier, logger)
+
+	testUser := &auth.User{
+		ID:    "user-123",
+		Email: "test@example.com",
+		Name:  "Tester",
+	}
+	ctx := withAuthContext(context.Background(), testUser)
+
+	t.Run("success - tenant created", func(t *testing.T) {
+		req := &proto.CreateTenantRequest{Name: "My Team", Description: "Team workspace"}
+
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantParams) (db.UserserviceTenant, error) {
+				return db.UserserviceTenant{
+					ID:          p.ID,
+					Name:        p.Name,
+					Description: p.Description,
+					IsPersonal:  false,
+					CreatedAt:   time.Now(),
+					CreatedBy:   testUser.ID,
+				}, nil
+			})
+
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantUserParams) (db.UserserviceTenantUser, error) {
+				return db.UserserviceTenantUser{
+					ID:        p.ID,
+					TenantID:  p.TenantID,
+					UserID:    testUser.ID,
+					Role:      constants.TenantRoleSuperAdmin,
+					CreatedAt: time.Now(),
+				}, nil
+			})
+
+		resp, err := tenantAPI.CreateTenant(ctx, req)
+		assert.NoError(t, err)
+		assert.Equal(t, "Tenant created successfully", resp.Message)
+		assert.Equal(t, req.Name, resp.TenantUser.Tenant.Name)
+		assert.Equal(t, constants.TenantRoleSuperAdmin, resp.TenantUser.Role.Role)
+	})
+
+	t.Run("fail - unauthenticated", func(t *testing.T) {
+		req := &proto.CreateTenantRequest{Name: "Should Fail"}
+		resp, err := tenantAPI.CreateTenant(context.Background(), req)
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+
+	t.Run("fail - tenant name empty", func(t *testing.T) {
+		req := &proto.CreateTenantRequest{Name: ""}
+		resp, err := tenantAPI.CreateTenant(ctx, req)
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+
+	t.Run("fail - CreateTenant db error", func(t *testing.T) {
+		req := &proto.CreateTenantRequest{Name: "ErrorTenant"}
+
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			Return(db.UserserviceTenant{}, errors.New("db insert failed"))
+
+		resp, err := tenantAPI.CreateTenant(ctx, req)
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+		assert.Equal(t, "failed to create tenant", st.Message())
+	})
+
+	t.Run("fail - CreateTenantUser db error", func(t *testing.T) {
+		req := &proto.CreateTenantRequest{Name: "BadTenant"}
+
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantParams) (db.UserserviceTenant, error) {
+				return db.UserserviceTenant{
+					ID:          uuid.New().String(),
+					Name:        p.Name,
+					Description: sql.NullString{String: p.Description.String, Valid: true},
+					IsPersonal:  false,
+					CreatedAt:   time.Now(),
+					CreatedBy:   testUser.ID,
+				}, nil
+			})
+
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			Return(db.UserserviceTenantUser{}, errors.New("insert failed"))
+
+		resp, err := tenantAPI.CreateTenant(ctx, req)
+		assert.Nil(t, resp)
+		assert.Error(t, err)
+
+		st, _ := status.FromError(err)
+		assert.Equal(t, codes.Internal, st.Code())
+		assert.Equal(t, "failed to add creator to tenant", st.Message())
 	})
 }
