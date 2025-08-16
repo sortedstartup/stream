@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/stretchr/testify/assert"
 	"sortedstartup.com/stream/common/auth"
+	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/userservice/api"
 	"sortedstartup.com/stream/userservice/db"
 	"sortedstartup.com/stream/userservice/db/mocks"
@@ -182,4 +184,89 @@ func TestCreateUserIfNotExists_CreateUserFails(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create user")
+}
+
+func TestCreatePersonalTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQuerier := mocks.NewMockQuerier(ctrl)
+	logger := slog.Default()
+	tenantAPI := api.NewTenantAPITest(mockQuerier, logger)
+
+	testUser := &auth.User{
+		ID:    "user-123",
+		Email: "test@example.com",
+		Name:  "Tester",
+	}
+	ctx := withAuthContext(context.Background(), testUser)
+
+	t.Run("success - tenant and tenantUser created", func(t *testing.T) {
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantParams) (db.UserserviceTenant, error) {
+				return db.UserserviceTenant{
+					ID:          p.ID,
+					Name:        p.Name,
+					Description: p.Description,
+					IsPersonal:  true,
+					CreatedAt:   time.Now(),
+					CreatedBy:   testUser.ID,
+				}, nil
+			})
+
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantUserParams) (db.UserserviceTenantUser, error) {
+				return db.UserserviceTenantUser{
+					ID:        p.ID,
+					TenantID:  p.TenantID,
+					UserID:    p.UserID,
+					Role:      constants.TenantRoleSuperAdmin,
+					CreatedAt: time.Now(),
+				}, nil
+			})
+
+		err := tenantAPI.CreatePersonalTenant(ctx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("fail - missing auth context", func(t *testing.T) {
+		err := tenantAPI.CreatePersonalTenant(context.Background())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get auth context")
+	})
+
+	t.Run("fail - CreateTenant returns error", func(t *testing.T) {
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			Return(db.UserserviceTenant{}, errors.New("db insert failed"))
+
+		err := tenantAPI.CreatePersonalTenant(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create personal tenant")
+	})
+
+	t.Run("fail - CreateTenantUser returns error", func(t *testing.T) {
+		mockQuerier.EXPECT().
+			CreateTenant(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p db.CreateTenantParams) (db.UserserviceTenant, error) {
+				return db.UserserviceTenant{
+					ID:          uuid.New().String(),
+					Name:        p.Name,
+					Description: p.Description,
+					IsPersonal:  true,
+					CreatedAt:   time.Now(),
+					CreatedBy:   testUser.ID,
+				}, nil
+			})
+
+		mockQuerier.EXPECT().
+			CreateTenantUser(gomock.Any(), gomock.Any()).
+			Return(db.UserserviceTenantUser{}, errors.New("insert failed"))
+
+		err := tenantAPI.CreatePersonalTenant(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to add creator to personal tenant")
+	})
 }
