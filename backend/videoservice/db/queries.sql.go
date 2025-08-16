@@ -537,28 +537,6 @@ func (q *Queries) GetVideoByVideoIDAndTenantID(ctx context.Context, arg GetVideo
 	return i, err
 }
 
-const getVideoFileSizeForDeletion = `-- name: GetVideoFileSizeForDeletion :one
-SELECT file_size_bytes, uploaded_user_id FROM videoservice_videos 
-WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
-`
-
-type GetVideoFileSizeForDeletionParams struct {
-	VideoID  string
-	TenantID sql.NullString
-}
-
-type GetVideoFileSizeForDeletionRow struct {
-	FileSizeBytes  sql.NullInt64
-	UploadedUserID string
-}
-
-func (q *Queries) GetVideoFileSizeForDeletion(ctx context.Context, arg GetVideoFileSizeForDeletionParams) (GetVideoFileSizeForDeletionRow, error) {
-	row := q.db.QueryRowContext(ctx, getVideoFileSizeForDeletion, arg.VideoID, arg.TenantID)
-	var i GetVideoFileSizeForDeletionRow
-	err := row.Scan(&i.FileSizeBytes, &i.UploadedUserID)
-	return i, err
-}
-
 const getVideoCountsPerChannelByTenantID = `-- name: GetVideoCountsPerChannelByTenantID :many
 SELECT 
   channel_id,
@@ -594,6 +572,28 @@ func (q *Queries) GetVideoCountsPerChannelByTenantID(ctx context.Context, tenant
 		return nil, err
 	}
 	return items, nil
+}
+
+const getVideoFileSizeForDeletion = `-- name: GetVideoFileSizeForDeletion :one
+SELECT file_size_bytes, uploaded_user_id FROM videoservice_videos 
+WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
+`
+
+type GetVideoFileSizeForDeletionParams struct {
+	VideoID  string
+	TenantID sql.NullString
+}
+
+type GetVideoFileSizeForDeletionRow struct {
+	FileSizeBytes  sql.NullInt64
+	UploadedUserID string
+}
+
+func (q *Queries) GetVideoFileSizeForDeletion(ctx context.Context, arg GetVideoFileSizeForDeletionParams) (GetVideoFileSizeForDeletionRow, error) {
+	row := q.db.QueryRowContext(ctx, getVideoFileSizeForDeletion, arg.VideoID, arg.TenantID)
+	var i GetVideoFileSizeForDeletionRow
+	err := row.Scan(&i.FileSizeBytes, &i.UploadedUserID)
+	return i, err
 }
 
 const getVideosByTenantID = `-- name: GetVideosByTenantID :many

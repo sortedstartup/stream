@@ -80,7 +80,7 @@ func NewUserAPI(config config.UserServiceConfig, paymentServiceClient paymentPro
 
 func NewUserAPITest(querier db.Querier, cache *lru.Cache, tenantAPI *TenantAPI, logger *slog.Logger) *UserAPI {
 	return &UserAPI{
-		dbQueries: querier,
+		dbQueries: querier.(*db.Queries),
 		userCache: cache,
 		tenantAPI: tenantAPI,
 		log:       logger,
@@ -89,7 +89,7 @@ func NewUserAPITest(querier db.Querier, cache *lru.Cache, tenantAPI *TenantAPI, 
 
 func NewTenantAPITest(querier db.Querier, logger *slog.Logger) *TenantAPI {
 	return &TenantAPI{
-		dbQueries: querier,
+		dbQueries: querier.(*db.Queries),
 		log:       logger,
 	}
 }
