@@ -38,7 +38,6 @@ type CreateTenantParams struct {
 	CreatedBy   string
 }
 
-// Tenant queries
 func (q *Queries) CreateTenant(ctx context.Context, arg CreateTenantParams) (UserserviceTenant, error) {
 	row := q.db.QueryRowContext(ctx, createTenant,
 		arg.ID,
@@ -147,6 +146,31 @@ SELECT id, name, description, is_personal, created_at, created_by FROM userservi
 
 func (q *Queries) GetTenantByID(ctx context.Context, id string) (UserserviceTenant, error) {
 	row := q.db.QueryRowContext(ctx, getTenantByID, id)
+	var i UserserviceTenant
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.IsPersonal,
+		&i.CreatedAt,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const getTenantByName = `-- name: GetTenantByName :one
+SELECT id, name, description, is_personal, created_at, created_by FROM userservice_tenants 
+WHERE name = ?1 AND created_by = ?2
+`
+
+type GetTenantByNameParams struct {
+	Name      string
+	CreatedBy string
+}
+
+// Tenant queries
+func (q *Queries) GetTenantByName(ctx context.Context, arg GetTenantByNameParams) (UserserviceTenant, error) {
+	row := q.db.QueryRowContext(ctx, getTenantByName, arg.Name, arg.CreatedBy)
 	var i UserserviceTenant
 	err := row.Scan(
 		&i.ID,

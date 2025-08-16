@@ -91,6 +91,48 @@ func (q *Queries) CheckUserAccess(ctx context.Context, userID string) (CheckUser
 	return i, err
 }
 
+const createPlan = `-- name: CreatePlan :one
+INSERT INTO paymentservice_plans (
+    id, name, storage_limit_bytes, users_limit, 
+    price_cents, is_active, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
+RETURNING id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at
+`
+
+type CreatePlanParams struct {
+	ID                string
+	Name              string
+	StorageLimitBytes int64
+	UsersLimit        int64
+	PriceCents        sql.NullInt64
+	CreatedAt         int64
+	UpdatedAt         int64
+}
+
+func (q *Queries) CreatePlan(ctx context.Context, arg CreatePlanParams) (PaymentservicePlan, error) {
+	row := q.db.QueryRowContext(ctx, createPlan,
+		arg.ID,
+		arg.Name,
+		arg.StorageLimitBytes,
+		arg.UsersLimit,
+		arg.PriceCents,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i PaymentservicePlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StorageLimitBytes,
+		&i.UsersLimit,
+		&i.PriceCents,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUserSubscription = `-- name: CreateUserSubscription :one
 INSERT INTO paymentservice_user_subscriptions (
     id, user_id, plan_id, provider, provider_customer_id, 
@@ -291,6 +333,46 @@ func (q *Queries) GetUserUsage(ctx context.Context, userID string) (Paymentservi
 		&i.StorageUsedBytes,
 		&i.UsersCount,
 		&i.LastCalculatedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePlan = `-- name: UpdatePlan :one
+UPDATE paymentservice_plans 
+SET name = ?, storage_limit_bytes = ?, users_limit = ?, 
+    price_cents = ?, updated_at = ?
+WHERE id = ?
+RETURNING id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at
+`
+
+type UpdatePlanParams struct {
+	Name              string
+	StorageLimitBytes int64
+	UsersLimit        int64
+	PriceCents        sql.NullInt64
+	UpdatedAt         int64
+	ID                string
+}
+
+func (q *Queries) UpdatePlan(ctx context.Context, arg UpdatePlanParams) (PaymentservicePlan, error) {
+	row := q.db.QueryRowContext(ctx, updatePlan,
+		arg.Name,
+		arg.StorageLimitBytes,
+		arg.UsersLimit,
+		arg.PriceCents,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	var i PaymentservicePlan
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StorageLimitBytes,
+		&i.UsersLimit,
+		&i.PriceCents,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

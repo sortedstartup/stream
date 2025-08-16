@@ -33,6 +33,7 @@ export class Video extends pb_1.Message {
         visibility?: Visibility;
         created_at?: dependency_1.Timestamp;
         channel_id?: string;
+        duration_seconds?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -66,6 +67,9 @@ export class Video extends pb_1.Message {
             }
             if ("channel_id" in data && data.channel_id != undefined) {
                 this.channel_id = data.channel_id;
+            }
+            if ("duration_seconds" in data && data.duration_seconds != undefined) {
+                this.duration_seconds = data.duration_seconds;
             }
         }
     }
@@ -132,6 +136,12 @@ export class Video extends pb_1.Message {
     set channel_id(value: string) {
         pb_1.Message.setField(this, 10, value);
     }
+    get duration_seconds() {
+        return pb_1.Message.getFieldWithDefault(this, 11, 0) as number;
+    }
+    set duration_seconds(value: number) {
+        pb_1.Message.setField(this, 11, value);
+    }
     static fromObject(data: {
         id?: string;
         title?: string;
@@ -143,6 +153,7 @@ export class Video extends pb_1.Message {
         visibility?: Visibility;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         channel_id?: string;
+        duration_seconds?: number;
     }): Video {
         const message = new Video({});
         if (data.id != null) {
@@ -175,6 +186,9 @@ export class Video extends pb_1.Message {
         if (data.channel_id != null) {
             message.channel_id = data.channel_id;
         }
+        if (data.duration_seconds != null) {
+            message.duration_seconds = data.duration_seconds;
+        }
         return message;
     }
     toObject() {
@@ -189,6 +203,7 @@ export class Video extends pb_1.Message {
             visibility?: Visibility;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
             channel_id?: string;
+            duration_seconds?: number;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -220,6 +235,9 @@ export class Video extends pb_1.Message {
         if (this.channel_id != null) {
             data.channel_id = this.channel_id;
         }
+        if (this.duration_seconds != null) {
+            data.duration_seconds = this.duration_seconds;
+        }
         return data;
     }
     serialize(): Uint8Array;
@@ -246,6 +264,8 @@ export class Video extends pb_1.Message {
             writer.writeMessage(9, this.created_at, () => this.created_at.serialize(writer));
         if (this.channel_id.length)
             writer.writeString(10, this.channel_id);
+        if (this.duration_seconds != 0)
+            writer.writeInt64(11, this.duration_seconds);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -284,6 +304,9 @@ export class Video extends pb_1.Message {
                     break;
                 case 10:
                     message.channel_id = reader.readString();
+                    break;
+                case 11:
+                    message.duration_seconds = reader.readInt64();
                     break;
                 default: reader.skipField();
             }
@@ -1159,6 +1182,7 @@ export class Channel extends pb_1.Message {
         updated_at?: dependency_1.Timestamp;
         user_role?: string;
         member_count?: number;
+        video_count?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -1189,6 +1213,9 @@ export class Channel extends pb_1.Message {
             }
             if ("member_count" in data && data.member_count != undefined) {
                 this.member_count = data.member_count;
+            }
+            if ("video_count" in data && data.video_count != undefined) {
+                this.video_count = data.video_count;
             }
         }
     }
@@ -1252,6 +1279,12 @@ export class Channel extends pb_1.Message {
     set member_count(value: number) {
         pb_1.Message.setField(this, 10, value);
     }
+    get video_count() {
+        return pb_1.Message.getFieldWithDefault(this, 11, 0) as number;
+    }
+    set video_count(value: number) {
+        pb_1.Message.setField(this, 11, value);
+    }
     static fromObject(data: {
         id?: string;
         tenant_id?: string;
@@ -1262,6 +1295,7 @@ export class Channel extends pb_1.Message {
         updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         user_role?: string;
         member_count?: number;
+        video_count?: number;
     }): Channel {
         const message = new Channel({});
         if (data.id != null) {
@@ -1291,6 +1325,9 @@ export class Channel extends pb_1.Message {
         if (data.member_count != null) {
             message.member_count = data.member_count;
         }
+        if (data.video_count != null) {
+            message.video_count = data.video_count;
+        }
         return message;
     }
     toObject() {
@@ -1304,6 +1341,7 @@ export class Channel extends pb_1.Message {
             updated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
             user_role?: string;
             member_count?: number;
+            video_count?: number;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -1332,6 +1370,9 @@ export class Channel extends pb_1.Message {
         if (this.member_count != null) {
             data.member_count = this.member_count;
         }
+        if (this.video_count != null) {
+            data.video_count = this.video_count;
+        }
         return data;
     }
     serialize(): Uint8Array;
@@ -1356,6 +1397,8 @@ export class Channel extends pb_1.Message {
             writer.writeString(9, this.user_role);
         if (this.member_count != 0)
             writer.writeInt32(10, this.member_count);
+        if (this.video_count != 0)
+            writer.writeInt32(11, this.video_count);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1391,6 +1434,9 @@ export class Channel extends pb_1.Message {
                     break;
                 case 10:
                     message.member_count = reader.readInt32();
+                    break;
+                case 11:
+                    message.video_count = reader.readInt32();
                     break;
                 default: reader.skipField();
             }

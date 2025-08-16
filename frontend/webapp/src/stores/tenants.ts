@@ -2,10 +2,35 @@ import { atom, computed } from 'nanostores'
 import { AddUserRequest, GetTenantsRequest, GetUsersRequest, TenantServiceClient, TenantUser, UserServiceClient } from '../proto/userservice'
 import { CreateTenantRequest } from '../proto/userservice'
 import { $authToken } from '../auth/store/auth'
+import { persistentAtom } from '@nanostores/persistent'
 
 // Tenant state atoms
 export const $tenants = atom<TenantUser[]>([])
-export const $currentTenant = atom<TenantUser | null>(null)
+export const $currentTenant = persistentAtom<TenantUser | null>(
+  'currentTenant',
+  null,
+  {
+    encode: (value) => {
+      if (!value) return JSON.stringify(null)
+      return JSON.stringify(value.toObject())
+    },
+    decode: (str) => {
+      try {
+        const obj = JSON.parse(str)
+        if (!obj) return null
+        if (obj && obj.tenant && obj.tenant.id) {
+          return TenantUser.fromObject(obj)
+        }
+      } catch (error) {
+        console.warn('Failed to decode persisted tenant:', error)
+        localStorage.removeItem('currentTenant')
+      }
+      return null
+    },
+  }
+)
+
+
 export const $isLoadingTenants = atom(false)
 export const $tenantError = atom<string | null>(null)
 export const $userTenantRoles = atom<Record<string, string>>({}) // tenantId -> role mapping
@@ -71,11 +96,29 @@ export const loadUserTenants = async () => {
       })
       $userTenantRoles.set(roleMapping)
       
-      // Set current tenant to personal tenant by default, or first tenant if no personal tenant
-      const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
-      const defaultTenant = personalTenant || response.tenant_users[0]
-      if (defaultTenant) {
-        $currentTenant.set(defaultTenant)
+      const currentTenant = $currentTenant.get()
+      
+      if (currentTenant === null) {
+        // Set current tenant to personal tenant by default, or first tenant if no personal tenant
+        const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
+        const defaultTenant = personalTenant || response.tenant_users[0]
+        if (defaultTenant) {
+          $currentTenant.set(defaultTenant)
+        }
+      } else {
+        // Validate that the current tenant still exists in the user's tenant list
+        const tenantStillExists = response.tenant_users.find(t => t.tenant.id === currentTenant.tenant.id)
+        if (!tenantStillExists) {
+          // Current tenant no longer exists, fallback to default
+          const personalTenant = response.tenant_users.find(t => t.tenant.is_personal)
+          const defaultTenant = personalTenant || response.tenant_users[0]
+          if (defaultTenant) {
+            $currentTenant.set(defaultTenant)
+          } else {
+            $currentTenant.set(null)
+          }
+        }
+        // If tenant still exists, keep the current tenant as-is
       }
     } else {
       $tenantError.set(response.message || 'Failed to load tenants')
@@ -107,20 +150,28 @@ export const createTenant = async (name: string, description: string = '') => {
         [response.tenant_user.tenant.id]: response.tenant_user.role.role
       })
       
-      return { success: true, tenant: response.tenant_user }
+      return { success: true, tenant: response.tenant_user, error: null }
     } else {
-      return { success: false, error: response.message || 'Failed to create workspace' }
+      return { success: false, tenant: null, error: 'Failed to create workspace' }
     }
-  } catch (error) {
-    console.error('Error creating tenant:', error)
-    // Extract error message (no payment restrictions on workspace creation)
-    let errorMessage = 'Failed to create workspace. Please try again.'
-    
-    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-      errorMessage = error.message
+  } catch (error: any) {
+    // Extract meaningful error message from gRPC error
+    let errorMessage = 'Failed to create workspace'
+    if (error && error.message) {
+      if (error.message.includes('already exists')) {
+        errorMessage = 'A workspace with this name already exists'
+      } else if (error.message.includes('InvalidArgument')) {
+        errorMessage = 'Workspace name is required'
+      } else {
+        // Try to extract the actual error message from gRPC
+        const match = error.message.match(/:\s*(.+)$/)
+        if (match) {
+          errorMessage = match[1]
+        }
+      }
     }
-    
-    return { success: false, error: errorMessage }
+
+    return { success: false, tenant: null, error: errorMessage }
   }
 }
 
@@ -193,6 +244,7 @@ export const getTenantUsers = async (tenantId: string) => {
 // Initialize tenants when auth state changes
 $authToken.subscribe((token) => {
   if (token) {
+    // Always load tenants to update the list and role mappings, but preserve current tenant
     loadUserTenants()
   } else {
     $tenants.set([])

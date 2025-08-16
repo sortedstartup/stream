@@ -191,4 +191,11 @@ WHERE (file_size_bytes IS NULL OR file_size_bytes = 0) AND is_deleted = FALSE;
 UPDATE videoservice_videos 
 SET file_size_bytes = @file_size_bytes, updated_at = @updated_at
 WHERE id = @video_id;
+-- name: GetVideoCountsPerChannelByTenantID :many
+SELECT 
+  channel_id,
+  COUNT(*) AS video_count
+FROM videoservice_videos
+WHERE tenant_id = @tenant_id AND is_deleted = FALSE AND channel_id IS NOT NULL AND channel_id != ''
+GROUP BY channel_id;
 

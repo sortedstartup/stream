@@ -35,7 +35,7 @@ export const LoginPage = () => {
       const { loadUserTenants } = await import('../../stores/tenants')
       await loadUserTenants()
     } catch (error) {
-      console.error('Error creating user:', error)
+      await signOut()
     }
 
     navigate('/')

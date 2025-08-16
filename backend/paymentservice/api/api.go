@@ -37,6 +37,65 @@ func NewPaymentServer(database *db.Queries, cfg *config.PaymentServiceConfig) *P
 	}
 }
 
+// Init initializes the payment service, including setting up plans from configuration
+func (s *PaymentServer) Init(ctx context.Context) error {
+	return s.initializePlans(ctx)
+}
+
+// initializePlans creates or updates plans based on configuration
+func (s *PaymentServer) initializePlans(ctx context.Context) error {
+	// Use configured plans or fall back to defaults
+	plans := s.config.Plans
+	if len(plans) == 0 {
+		log.Printf("No plans configured, using defaults")
+		plans = config.GetDefaultPlans()
+	}
+
+	for _, planConfig := range plans {
+		// Check if plan already exists
+		_, err := s.db.GetPlan(ctx, planConfig.ID)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("failed to check existing plan %s: %w", planConfig.ID, err)
+		}
+
+		now := time.Now().Unix()
+
+		if err == sql.ErrNoRows {
+			// Plan doesn't exist, create it
+			log.Printf("Creating plan: %s (%s)", planConfig.ID, planConfig.Name)
+			_, err = s.db.CreatePlan(ctx, db.CreatePlanParams{
+				ID:                planConfig.ID,
+				Name:              planConfig.Name,
+				StorageLimitBytes: planConfig.StorageLimitBytes(),
+				UsersLimit:        planConfig.UsersLimit,
+				PriceCents:        sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
+				CreatedAt:         now,
+				UpdatedAt:         now,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create plan %s: %w", planConfig.ID, err)
+			}
+		} else {
+			// Plan exists, update it with current config
+			log.Printf("Updating plan: %s (%s)", planConfig.ID, planConfig.Name)
+			_, err = s.db.UpdatePlan(ctx, db.UpdatePlanParams{
+				ID:                planConfig.ID,
+				Name:              planConfig.Name,
+				StorageLimitBytes: planConfig.StorageLimitBytes(),
+				UsersLimit:        planConfig.UsersLimit,
+				PriceCents:        sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
+				UpdatedAt:         now,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update plan %s: %w", planConfig.ID, err)
+			}
+		}
+	}
+
+	log.Printf("Successfully initialized %d plans", len(plans))
+	return nil
+}
+
 // CheckUserAccess checks if user can perform specific action
 func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAccessRequest) (*pb.CheckUserAccessResponse, error) {
 	if req.UserId == "" {

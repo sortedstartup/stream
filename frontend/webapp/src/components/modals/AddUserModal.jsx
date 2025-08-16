@@ -89,7 +89,6 @@ export const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
               defaultValue="member"
             >
               <option value="member">Member</option>
-              <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </select>
           </div>

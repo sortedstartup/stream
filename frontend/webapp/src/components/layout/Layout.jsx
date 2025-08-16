@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
@@ -41,7 +39,7 @@ export const Layout = ({ children }) => {
       switchTenant(result.tenant)
       showSuccessToast('Workspace created successfully!')
       navigate('/workspace')
-      return { success: true }
+      return { success: true, error: null }
     }
     return { success: false, error: result.error }
   }
@@ -96,20 +94,6 @@ export const Layout = ({ children }) => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateTenant}
-      />
-
-      {/* Global Toast Container */}
-      <ToastContainer
-        position="top-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
       />
     </div>
   )
