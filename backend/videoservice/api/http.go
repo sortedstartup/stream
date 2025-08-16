@@ -64,7 +64,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, userID)
+	err = isUserInTenant(r.Context(), api.UserServiceClient, api.log, tenantID, userID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		slog.Error("Tenant access denied", "tenantID", tenantID, "userID", userID, "err", err)
@@ -249,7 +249,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("File streamed successfully", "filename", fileName, "original", originalFilename)
 
 	// Save video details to the database
-	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
+	err = api.DbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
 		Title:          title,
 		Description:    description,
@@ -320,14 +320,14 @@ func (api *VideoAPI) serveVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(r.Context(), api.userServiceClient, api.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(r.Context(), api.UserServiceClient, api.log, tenantID, authContext.User.ID)
 	if err != nil {
 		http.Error(w, "Access denied: you are not a member of this tenant", http.StatusForbidden)
 		return
 	}
 
 	// Get video details from database with tenant validation
-	video, err := api.dbQueries.GetVideoByVideoIDAndTenantID(r.Context(), db.GetVideoByVideoIDAndTenantIDParams{
+	video, err := api.DbQueries.GetVideoByVideoIDAndTenantID(r.Context(), db.GetVideoByVideoIDAndTenantIDParams{
 		ID:       videoID,
 		TenantID: sql.NullString{String: tenantID, Valid: true},
 	})

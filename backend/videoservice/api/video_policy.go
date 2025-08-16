@@ -74,8 +74,8 @@ func (v *VideoPolicyValidator) GetAndValidateVideo(ctx context.Context, videoID,
 }
 
 // ValidateChannelOwnership checks if user is the owner of the specified channel
-func (v *VideoPolicyValidator) ValidateChannelOwnership(ctx context.Context, channelAPI *ChannelAPI, channelID, userID, tenantID string) error {
-	userRole, err := channelAPI.getUserRoleInChannel(ctx, channelID, userID, tenantID)
+func (v *VideoPolicyValidator) ValidateChannelOwnership(ctx context.Context, channelAPI ChannelAPIInterface, channelID, userID, tenantID string) error {
+	userRole, err := channelAPI.GetUserRoleInChannel(ctx, channelID, userID, tenantID)
 	if err != nil {
 		return status.Error(codes.PermissionDenied, "access denied: you are not a member of this channel")
 	}
@@ -88,8 +88,8 @@ func (v *VideoPolicyValidator) ValidateChannelOwnership(ctx context.Context, cha
 }
 
 // ValidateChannelAccess checks if user has required access level to the channel
-func (v *VideoPolicyValidator) ValidateChannelAccess(ctx context.Context, channelAPI *ChannelAPI, channelID, userID, tenantID string, requiredRoles ...string) (string, error) {
-	userRole, err := channelAPI.getUserRoleInChannel(ctx, channelID, userID, tenantID)
+func (v *VideoPolicyValidator) ValidateChannelAccess(ctx context.Context, channelAPI ChannelAPIInterface, channelID, userID, tenantID string, requiredRoles ...string) (string, error) {
+	userRole, err := channelAPI.GetUserRoleInChannel(ctx, channelID, userID, tenantID)
 	if err != nil {
 		return "", status.Error(codes.PermissionDenied, "access denied: you are not a member of this channel")
 	}
@@ -111,7 +111,7 @@ func (v *VideoPolicyValidator) ValidateChannelAccess(ctx context.Context, channe
 }
 
 // ValidateVideoMovePermissions checks permissions for moving a video
-func (v *VideoPolicyValidator) ValidateVideoMovePermissions(ctx context.Context, channelAPI *ChannelAPI, video *db.VideoserviceVideo, userID, tenantID, targetChannelID string) error {
+func (v *VideoPolicyValidator) ValidateVideoMovePermissions(ctx context.Context, channelAPI ChannelAPIInterface, video *db.VideoserviceVideo, userID, tenantID, targetChannelID string) error {
 	// Validate that target channel exists and user has uploader+ access
 	_, err := v.ValidateChannelAccess(ctx, channelAPI, targetChannelID, userID, tenantID,
 		constants.ChannelRoleOwner, constants.ChannelRoleUploader)
@@ -135,7 +135,7 @@ func (v *VideoPolicyValidator) ValidateVideoMovePermissions(ctx context.Context,
 }
 
 // ValidateVideoRemovalPermissions checks permissions for removing a video from channel
-func (v *VideoPolicyValidator) ValidateVideoRemovalPermissions(ctx context.Context, channelAPI *ChannelAPI, video *db.VideoserviceVideo, userID, tenantID string) error {
+func (v *VideoPolicyValidator) ValidateVideoRemovalPermissions(ctx context.Context, channelAPI ChannelAPIInterface, video *db.VideoserviceVideo, userID, tenantID string) error {
 	// Check if video is currently in a channel
 	if !video.ChannelID.Valid || video.ChannelID.String == "" {
 		return status.Error(codes.InvalidArgument, "video is not in any channel")
@@ -146,7 +146,7 @@ func (v *VideoPolicyValidator) ValidateVideoRemovalPermissions(ctx context.Conte
 }
 
 // ValidateVideoDeletionPermissions checks permissions for deleting a video
-func (v *VideoPolicyValidator) ValidateVideoDeletionPermissions(ctx context.Context, channelAPI *ChannelAPI, video *db.VideoserviceVideo, userID, tenantID string) error {
+func (v *VideoPolicyValidator) ValidateVideoDeletionPermissions(ctx context.Context, channelAPI ChannelAPIInterface, video *db.VideoserviceVideo, userID, tenantID string) error {
 	// Permission check for video deletion:
 	// 1. For tenant-level videos: Only video uploader can delete
 	// 2. For channel videos: Only channel owner can delete

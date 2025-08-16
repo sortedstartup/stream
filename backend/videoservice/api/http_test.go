@@ -47,7 +47,7 @@ func (r *fakeLargeReader) Read(p []byte) (int, error) {
 }
 
 // Helper function to create a test VideoAPI instance
-func createTestVideoAPI() *VideoAPI {
+func CreateTestVideoAPI() *VideoAPI {
 	cfg := config.VideoServiceConfig{
 		FileStoreDir: "./test_uploads",
 	}
@@ -92,9 +92,9 @@ func TestUploadHandlerContentLengthExceedsLimit(t *testing.T) {
 		}, nil).
 		AnyTimes()
 
-	api := createTestVideoAPI()
+	api := CreateTestVideoAPI()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	reqBody := bytes.NewReader(make([]byte, maxUploadSize+1)) // maxUploadSize + 1
 	req := httptest.NewRequest(http.MethodPost, "/upload", reqBody)
@@ -169,8 +169,8 @@ func TestUploadHandlerMaxBytesReader(t *testing.T) {
 		}, nil).
 		AnyTimes()
 
-	api := createTestVideoAPI()
-	api.userServiceClient = mockUser
+	api := CreateTestVideoAPI()
+	api.UserServiceClient = mockUser
 
 	// Set file size to maxUploadSize + 1 to exceed limit
 	var fileSize int64 = maxUploadSize + 1
@@ -210,7 +210,7 @@ func createTestAPIWithMockDB(t *testing.T) (*VideoAPI, *mocks.MockDBQuerier, fun
 	}
 	api := &VideoAPI{
 		config:    cfg,
-		dbQueries: mockDB,
+		DbQueries: mockDB,
 		log:       logger,
 	}
 	return api, mockDB, ctrl.Finish
@@ -302,7 +302,7 @@ func TestUploadHandler_UserNotInTenant(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	req := httptest.NewRequest(http.MethodPost, "/upload", nil)
 	req = req.WithContext(authCtx())
@@ -347,7 +347,7 @@ func TestUploadHandler_MissingTitlePart(t *testing.T) {
 
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -388,7 +388,7 @@ func TestUploadHandler_EmptyTitle(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t) // capture mockDB
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	// Set expectation on mockDB because handler will call CreateVideoUploaded
 	mockDB.EXPECT().
@@ -427,7 +427,7 @@ func TestUploadHandler_UnsupportedFileExtension(t *testing.T) {
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	body, contentType := prepareMultipartBody(t, "title", "desc", "channel-1", "test.exe", []byte("dummy"))
 	req := httptest.NewRequest(http.MethodPost, "/upload", body)
@@ -460,7 +460,7 @@ func TestUploadHandler_FileCreationFailure(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	// Setup mockDB CreateVideoUploaded to succeed
 	mockDB.EXPECT().
@@ -501,7 +501,7 @@ func TestUploadHandler_DBError(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	// Setup mockDB CreateVideoUploaded to return error
 	mockDB.EXPECT().
@@ -600,8 +600,7 @@ func TestServeVideoHandler_UserNotInTenant(t *testing.T) {
 
 	api, _, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
-	api.userServiceClient = mockUser
-
+	api.UserServiceClient = mockUser
 	req := httptest.NewRequest(http.MethodGet, "/video/someid?tenant=test-tenant", nil)
 	req = req.WithContext(authCtx())
 	rec := httptest.NewRecorder()
@@ -629,7 +628,7 @@ func TestServeVideoHandler_VideoNotFound(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -664,7 +663,7 @@ func TestServeVideoHandler_DBError(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -699,7 +698,7 @@ func TestServeVideoHandler_FileNotFound(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	mockDB.EXPECT().
 		GetVideoByVideoIDAndTenantID(gomock.Any(), gomock.Any()).
@@ -734,7 +733,7 @@ func TestServeVideoHandler_Success(t *testing.T) {
 	api, mockDB, teardown := createTestAPIWithMockDB(t)
 	defer teardown()
 
-	api.userServiceClient = mockUser
+	api.UserServiceClient = mockUser
 
 	// Create dummy file to serve
 	uploadDir := "./test_uploads"

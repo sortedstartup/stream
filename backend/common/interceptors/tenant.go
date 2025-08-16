@@ -13,7 +13,7 @@ const TENANT_ID_HEADER = "x-tenant-id"
 // Define a custom type for context keys to avoid collisions
 type contextKey string
 
-const tenantIDKey contextKey = "tenant-id"
+const TenantIDKey contextKey = "tenant-id"
 
 // TenantInterceptor extracts the x-tenant-id header from gRPC metadata and puts it in context
 func TenantInterceptor() grpc.UnaryServerInterceptor {
@@ -39,7 +39,7 @@ func TenantInterceptor() grpc.UnaryServerInterceptor {
 		tenantID := tenantIDHeaders[0]
 		// If tenant ID found, add it to context
 		if tenantID != "" {
-			ctx = context.WithValue(ctx, tenantIDKey, tenantID)
+			ctx = context.WithValue(ctx, TenantIDKey, tenantID)
 		}
 
 		// Typically, tenantID is a slice of strings. Use the first value.
@@ -49,7 +49,7 @@ func TenantInterceptor() grpc.UnaryServerInterceptor {
 
 // GetTenantIDFromContext retrieves the tenant ID from the context
 func GetTenantIDFromContext(ctx context.Context) (string, error) {
-	tenantID, ok := ctx.Value(tenantIDKey).(string)
+	tenantID, ok := ctx.Value(TenantIDKey).(string)
 	if !ok || tenantID == "" {
 		return "", fmt.Errorf("tenant ID not found in context")
 	}

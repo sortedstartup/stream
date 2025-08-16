@@ -27,17 +27,17 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries  db.DBQuerier 
+	DbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
-	userServiceClient userProto.UserServiceClient
+	UserServiceClient userProto.UserServiceClient
 
 	// Policy validator for common video operations
-	policyValidator *VideoPolicyValidator
+	PolicyValidator PolicyValidator
 
 	//implemented proto server
 	proto.UnimplementedVideoServiceServer
-	channelAPI *ChannelAPI
+	ChannelAPI ChannelAPIInterface    
 }
 
 type ChannelAPI struct {
@@ -45,11 +45,11 @@ type ChannelAPI struct {
 	HTTPServerMux *http.ServeMux
 	db            *sql.DB
 
-	log       *slog.Logger
-	dbQueries *db.Queries
+	Log       *slog.Logger
+	DbQueries ChannelDB
 
 	// gRPC clients for other services
-	userServiceClient   userProto.UserServiceClient
+	UserServiceClient   userProto.UserServiceClient
 	tenantServiceClient userProto.TenantServiceClient
 
 	//implemented proto server
@@ -79,9 +79,9 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		HTTPServerMux:       ServerMux,
 		config:              config,
 		db:                  _db,
-		log:                 childLogger,
-		dbQueries:           dbQueries,
-		userServiceClient:   userServiceClient,
+		Log:                 childLogger,
+		DbQueries:           dbQueries,
+		UserServiceClient:   userServiceClient,
 		tenantServiceClient: tenantServiceClient,
 	}
 
@@ -93,10 +93,10 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 		config:            config,
 		db:                _db,
 		log:               childLogger,
-		dbQueries:         dbQueries,
-		userServiceClient: userServiceClient,
-		policyValidator:   policyValidator,
-		channelAPI:        channelAPI,
+		DbQueries:         dbQueries,
+		UserServiceClient: userServiceClient,
+		PolicyValidator:   policyValidator,
+		ChannelAPI:        channelAPI,
 	}
 
 	// The authentication is handled in mono/main.go
@@ -179,7 +179,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
-		return nil, err
+		return nil, status.Error(codes.Unauthenticated, "auth context not found")
 	}
 
 	// Get tenant ID from headers/metadata
@@ -189,7 +189,7 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -199,13 +199,13 @@ func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest)
 	// Filter videos based on channel_id parameter
 	if req.ChannelId != "" {
 		// Get videos for specific channel
-		videos, err = s.dbQueries.GetVideosByTenantIDAndChannelID(ctx, db.GetVideosByTenantIDAndChannelIDParams{
+		videos, err = s.DbQueries.GetVideosByTenantIDAndChannelID(ctx, db.GetVideosByTenantIDAndChannelIDParams{
 			TenantID:  sql.NullString{String: tenantID, Valid: true},
 			ChannelID: sql.NullString{String: req.ChannelId, Valid: true},
 		})
 	} else {
 		// Get all videos user has access to (their private videos + channel videos they're member of)
-		videos, err = s.dbQueries.GetAllAccessibleVideosByTenantID(ctx, db.GetAllAccessibleVideosByTenantIDParams{
+		videos, err = s.DbQueries.GetAllAccessibleVideosByTenantID(ctx, db.GetAllAccessibleVideosByTenantIDParams{
 			TenantID: sql.NullString{String: tenantID, Valid: true},
 			UserID:   authContext.User.ID,
 		})
@@ -237,23 +237,23 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
 		s.log.Error("Error getting auth from context", "err", err)
-		return nil, err
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
 	}
 
 	// Get tenant ID from headers/metadata
 	tenantID, err := interceptors.GetTenantIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "tenant ID is required")
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get video from database with tenant validation
-	video, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+	video, err := s.DbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
 		ID: req.VideoId,
 		TenantID: sql.NullString{
 			String: tenantID,
@@ -283,25 +283,25 @@ func (s *VideoAPI) GetVideo(ctx context.Context, req *proto.GetVideoRequest) (*p
 
 func (s *VideoAPI) MoveVideoToChannel(ctx context.Context, req *proto.MoveVideoToChannelRequest) (*proto.MoveVideoToChannelResponse, error) {
 	// Common validation
-	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	authContext, tenantID, err := s.PolicyValidator.ValidateBasicRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get and validate video
-	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	video, err := s.PolicyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate permissions for moving the video
-	err = s.policyValidator.ValidateVideoMovePermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID, req.ChannelId)
+	err = s.PolicyValidator.ValidateVideoMovePermissions(ctx, s.ChannelAPI, video, authContext.User.ID, tenantID, req.ChannelId)
 	if err != nil {
 		return nil, err
 	}
 
 	// Move the video to the target channel using single query
-	err = s.dbQueries.UpdateVideoChannel(ctx, db.UpdateVideoChannelParams{
+	err = s.DbQueries.UpdateVideoChannel(ctx, db.UpdateVideoChannelParams{
 		VideoID:          req.VideoId,
 		ChannelID:        sql.NullString{String: req.ChannelId, Valid: true},
 		TenantID:         sql.NullString{String: tenantID, Valid: true},
@@ -315,7 +315,7 @@ func (s *VideoAPI) MoveVideoToChannel(ctx context.Context, req *proto.MoveVideoT
 	}
 
 	// Verify the video was actually updated (check if WHERE clause matched)
-	updatedVideo, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+	updatedVideo, err := s.DbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
 		ID:       req.VideoId,
 		TenantID: sql.NullString{String: tenantID, Valid: true},
 	})
@@ -336,31 +336,31 @@ func (s *VideoAPI) MoveVideoToChannel(ctx context.Context, req *proto.MoveVideoT
 
 	return &proto.MoveVideoToChannelResponse{
 		Message: "Video moved to channel successfully",
-		Video:   s.policyValidator.ConvertVideoToProto(&updatedVideo),
+		Video:   s.PolicyValidator.ConvertVideoToProto(&updatedVideo),
 	}, nil
 }
 
 func (s *VideoAPI) RemoveVideoFromChannel(ctx context.Context, req *proto.RemoveVideoFromChannelRequest) (*proto.RemoveVideoFromChannelResponse, error) {
 	// Common validation
-	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	authContext, tenantID, err := s.PolicyValidator.ValidateBasicRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get and validate video
-	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	video, err := s.PolicyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate permissions for removing video from channel
-	err = s.policyValidator.ValidateVideoRemovalPermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID)
+	err = s.PolicyValidator.ValidateVideoRemovalPermissions(ctx, s.ChannelAPI, video, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Remove the video from the channel
-	err = s.dbQueries.RemoveVideoFromChannel(ctx, db.RemoveVideoFromChannelParams{
+	err = s.DbQueries.RemoveVideoFromChannel(ctx, db.RemoveVideoFromChannelParams{
 		VideoID:   req.VideoId,
 		TenantID:  sql.NullString{String: tenantID, Valid: true},
 		ChannelID: video.ChannelID,
@@ -372,7 +372,7 @@ func (s *VideoAPI) RemoveVideoFromChannel(ctx context.Context, req *proto.Remove
 	}
 
 	// Get updated video
-	updatedVideo, err := s.dbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
+	updatedVideo, err := s.DbQueries.GetVideoByVideoIDAndTenantID(ctx, db.GetVideoByVideoIDAndTenantIDParams{
 		ID:       req.VideoId,
 		TenantID: sql.NullString{String: tenantID, Valid: true},
 	})
@@ -383,31 +383,31 @@ func (s *VideoAPI) RemoveVideoFromChannel(ctx context.Context, req *proto.Remove
 
 	return &proto.RemoveVideoFromChannelResponse{
 		Message: "Video removed from channel successfully",
-		Video:   s.policyValidator.ConvertVideoToProto(&updatedVideo),
+		Video:   s.PolicyValidator.ConvertVideoToProto(&updatedVideo),
 	}, nil
 }
 
 func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoRequest) (*proto.DeleteVideoResponse, error) {
 	// Common validation
-	authContext, tenantID, err := s.policyValidator.ValidateBasicRequest(ctx)
+	authContext, tenantID, err := s.PolicyValidator.ValidateBasicRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get and validate video
-	video, err := s.policyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
+	video, err := s.PolicyValidator.GetAndValidateVideo(ctx, req.VideoId, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate permissions for deleting the video
-	err = s.policyValidator.ValidateVideoDeletionPermissions(ctx, s.channelAPI, video, authContext.User.ID, tenantID)
+	err = s.PolicyValidator.ValidateVideoDeletionPermissions(ctx, s.ChannelAPI, video, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Soft delete the video
-	err = s.dbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
+	err = s.DbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
 		VideoID:   req.VideoId,
 		TenantID:  sql.NullString{String: tenantID, Valid: true},
 		UpdatedAt: time.Now(),
@@ -424,8 +424,8 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 
 // ===== CHANNEL API METHODS =====
 
-// validateChannelRole validates that the role is one of the allowed channel roles
-func (s *ChannelAPI) validateChannelRole(role string) error {
+// ValidateChannelRole validates that the role is one of the allowed channel roles
+func (s *ChannelAPI) ValidateChannelRole(role string) error {
 	if !constants.IsValidChannelRole(role) {
 		return status.Error(codes.InvalidArgument, "invalid role. Valid roles are: owner, uploader, viewer")
 	}
@@ -433,8 +433,8 @@ func (s *ChannelAPI) validateChannelRole(role string) error {
 }
 
 // getUserRoleInChannel checks if user has access to channel and returns their role
-func (s *ChannelAPI) getUserRoleInChannel(ctx context.Context, channelID, userID, tenantID string) (string, error) {
-	role, err := s.dbQueries.GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
+func (s *ChannelAPI) GetUserRoleInChannel(ctx context.Context, channelID, userID, tenantID string) (string, error) {
+	role, err := s.DbQueries.GetUserRoleInChannel(ctx, db.GetUserRoleInChannelParams{
 		ChannelID: channelID,
 		UserID:    userID,
 		TenantID:  tenantID,
@@ -449,8 +449,8 @@ func (s *ChannelAPI) getUserRoleInChannel(ctx context.Context, channelID, userID
 }
 
 // getChannelMemberCount returns the number of members in a channel
-func (s *ChannelAPI) getChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
-	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+func (s *ChannelAPI) GetChannelMemberCount(ctx context.Context, channelID, tenantID string) (int32, error) {
+	members, err := s.DbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: channelID,
 		TenantID:  tenantID,
 	})
@@ -473,7 +473,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	}
 
 	// Get user's role and tenant type
-	userRole, isPersonal, err := getUserTenantInfo(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	userRole, isPersonal, err := getUserTenantInfo(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	channelID := uuid.New().String()
 	now := time.Now()
 
-	channel, err := s.dbQueries.CreateChannel(ctx, db.CreateChannelParams{
+	channel, err := s.DbQueries.CreateChannel(ctx, db.CreateChannelParams{
 		ID:          channelID,
 		TenantID:    tenantID,
 		Name:        req.Name,
@@ -508,12 +508,12 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		UpdatedAt:   now,
 	})
 	if err != nil {
-		s.log.Error("Failed to create channel", "error", err)
+		s.Log.Error("Failed to create channel", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create channel")
 	}
 
 	// Add creator as owner
-	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+	_, err = s.DbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
 		ID:        uuid.New().String(),
 		ChannelID: channelID,
 		UserID:    authContext.User.ID,
@@ -522,7 +522,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 		CreatedAt: now,
 	})
 	if err != nil {
-		s.log.Error("Failed to add creator as channel owner", "error", err)
+		s.Log.Error("Failed to add creator as channel owner", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create channel")
 	}
 
@@ -558,15 +558,15 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get all channels in tenant
-	channels, err := s.dbQueries.GetChannelsByTenantID(ctx, tenantID)
+	channels, err := s.DbQueries.GetChannelsByTenantID(ctx, tenantID)
 	if err != nil {
-		s.log.Error("Failed to get channels", "error", err)
+		s.Log.Error("Failed to get channels", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channels")
 	}
 
@@ -589,7 +589,7 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 	var userChannels []*proto.Channel
 	for _, channel := range channels {
 		// Check if user is a member of this channel and get their role
-		userRole, err := s.getUserRoleInChannel(ctx, channel.ID, authContext.User.ID, tenantID)
+		userRole, err := s.GetUserRoleInChannel(ctx, channel.ID, authContext.User.ID, tenantID)
 		if err == nil {
 			// Create channel proto
 			channelProto := &proto.Channel{
@@ -606,9 +606,9 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 
 			// Only include member count for channel owners
 			if userRole == constants.ChannelRoleOwner {
-				memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+				memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 				if err != nil {
-					s.log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
+					s.Log.Warn("Failed to get member count for channel", "channel_id", channel.ID, "error", err)
 					memberCount = 0 // Default to 0 if we can't get the count
 				}
 				channelProto.MemberCount = memberCount
@@ -638,7 +638,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +652,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Check if user is owner of the channel
-	role, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	role, err := s.GetUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -661,7 +661,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Update channel
-	channel, err := s.dbQueries.UpdateChannel(ctx, db.UpdateChannelParams{
+	channel, err := s.DbQueries.UpdateChannel(ctx, db.UpdateChannelParams{
 		ID:          req.ChannelId,
 		TenantID:    tenantID,
 		Name:        req.Name,
@@ -672,7 +672,7 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 		if err == sql.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "channel not found")
 		}
-		s.log.Error("Failed to update channel", "error", err)
+		s.Log.Error("Failed to update channel", "error", err)
 		return nil, status.Error(codes.Internal, "failed to update channel")
 	}
 
@@ -689,9 +689,9 @@ func (s *ChannelAPI) UpdateChannel(ctx context.Context, req *proto.UpdateChannel
 	}
 
 	// Include member count since only owners can update channels
-	memberCount, err := s.getChannelMemberCount(ctx, channel.ID, tenantID)
+	memberCount, err := s.GetChannelMemberCount(ctx, channel.ID, tenantID)
 	if err != nil {
-		s.log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
+		s.Log.Warn("Failed to get member count for updated channel", "channel_id", channel.ID, "error", err)
 		memberCount = 0 // Default to 0 if we can't get the count
 	}
 	channelProto.MemberCount = memberCount
@@ -715,13 +715,13 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get user's role in the channel
-	userRole, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	userRole, err := s.GetUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
@@ -732,12 +732,12 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 	}
 
 	// Get all channel members from database
-	members, err := s.dbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
+	members, err := s.DbQueries.GetChannelMembersByChannelIDAndTenantID(ctx, db.GetChannelMembersByChannelIDAndTenantIDParams{
 		ChannelID: req.ChannelId,
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		s.log.Error("failed to get channel members", "error", err)
+		s.Log.Error("failed to get channel members", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get channel members")
 	}
 
@@ -746,7 +746,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		TenantId: tenantID,
 	})
 	if err != nil {
-		s.log.Error("failed to get tenant users", "error", err)
+		s.Log.Error("failed to get tenant users", "error", err)
 		return nil, status.Error(codes.Internal, "failed to get user details")
 	}
 
@@ -762,7 +762,7 @@ func (s *ChannelAPI) GetMembers(ctx context.Context, req *proto.GetChannelMember
 		// Get user details from the map
 		user, exists := userMap[member.UserID]
 		if !exists {
-			s.log.Warn("user not found in tenant users", "user_id", member.UserID)
+			s.Log.Warn("user not found in tenant users", "user_id", member.UserID)
 			continue // Skip members whose user details we can't find
 		}
 
@@ -793,7 +793,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -807,13 +807,13 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate role
-	err = s.validateChannelRole(req.Role)
+	err = s.ValidateChannelRole(req.Role)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if user is owner of the channel
-	role, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	role, err := s.GetUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -822,13 +822,13 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 	}
 
 	// Validate that the user being added is a member of the tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, req.UserId)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "user is not a member of this tenant")
 	}
 
 	// Add member to channel
-	_, err = s.dbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
+	_, err = s.DbQueries.CreateChannelMember(ctx, db.CreateChannelMemberParams{
 		ID:        uuid.New().String(),
 		ChannelID: req.ChannelId,
 		UserID:    req.UserId,
@@ -837,7 +837,7 @@ func (s *ChannelAPI) AddMember(ctx context.Context, req *proto.AddChannelMemberR
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		s.log.Error("Failed to add channel member", "error", err)
+		s.Log.Error("Failed to add channel member", "error", err)
 		return nil, status.Error(codes.Internal, "failed to add channel member")
 	}
 
@@ -859,7 +859,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Validate user has access to this tenant
-	err = isUserInTenant(ctx, s.userServiceClient, s.log, tenantID, authContext.User.ID)
+	err = isUserInTenant(ctx, s.UserServiceClient, s.Log, tenantID, authContext.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -873,7 +873,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Check if user is owner of the channel
-	role, err := s.getUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
+	role, err := s.GetUserRoleInChannel(ctx, req.ChannelId, authContext.User.ID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -882,7 +882,7 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Don't allow removing the channel owner
-	memberRole, err := s.getUserRoleInChannel(ctx, req.ChannelId, req.UserId, tenantID)
+	memberRole, err := s.GetUserRoleInChannel(ctx, req.ChannelId, req.UserId, tenantID)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "user is not a member of this channel")
 	}
@@ -891,12 +891,12 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 	}
 
 	// Remove member from channel
-	err = s.dbQueries.DeleteChannelMember(ctx, db.DeleteChannelMemberParams{
+	err = s.DbQueries.DeleteChannelMember(ctx, db.DeleteChannelMemberParams{
 		ChannelID: req.ChannelId,
 		UserID:    req.UserId,
 	})
 	if err != nil {
-		s.log.Error("Failed to remove channel member", "error", err)
+		s.Log.Error("Failed to remove channel member", "error", err)
 		return nil, status.Error(codes.Internal, "failed to remove channel member")
 	}
 
