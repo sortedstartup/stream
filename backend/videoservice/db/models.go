@@ -40,4 +40,5 @@ type VideoserviceVideo struct {
 	TenantID       sql.NullString
 	ChannelID      sql.NullString
 	IsDeleted      sql.NullBool
+	FileSizeBytes  sql.NullInt64
 }

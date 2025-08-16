@@ -15,6 +15,7 @@ import (
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	userProto "sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
@@ -30,7 +31,8 @@ type VideoAPI struct {
 	dbQueries  db.DBQuerier 
 
 	// gRPC clients for other services
-	userServiceClient userProto.UserServiceClient
+	userServiceClient    userProto.UserServiceClient
+	paymentServiceClient paymentProto.PaymentServiceClient
 
 	// Policy validator for common video operations
 	policyValidator *VideoPolicyValidator
@@ -56,7 +58,7 @@ type ChannelAPI struct {
 	proto.UnimplementedChannelServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient) (*VideoAPI, *ChannelAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient, paymentServiceClient paymentProto.PaymentServiceClient) (*VideoAPI, *ChannelAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -89,14 +91,15 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 	policyValidator := NewVideoPolicyValidator(dbQueries, userServiceClient, childLogger)
 
 	videoAPI := &VideoAPI{
-		HTTPServerMux:     ServerMux,
-		config:            config,
-		db:                _db,
-		log:               childLogger,
-		dbQueries:         dbQueries,
-		userServiceClient: userServiceClient,
-		policyValidator:   policyValidator,
-		channelAPI:        channelAPI,
+		HTTPServerMux:        ServerMux,
+		config:               config,
+		db:                   _db,
+		log:                  childLogger,
+		dbQueries:            dbQueries,
+		userServiceClient:    userServiceClient,
+		paymentServiceClient: paymentServiceClient,
+		policyValidator:      policyValidator,
+		channelAPI:           channelAPI,
 	}
 
 	// The authentication is handled in mono/main.go
@@ -406,6 +409,16 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 		return nil, err
 	}
 
+	// Get video file size for storage usage update before deletion
+	videoInfo, err := s.dbQueries.GetVideoFileSizeForDeletion(ctx, db.GetVideoFileSizeForDeletionParams{
+		VideoID:  req.VideoId,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
+	if err != nil {
+		s.log.Error("Error getting video file size for deletion", "err", err, "videoID", req.VideoId)
+		return nil, status.Error(codes.Internal, "failed to get video information")
+	}
+
 	// Soft delete the video
 	err = s.dbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
 		VideoID:   req.VideoId,
@@ -415,6 +428,25 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 	if err != nil {
 		s.log.Error("Error soft deleting video", "err", err, "videoID", req.VideoId)
 		return nil, status.Error(codes.Internal, "failed to delete video")
+	}
+
+	// Update storage usage in payment service (subtract the file size)
+	if videoInfo.FileSizeBytes.Valid && videoInfo.FileSizeBytes.Int64 > 0 {
+		s.log.Info("Updating storage usage for video deletion", "userID", videoInfo.UploadedUserID, "fileSize", videoInfo.FileSizeBytes.Int64)
+
+		_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
+			UserId:      videoInfo.UploadedUserID,
+			UsageType:   "storage",
+			UsageChange: -videoInfo.FileSizeBytes.Int64, // Negative to subtract
+		})
+		if err != nil {
+			s.log.Error("Failed to update storage usage for video deletion", "err", err, "userID", videoInfo.UploadedUserID, "fileSize", videoInfo.FileSizeBytes.Int64)
+			// Don't fail the deletion, just log the error
+		} else {
+			s.log.Info("Storage usage updated for video deletion", "userID", videoInfo.UploadedUserID, "freedBytes", videoInfo.FileSizeBytes.Int64)
+		}
+	} else {
+		s.log.Warn("Video has no file size recorded, storage usage not updated for deletion", "videoID", req.VideoId, "userID", videoInfo.UploadedUserID)
 	}
 
 	return &proto.DeleteVideoResponse{
