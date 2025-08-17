@@ -305,29 +305,6 @@ func (s *TenantAPI) CreateTenant(ctx context.Context, req *proto.CreateTenantReq
 		return nil, status.Error(codes.InvalidArgument, "tenant name is required")
 	}
 
-	// Check payment access for creating new organizational workspace (free users restricted to personal only)
-	s.log.Info("Checking payment access for workspace creation", "userID", authContext.User.ID)
-	accessResp, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
-		UserId: authContext.User.ID,
-	})
-	if err != nil {
-		s.log.Error("Payment service error while checking workspace creation", "error", err, "userID", authContext.User.ID)
-		return nil, status.Error(codes.Internal, "payment service unavailable")
-	}
-
-	if !accessResp.Success {
-		return nil, status.Error(codes.FailedPrecondition, "payment service not initialized")
-	}
-
-	// Free users can only use personal workspace - block organizational workspace creation
-	if accessResp.SubscriptionInfo.Plan.Id == "free" {
-		s.log.Warn("Free user attempted to create organizational workspace", "userID", authContext.User.ID, "planID", accessResp.SubscriptionInfo.Plan.Id)
-		return nil, status.Error(codes.PermissionDenied, "workspace creation requires paid subscription. Please upgrade your plan to create additional workspaces.")
-	}
-
-	// Paid users can create unlimited organizational workspaces
-	s.log.Info("Paid user creating workspace", "userID", authContext.User.ID, "planID", accessResp.SubscriptionInfo.Plan.Id)
-
 	// Check if tenant name already exists for this user
 	_, err = s.dbQueries.GetTenantByName(ctx, db.GetTenantByNameParams{
 		Name:      req.Name,
@@ -493,8 +470,7 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 		return nil, status.Error(codes.PermissionDenied, "access denied: only super admins can add users to tenant")
 	}
 
-	// Check payment access for adding users (check against tenant owner's subscription)
-	// Get tenant owner
+	// Get tenant details
 	tenant, err := s.dbQueries.GetTenantByID(ctx, req.TenantId)
 	if err != nil {
 		s.log.Error("Failed to get tenant details", "error", err, "tenantID", req.TenantId)
@@ -504,51 +480,8 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 	// Check workspace type and apply appropriate logic
 	if tenant.IsPersonal {
 		s.log.Info("Adding user to personal workspace", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
-		// For personal workspaces: Check global user limit (5 free, 50 paid)
 	} else {
 		s.log.Info("Adding user to organizational workspace", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
-		// For organizational workspaces: Only paid users can create these, so check 50-user limit
-
-		// First verify the owner has paid subscription (organizational workspaces require payment)
-		subscriptionResp, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
-			UserId: tenant.CreatedBy,
-		})
-		if err != nil {
-			s.log.Error("Failed to get subscription for organizational workspace owner", "error", err, "tenantOwner", tenant.CreatedBy)
-			return nil, status.Error(codes.Internal, "payment service unavailable")
-		}
-
-		if !subscriptionResp.Success || subscriptionResp.SubscriptionInfo.Plan.Id == "free" {
-			s.log.Error("Free user owns organizational workspace - data inconsistency", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId)
-			return nil, status.Error(codes.FailedPrecondition, "organizational workspace requires paid subscription")
-		}
-	}
-
-	// Check if tenant owner can add more users (applies to both personal and organizational)
-	s.log.Info("Checking user limit for adding member", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId, "isPersonal", tenant.IsPersonal)
-	accessResp, err := s.paymentServiceClient.CheckUserAccess(ctx, &paymentProto.CheckUserAccessRequest{
-		UserId:         tenant.CreatedBy, // Check tenant owner's subscription
-		UsageType:      "users",
-		RequestedUsage: 1, // Adding 1 user
-	})
-	if err != nil {
-		s.log.Error("Payment service error while checking user limits", "error", err, "tenantOwner", tenant.CreatedBy)
-		// Don't block the operation, just log the error for now
-	} else if !accessResp.HasAccess {
-		var errorMessage string
-		switch accessResp.Reason {
-		case "users_limit_exceeded":
-			errorMessage = "Cannot add user: User limit exceeded. Please upgrade your plan to add more members."
-		case "subscription_inactive":
-			errorMessage = "Cannot add user: Subscription is inactive. Please reactivate to add members."
-		default:
-			errorMessage = "Cannot add user: Access denied. Please check your subscription status."
-		}
-
-		s.log.Warn("User addition blocked due to payment restrictions", "tenantOwner", tenant.CreatedBy, "reason", accessResp.Reason)
-		return nil, status.Error(codes.FailedPrecondition, errorMessage)
-	} else if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
-		s.log.Warn("Tenant owner approaching user limit", "tenantOwner", tenant.CreatedBy, "warning", accessResp.WarningMessage)
 	}
 
 	tenantUserParams := db.CreateTenantUserParams{

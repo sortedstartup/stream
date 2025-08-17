@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/paymentservice/config"
 	"sortedstartup.com/stream/paymentservice/db"
 	pb "sortedstartup.com/stream/paymentservice/proto"
@@ -422,5 +423,42 @@ func (s *PaymentServer) InitializeUser(ctx context.Context, req *pb.InitializeUs
 				IsActive:          plan.IsActive.Bool,
 			},
 		},
+	}, nil
+}
+
+// GetPlans returns all available subscription plans (authentication required)
+func (s *PaymentServer) GetPlans(ctx context.Context, req *pb.GetPlansRequest) (*pb.GetPlansResponse, error) {
+	// Verify user is authenticated
+	_, err := interceptors.AuthFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	// Get all active plans from database
+	dbPlans, err := s.db.GetActivePlans(ctx)
+	if err != nil {
+		log.Printf("GetPlans: Database error: %v", err)
+		return &pb.GetPlansResponse{
+			Success:      false,
+			ErrorMessage: "Failed to retrieve plans",
+		}, nil
+	}
+
+	// Convert database plans to proto plans
+	var plans []*pb.Plan
+	for _, dbPlan := range dbPlans {
+		plans = append(plans, &pb.Plan{
+			Id:                dbPlan.ID,
+			Name:              dbPlan.Name,
+			StorageLimitBytes: dbPlan.StorageLimitBytes,
+			UsersLimit:        int32(dbPlan.UsersLimit),
+			PriceCents:        dbPlan.PriceCents.Int64,
+			IsActive:          dbPlan.IsActive.Bool,
+		})
+	}
+
+	return &pb.GetPlansResponse{
+		Plans:   plans,
+		Success: true,
 	}, nil
 }

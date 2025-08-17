@@ -189,6 +189,34 @@ func getUserTenantInfo(ctx context.Context, userServiceClient userProto.UserServ
 	return "", false, status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
 }
 
+// getTenantOwner gets the owner (created_by) of a specific tenant
+// This is needed for payment access checks where we need to check the tenant owner's limits
+func getTenantOwner(ctx context.Context, userServiceClient userProto.UserServiceClient, log *slog.Logger, tenantID string) (string, error) {
+	if tenantID == "" {
+		return "", status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// We need to get tenant info, but GetTenants only returns tenants for the current user
+	// As a workaround, we'll call getUserTenantInfo which should work if the current user has access to the tenant
+	// The tenant owner info is available in the tenant object
+	resp, err := userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
+	if err != nil {
+		log.Error("Failed to get tenants from userservice", "error", err, "tenantID", tenantID)
+		return "", status.Error(codes.Internal, "failed to get tenant information")
+	}
+
+	// Find the requested tenant and get the owner
+	for _, tenantUser := range resp.TenantUsers {
+		if tenantUser.Tenant.Id == tenantID {
+			return tenantUser.Tenant.CreatedBy, nil
+		}
+	}
+
+	// If tenant not found in user's list, this means user doesn't have access
+	// This should not happen if isUserInTenant was called first
+	return "", status.Error(codes.PermissionDenied, "access denied: tenant not found or access denied")
+}
+
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
 	authContext, err := interceptors.AuthFromContext(ctx)
 	if err != nil {
