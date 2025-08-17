@@ -575,7 +575,8 @@ func (q *Queries) GetVideoCountsPerChannelByTenantID(ctx context.Context, tenant
 }
 
 const getVideoFileSizeForDeletion = `-- name: GetVideoFileSizeForDeletion :one
-SELECT file_size_bytes, uploaded_user_id FROM videoservice_videos 
+SELECT file_size_bytes, uploaded_user_id 
+FROM videoservice_videos 
 WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
 `
 
@@ -651,47 +652,6 @@ type GetVideosByTenantIDAndChannelIDParams struct {
 
 func (q *Queries) GetVideosByTenantIDAndChannelID(ctx context.Context, arg GetVideosByTenantIDAndChannelIDParams) ([]VideoserviceVideo, error) {
 	rows, err := q.db.QueryContext(ctx, getVideosByTenantIDAndChannelID, arg.TenantID, arg.ChannelID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []VideoserviceVideo
-	for rows.Next() {
-		var i VideoserviceVideo
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.Url,
-			&i.CreatedAt,
-			&i.UploadedUserID,
-			&i.UpdatedAt,
-			&i.IsPrivate,
-			&i.TenantID,
-			&i.ChannelID,
-			&i.IsDeleted,
-			&i.FileSizeBytes,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getVideosWithoutFileSize = `-- name: GetVideosWithoutFileSize :many
-SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
-WHERE (file_size_bytes IS NULL OR file_size_bytes = 0) AND is_deleted = FALSE
-`
-
-func (q *Queries) GetVideosWithoutFileSize(ctx context.Context) ([]VideoserviceVideo, error) {
-	rows, err := q.db.QueryContext(ctx, getVideosWithoutFileSize)
 	if err != nil {
 		return nil, err
 	}
