@@ -16,7 +16,6 @@ export const $videos = atom<Video[]>([])
 export const $tenantVideos = atom<Video[]>([]) // Videos not assigned to any channel
 
 onMount($videos,() => {
-    console.log("videos.ts -> onMount()")
     fetchVideos()
 })
 

@@ -50,21 +50,15 @@ export const loadUserSubscription = async () => {
     $isLoadingSubscription.set(true)
     $subscriptionError.set(null)
     
-    console.log('Payment: Loading subscription for user:', currentUser.uid)
-    
     const request = new GetUserSubscriptionRequest()
     request.user_id = currentUser.uid
     
     const response = await paymentServiceClient.GetUserSubscription(request, {})
     
-    console.log('Payment: Subscription response:', response)
-    
     if (response.success && response.subscription_info) {
       $userSubscription.set(response.subscription_info)
-      console.log('Payment: Subscription loaded successfully')
     } else if (response.error_message === "No subscription found") {
       // This is normal for new users - they may not be initialized yet
-      console.log('Payment: No subscription found (normal for new users)')
       $subscriptionError.set("No subscription found - user may need to be initialized")
     } else {
       const errorMsg = response.error_message || 'Failed to load subscription'
@@ -83,7 +77,6 @@ export const loadUserSubscription = async () => {
 // Create Stripe checkout session for plan upgrade
 export const createCheckoutSession = async (planId: string) => {
   const currentUser = $currentUser.get()
-  console.log('Payment: Creating checkout session, current user:', currentUser)
   
   if (!currentUser?.uid) {
     console.error('Payment: No current user available for checkout')
@@ -93,7 +86,6 @@ export const createCheckoutSession = async (planId: string) => {
   try {
     $isCreatingCheckout.set(true)
     
-    console.log('Payment: Creating checkout session for user:', currentUser.uid, 'plan:', planId)
     
     const request = new CreateCheckoutSessionRequest()
     request.user_id = currentUser.uid
@@ -101,14 +93,9 @@ export const createCheckoutSession = async (planId: string) => {
     request.success_url = `${window.location.origin}/billing/success`
     request.cancel_url = `${window.location.origin}/billing`
     
-    console.log('Payment: Checkout request:', request.toObject())
-    
     const response = await paymentServiceClient.CreateCheckoutSession(request, {})
     
-    console.log('Payment: Checkout response:', response)
-    
     if (response.success && response.checkout_url) {
-      console.log('Payment: Redirecting to checkout URL:', response.checkout_url)
       // Redirect to Stripe checkout
       window.location.href = response.checkout_url
       return response

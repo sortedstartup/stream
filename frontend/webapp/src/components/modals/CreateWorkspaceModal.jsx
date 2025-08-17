@@ -99,31 +99,20 @@ export const CreateWorkspaceModal = ({ isOpen, onClose, onSubmit }) => {
             >
               Cancel
             </button>
-            {isFreeUser ? (
-              <button 
-                type="button"
-                className="btn btn-primary"
-                onClick={() => window.location.href = '/billing'}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Upgrade Plan
-              </button>
-            ) : (
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Creating...
-                  </>
-                ) : (
-                  'Create Workspace'
-                )}
-              </button>
-            )}
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Creating...
+                </>
+              ) : (
+                'Create Workspace'
+              )}
+            </button>
           </div>
         </form>
       </div>

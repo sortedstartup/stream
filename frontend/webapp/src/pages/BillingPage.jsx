@@ -32,10 +32,7 @@ export const BillingPage = () => {
   
   // Check if user data is ready for checkout - wait for auth to initialize
   const isUserReady = authInitialized && Boolean(currentUser?.uid)
-  
-  // Debug log
-  console.log('BillingPage - currentUser:', currentUser, 'uid:', currentUser?.uid, 'isUserReady:', isUserReady)
-
+ 
   useEffect(() => {
     // Load subscription when billing page is accessed and auth is ready
     if (authInitialized && currentUser?.uid) {
