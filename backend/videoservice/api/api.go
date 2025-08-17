@@ -28,7 +28,7 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries  db.DBQuerier 
+	dbQueries db.DBQuerier
 
 	// gRPC clients for other services
 	userServiceClient    userProto.UserServiceClient
@@ -121,6 +121,17 @@ func (s *VideoAPI) Init() error {
 		return err
 	}
 	s.log.Info("Migrating database done")
+
+	// Run file size backfill for existing videos (only if needed)
+	s.log.Info("Checking for videos that need file size backfill...")
+	err = s.backfillFileSizes()
+	if err != nil {
+		s.log.Error("File size backfill failed", "error", err)
+		// Don't fail startup, just log the error
+	} else {
+		s.log.Info("File size backfill completed")
+	}
+
 	return nil
 }
 
@@ -523,7 +534,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	}
 
 	if len(req.Name) > 50 {
-    	return nil, status.Errorf(codes.InvalidArgument, "channel name cannot exceed 50 characters")
+		return nil, status.Errorf(codes.InvalidArgument, "channel name cannot exceed 50 characters")
 	}
 
 	// Create channel
@@ -608,7 +619,6 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 		return nil, status.Errorf(codes.Internal, "failed to get video counts: %v", err)
 	}
 
-	
 	// Build map for lookup
 	countMap := make(map[string]int32)
 	for _, vc := range videoCounts {

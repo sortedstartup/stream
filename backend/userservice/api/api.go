@@ -167,6 +167,20 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 				s.log.Error("Payment service initialization failed", "error", paymentResp.ErrorMessage, "userID", authContext.User.ID)
 			} else {
 				s.log.Info("Payment service initialized successfully", "userID", authContext.User.ID)
+
+				// Initialize user count to 1 (the user themselves)
+				s.log.Info("Setting initial user count for new user", "userID", authContext.User.ID)
+				_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
+					UserId:      authContext.User.ID,
+					UsageType:   "users",
+					UsageChange: 1, // User counts as 1 user initially
+				})
+				if err != nil {
+					s.log.Error("Failed to set initial user count", "userID", authContext.User.ID, "error", err)
+					// Don't fail the entire request, just log the error
+				} else {
+					s.log.Info("Initial user count set successfully", "userID", authContext.User.ID)
+				}
 			}
 
 			err = s.tenantAPI.createPersonalTenant(ctx)
@@ -268,7 +282,6 @@ func (s *TenantAPI) createPersonalTenant(ctx context.Context) error {
 		s.log.Error("Failed to add creator to personal tenant", "error", err)
 		return fmt.Errorf("failed to add creator to personal tenant: %w", err)
 	}
-
 	s.log.Info("Personal tenant created successfully", "tenantID", tenantID, "userName", userName)
 	return nil
 }
@@ -552,9 +565,69 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 		return nil, status.Error(codes.Internal, "failed to add user to tenant")
 	}
 
+	// Update payment service user count only if this user is NOT already in any tenant owned by the tenant owner
+	shouldUpdateCount, err := s.shouldUpdateUserCount(ctx, tenant.CreatedBy, user.ID)
+	if err != nil {
+		s.log.Error("Failed to check if user count should be updated",
+			"tenantOwner", tenant.CreatedBy,
+			"newUserID", user.ID,
+			"error", err)
+		// Continue without updating count to avoid double counting
+	} else if shouldUpdateCount {
+		s.log.Info("Updating payment service user count for tenant owner", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId, "newUserID", user.ID)
+		_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
+			UserId:      tenant.CreatedBy, // Tenant owner pays for users
+			UsageType:   "users",
+			UsageChange: 1, // Adding 1 user
+		})
+		if err != nil {
+			s.log.Error("Failed to update payment service user count",
+				"tenantOwner", tenant.CreatedBy,
+				"error", err)
+			// Don't fail the operation, just log the error since user was already added
+		} else {
+			s.log.Info("Payment service user count updated", "tenantOwner", tenant.CreatedBy, "addedUsers", 1)
+		}
+	} else {
+		s.log.Info("User already counted for this owner, skipping user count update",
+			"tenantOwner", tenant.CreatedBy,
+			"existingUserID", user.ID)
+	}
+
 	return &proto.AddUserResponse{
 		Message: "User added to tenant successfully",
 	}, nil
+}
+
+// shouldUpdateUserCount checks if a user is NOT already counted in any tenant owned by the tenant owner
+func (s *TenantAPI) shouldUpdateUserCount(ctx context.Context, tenantOwnerID, newUserID string) (bool, error) {
+	// Check if the newUserID is already a member of any tenant owned by tenantOwnerID
+	// If they are, we shouldn't increment the count (avoid double counting)
+
+	query := `
+		SELECT COUNT(*) 
+		FROM userservice_tenants t
+		JOIN userservice_tenant_users tu ON t.id = tu.tenant_id
+		WHERE t.created_by = ? AND tu.user_id = ?
+	`
+
+	var existingCount int
+	err := s.db.QueryRowContext(ctx, query, tenantOwnerID, newUserID).Scan(&existingCount)
+	if err != nil {
+		return false, fmt.Errorf("failed to check existing user count: %w", err)
+	}
+
+	// If existingCount > 1, it means the user was already in another tenant owned by this owner
+	// (We expect exactly 1 because we just added them to the current tenant)
+	shouldUpdate := existingCount <= 1
+
+	s.log.Info("User count check result",
+		"tenantOwner", tenantOwnerID,
+		"newUserID", newUserID,
+		"existingCount", existingCount,
+		"shouldUpdate", shouldUpdate)
+
+	return shouldUpdate, nil
 }
 
 /**
