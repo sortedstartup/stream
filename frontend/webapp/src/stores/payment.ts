@@ -3,6 +3,8 @@ import { $authToken, $currentUser } from '../auth/store/auth'
 import { 
   PaymentServiceClient, 
   GetUserSubscriptionRequest,
+  GetPlansRequest,
+  GetPlansResponse,
   CreateCheckoutSessionRequest,
   UserSubscriptionInfo,
   Plan,
@@ -17,6 +19,11 @@ export const $userSubscription = atom<UserSubscriptionInfo | null>(null)
 export const $isLoadingSubscription = atom<boolean>(false)
 export const $subscriptionError = atom<string | null>(null)
 export const $isCreatingCheckout = atom<boolean>(false)
+
+// Plans state atoms
+export const $availablePlans = atom<Plan[]>([])
+export const $isLoadingPlans = atom<boolean>(false)
+export const $plansError = atom<string | null>(null)
 
 const apiUrl = import.meta.env.VITE_PUBLIC_API_URL?.replace(/\/$/, "")
 
@@ -109,6 +116,31 @@ export const createCheckoutSession = async (planId: string) => {
     throw error
   } finally {
     $isCreatingCheckout.set(false)
+  }
+}
+
+// Load available subscription plans
+export const loadPlans = async () => {
+  try {
+    $isLoadingPlans.set(true)
+    $plansError.set(null)
+    
+    const request = new GetPlansRequest()
+    const response = await paymentServiceClient.GetPlans(request, {})
+    
+    if (response.success && response.plans) {
+      $availablePlans.set(response.plans)
+    } else {
+      const errorMsg = response.error_message || 'Failed to load plans'
+      $plansError.set(errorMsg)
+      console.error('Payment: Plans loading failed:', errorMsg)
+    }
+  } catch (error) {
+    const errorMsg = 'Failed to load subscription plans'
+    $plansError.set(errorMsg)
+    console.error('Payment plans loading error:', error)
+  } finally {
+    $isLoadingPlans.set(false)
   }
 }
 
