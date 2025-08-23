@@ -72,40 +72,6 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check payment access for storage upload
-	slog.Info("Checking storage access for upload", "userID", userID)
-	accessResp, err := api.paymentServiceClient.CheckUserAccess(r.Context(), &paymentProto.CheckUserAccessRequest{
-		UserId:         userID,
-		UsageType:      "storage",
-		RequestedUsage: int64(r.ContentLength), // Check if the upload size would exceed limits
-	})
-	if err != nil {
-		http.Error(w, "Payment service unavailable", http.StatusServiceUnavailable)
-		slog.Error("Payment service error", "err", err, "userID", userID)
-		return
-	}
-
-	if !accessResp.HasAccess {
-		var errorMessage string
-		switch accessResp.Reason {
-		case "storage_limit_exceeded":
-			errorMessage = "Upload failed: Storage limit exceeded. Please upgrade your plan to continue uploading."
-		case "subscription_inactive":
-			errorMessage = "Upload failed: Your subscription is inactive. Please reactivate to continue uploading."
-		default:
-			errorMessage = "Upload failed: Access denied. Please check your subscription status."
-		}
-
-		http.Error(w, errorMessage, http.StatusPaymentRequired) // 402 Payment Required
-		slog.Warn("Upload blocked due to payment restrictions", "userID", userID, "reason", accessResp.Reason)
-		return
-	}
-
-	// Log usage warning if near limit
-	if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
-		slog.Warn("User approaching storage limit", "userID", userID, "warning", accessResp.WarningMessage)
-	}
-
 	// Enforce Content-Length header if provided
 	if r.ContentLength > maxUploadSize {
 		http.Error(w, "File size exceeds the 1024 MB limit", http.StatusRequestEntityTooLarge)
@@ -192,6 +158,76 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	channelID := strings.TrimSpace(string(channelData))
+
+	// Determine who should be charged based on upload type
+	var payingUserID string
+	if channelID != "" {
+		// Channel upload - tenant owner pays
+		slog.Info("Channel upload detected, checking tenant owner's payment limits", "channelID", channelID, "tenantID", tenantID)
+		tenantOwner, err := getTenantOwner(r.Context(), api.userServiceClient, api.log, tenantID)
+		if err != nil {
+			http.Error(w, "Failed to determine tenant owner", http.StatusInternalServerError)
+			slog.Error("Failed to get tenant owner", "err", err, "tenantID", tenantID)
+			return
+		}
+		payingUserID = tenantOwner
+		slog.Info("Tenant owner will be charged for storage", "tenantOwner", tenantOwner, "uploader", userID)
+	} else {
+		// "My Videos" upload - uploader pays
+		slog.Info("My Videos upload detected, checking uploader's payment limits", "uploader", userID)
+		payingUserID = userID
+	}
+
+	// Check payment access for storage upload with the correct paying user
+	slog.Info("Checking storage access for upload", "payingUserID", payingUserID, "uploader", userID, "channelID", channelID)
+	accessResp, err := api.paymentServiceClient.CheckUserAccess(r.Context(), &paymentProto.CheckUserAccessRequest{
+		UserId:         payingUserID,
+		UsageType:      "storage",
+		RequestedUsage: int64(r.ContentLength), // Check if the upload size would exceed limits
+	})
+	if err != nil {
+		http.Error(w, "Payment service unavailable", http.StatusServiceUnavailable)
+		slog.Error("Payment service error", "err", err, "payingUserID", payingUserID)
+		return
+	}
+
+	if !accessResp.HasAccess {
+		var errorMessage string
+		if payingUserID == userID {
+			// Uploader's own limits exceeded
+			switch accessResp.Reason {
+			case "subscription_inactive":
+				errorMessage = "Upload failed: Your subscription is inactive. Please reactivate to continue uploading."
+			case "storage_limit_exceeded":
+				errorMessage = "Upload failed: Storage limit exceeded. Please upgrade your plan to continue uploading."
+			default:
+				errorMessage = "Upload failed: Access denied. Please check your subscription status."
+			}
+		} else {
+			// Tenant owner's limits exceeded
+			switch accessResp.Reason {
+			case "subscription_inactive":
+				errorMessage = "Upload failed: Workspace owner's subscription is inactive. Please contact the workspace owner."
+			case "storage_limit_exceeded":
+				errorMessage = "Upload failed: Workspace storage limit exceeded. Please contact the workspace owner to upgrade."
+			default:
+				errorMessage = "Upload failed: Access denied. Please contact the workspace owner."
+			}
+		}
+
+		http.Error(w, errorMessage, http.StatusPaymentRequired) // 402 Payment Required
+		slog.Warn("Upload blocked due to payment restrictions",
+			"payingUserID", payingUserID,
+			"uploader", userID,
+			"reason", accessResp.Reason,
+			"requestedSize", r.ContentLength)
+		return
+	}
+
+	// Log usage warning if near limit
+	if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
+		slog.Warn("User approaching storage limit", "payingUserID", payingUserID, "warning", accessResp.WarningMessage)
+	}
 
 	// Read video file (part 4)
 	videoPart, err := reader.NextPart()
@@ -316,19 +352,19 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update storage usage in payment service
-	slog.Info("Updating storage usage", "userID", userID, "fileSize", fileSizeForDB)
+	// Update storage usage in payment service for the paying user
+	slog.Info("Updating storage usage", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
 
 	_, err = api.paymentServiceClient.UpdateUserUsage(r.Context(), &paymentProto.UpdateUserUsageRequest{
-		UserId:      userID,
+		UserId:      payingUserID,
 		UsageType:   "storage",
 		UsageChange: fileSizeForDB,
 	})
 	if err != nil {
-		slog.Error("Failed to update storage usage in payment service", "err", err, "userID", userID, "fileSize", fileSizeForDB)
+		slog.Error("Failed to update storage usage in payment service", "err", err, "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
 		// Don't fail the upload, just log the error
 	} else {
-		slog.Info("Storage usage updated successfully", "userID", userID, "fileSize", fileSizeForDB)
+		slog.Info("Storage usage updated successfully", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
 	}
 
 	// Success! Respond and exit

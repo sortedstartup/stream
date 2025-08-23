@@ -180,7 +180,7 @@ SET is_deleted = TRUE, updated_at = @updated_at
 WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
 
 -- name: GetVideoFileSizeForDeletion :one
-SELECT file_size_bytes, uploaded_user_id 
+SELECT file_size_bytes, uploaded_user_id, channel_id 
 FROM videoservice_videos 
 WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
 

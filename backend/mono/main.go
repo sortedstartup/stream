@@ -95,6 +95,10 @@ func (w *PaymentServiceClientWrapper) UpdateUserUsage(ctx context.Context, req *
 	return w.paymentAPI.UpdateUserUsage(ctx, req)
 }
 
+func (w *PaymentServiceClientWrapper) GetPlans(ctx context.Context, req *paymentProto.GetPlansRequest, opts ...grpc.CallOption) (*paymentProto.GetPlansResponse, error) {
+	return w.paymentAPI.GetPlans(ctx, req)
+}
+
 func (w *PaymentServiceClientWrapper) InitializeUser(ctx context.Context, req *paymentProto.InitializeUserRequest, opts ...grpc.CallOption) (*paymentProto.InitializeUserResponse, error) {
 	return w.paymentAPI.InitializeUser(ctx, req)
 }
