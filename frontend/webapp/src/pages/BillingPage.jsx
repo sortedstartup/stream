@@ -6,7 +6,11 @@ import {
   $isLoadingSubscription, 
   $subscriptionError,
   $isCreatingCheckout,
+  $availablePlans,
+  $isLoadingPlans,
+  $plansError,
   loadUserSubscription,
+  loadPlans,
   createCheckoutSession,
   isFreePlan,
   isPaidPlan,
@@ -25,18 +29,23 @@ export const BillingPage = () => {
   const isLoading = useStore($isLoadingSubscription)
   const error = useStore($subscriptionError)
   const isCreatingCheckout = useStore($isCreatingCheckout)
+  const availablePlans = useStore($availablePlans)
+  const isLoadingPlans = useStore($isLoadingPlans)
+  const plansError = useStore($plansError)
   const currentUser = useStore($currentUser)
   const authInitialized = useStore($authInitialized)
   
   const [upgradeError, setUpgradeError] = useState('')
+  const [checkoutPlanId, setCheckoutPlanId] = useState(null) // Track which plan is being processed
   
   // Check if user data is ready for checkout - wait for auth to initialize
   const isUserReady = authInitialized && Boolean(currentUser?.uid)
- 
+
   useEffect(() => {
-    // Load subscription when billing page is accessed and auth is ready
+    // Load subscription and plans when billing page is accessed and auth is ready
     if (authInitialized && currentUser?.uid) {
       loadUserSubscription()
+      loadPlans()
     }
   }, [authInitialized, currentUser?.uid])
 
@@ -59,16 +68,19 @@ export const BillingPage = () => {
   const handleUpgrade = async (planId) => {
     try {
       setUpgradeError('')
+      setCheckoutPlanId(planId) // Set which plan is being processed
       await createCheckoutSession(planId)
       // User will be redirected to Stripe checkout
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start upgrade process'
       setUpgradeError(errorMessage)
       showErrorToast(errorMessage)
+    } finally {
+      setCheckoutPlanId(null) // Clear the processing state
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingPlans) {
     return (
       <Layout>
         <div className="min-h-screen bg-gray-50 py-8">
@@ -83,22 +95,23 @@ export const BillingPage = () => {
     )
   }
 
-  if (error) {
+  if (error || plansError) {
     return (
       <Layout>
         <div className="min-h-screen bg-gray-50 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="text-red-800">
-                <h3 className="font-medium">Error Loading Subscription</h3>
-                <p className="mt-1 text-sm">{error}</p>
-                <button 
-                  onClick={loadUserSubscription}
-                  className="mt-3 btn btn-sm btn-outline btn-error"
-                >
-                  Retry
-                </button>
-              </div>
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-900">Error Loading Billing Information</h2>
+              <p className="mt-2 text-gray-600">{error || plansError}</p>
+              <button 
+                onClick={() => {
+                  loadUserSubscription()
+                  loadPlans()
+                }}
+                className="mt-4 btn btn-primary"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </div>
@@ -107,9 +120,19 @@ export const BillingPage = () => {
   }
 
   const currentPlan = subscription?.plan
-  const usage = subscription?.usage
+  const storageUsed = formatStorageUsed(subscription?.usage?.storage_used_bytes || 0)
+  const storageLimit = formatStorageLimit(currentPlan?.storage_limit_bytes || 0)
   const storagePercent = getStorageUsagePercent(subscription)
+  const usersCount = subscription?.usage?.users_count || 0
+  const usersLimit = currentPlan?.users_limit || 0
   const usersPercent = getUsersUsagePercent(subscription)
+  
+  // Find available upgrade plans (exclude free, current plan, and downgrades)
+  const upgradePlans = availablePlans.filter(plan => {
+    if (plan.id === 'free' || plan.id === currentPlan?.id) return false
+    // Only show higher tier plans (prevent downgrades)
+    return !currentPlan || plan.price_cents > currentPlan.price_cents
+  })
 
   return (
     <Layout>
@@ -162,158 +185,147 @@ export const BillingPage = () => {
 
                 {/* Usage Statistics */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-gray-900">Usage</h3>
-                  
-                  {/* Storage Usage */}
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <HardDrive className="w-5 h-5 text-gray-500 mr-2" />
-                        <span className="font-medium">Storage</span>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {formatStorageUsed(usage?.storage_used_bytes || 0)} / {formatStorageLimit(currentPlan?.storage_limit_bytes || 0)}
-                      </span>
+                  <div>
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>Storage Used</span>
+                      <span>{storageUsed} / {storageLimit}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className={`h-2 rounded-full ${storagePercent >= 90 ? 'bg-red-500' : storagePercent >= 75 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                        className={`h-2 rounded-full ${storagePercent > 90 ? 'bg-red-500' : storagePercent > 75 ? 'bg-yellow-500' : 'bg-green-500'}`}
                         style={{ width: `${Math.min(storagePercent, 100)}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{storagePercent.toFixed(1)}% used</p>
+                    <div className="text-xs text-gray-500 mt-1">{storagePercent.toFixed(1)}% used</div>
                   </div>
 
-                  {/* Users Usage */}
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <Users className="w-5 h-5 text-gray-500 mr-2" />
-                        <span className="font-medium">Users</span>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {usage?.users_count || 0} / {currentPlan?.users_limit || 0}
-                      </span>
+                  <div>
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>Users</span>
+                      <span>{usersCount} / {usersLimit}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className={`h-2 rounded-full ${usersPercent >= 90 ? 'bg-red-500' : usersPercent >= 75 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                        className={`h-2 rounded-full ${usersPercent > 90 ? 'bg-red-500' : usersPercent > 75 ? 'bg-yellow-500' : 'bg-green-500'}`}
                         style={{ width: `${Math.min(usersPercent, 100)}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{usersPercent.toFixed(1)}% used</p>
+                    <div className="text-xs text-gray-500 mt-1">{usersPercent.toFixed(1)}% used</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Upgrade Plan Card */}
-            {isFreePlan(subscription) && (
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Upgrade to Standard</h3>
-                  
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                      <span className="text-sm">100GB Storage</span>
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                      <span className="text-sm">50 Users</span>
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                      <span className="text-sm">Unlimited Workspaces</span>
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                      <span className="text-sm">Priority Support</span>
-                    </div>
-                  </div>
-
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold text-gray-900">$29</div>
-                    <div className="text-sm text-gray-600">per month</div>
-                  </div>
-
-                  {upgradeError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-                      {upgradeError}
-                    </div>
-                  )}      
-
-                  <button
-                    onClick={() => handleUpgrade('standard')}
-                    disabled={isCreatingCheckout || !isUserReady}
-                    className="w-full btn btn-primary"
-                  >
-                    {isCreatingCheckout ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Starting checkout...
-                      </>
-                    ) : !authInitialized ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Initializing...
-                      </>
-                    ) : !currentUser?.uid ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        Please log in
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Upgrade Now
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-xs text-gray-500 text-center mt-3">
-                    Secure payment powered by Stripe
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Paid Plan Info */}
-            {isPaidPlan(subscription) && (
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Subscription Status</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Status:</span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {subscription?.subscription?.status || 'Active'}
-                      </span>
-                    </div>
+            {/* Right Sidebar - Upgrade Plans and Subscription Status */}
+            <div className="lg:col-span-1">
+              <div className="space-y-4">
+                {/* Paid Plan Info - Show alongside upgrade options */}
+                {isPaidPlan(subscription) && (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Subscription Status</h3>
                     
-                    {subscription?.subscription?.current_period_end && (
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Next billing:</span>
-                        <span className="text-sm font-medium">
-                          {new Date(subscription.subscription.current_period_end.seconds * 1000).toLocaleDateString()}
+                        <span className="text-sm text-gray-600">Status:</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {subscription?.subscription?.status || 'Active'}
                         </span>
                       </div>
-                    )}
-                  </div>
+                      
+                      {subscription?.subscription?.current_period_end && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Next billing:</span>
+                          <span className="text-sm font-medium">
+                            {new Date(subscription.subscription.current_period_end.seconds * 1000).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <div className="flex items-center">
-                      <Clock className="w-5 h-5 text-blue-500 mr-2" />
-                      <span className="text-sm text-blue-700">
-                        Manage billing and invoices through your Stripe dashboard
-                      </span>
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Clock className="w-5 h-5 text-blue-500 mr-2" />
+                        <span className="text-sm text-blue-700">
+                          Manage billing and invoices through your Stripe dashboard
+                        </span>
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* Upgrade Plan Cards */}
+                {upgradePlans.length > 0 && upgradePlans.map((plan) => (
+                    <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        {isFreePlan(subscription) ? 'Upgrade to' : 'Switch to'} {plan.name}
+                      </h3>
+                      
+                      <div className="space-y-4 mb-6">
+                        <div className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                          <span className="text-sm">{formatStorageLimit(plan.storage_limit_bytes)} Storage</span>
+                        </div>
+                        <div className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                          <span className="text-sm">{plan.users_limit} Users</span>
+                        </div>
+                        <div className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                          <span className="text-sm">Unlimited Workspaces</span>
+                        </div>
+                        <div className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                          <span className="text-sm">Priority Support</span>
+                        </div>
+                      </div>
+
+                      <div className="text-center mb-4">
+                        <div className="text-3xl font-bold text-gray-900">${(plan.price_cents / 100).toFixed(0)}</div>
+                        <div className="text-sm text-gray-600">per month</div>
+                      </div>
+
+                      {upgradeError && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                          {upgradeError}
+                        </div>
+                      )}      
+
+                      <button
+                        onClick={() => handleUpgrade(plan.id)}
+                        disabled={checkoutPlanId === plan.id || !isUserReady}
+                        className="w-full btn btn-primary"
+                      >
+                        {checkoutPlanId === plan.id ? (
+                          <>
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Starting checkout...
+                          </>
+                        ) : !authInitialized ? (
+                          <>
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Initializing...
+                          </>
+                        ) : !currentUser?.uid ? (
+                          <>
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Please log in
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            {isFreePlan(subscription) ? 'Upgrade Now' : 'Switch Plan'}
+                          </>
+                        )}
+                      </button>
+
+                      <p className="text-xs text-gray-500 text-center mt-3">
+                        Secure payment powered by Stripe
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
           </div>
         </div>
       </div>

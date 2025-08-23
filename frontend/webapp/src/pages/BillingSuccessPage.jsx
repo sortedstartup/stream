@@ -1,12 +1,18 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { CheckCircle, ArrowRight } from 'react-feather'
-import { loadUserSubscription } from '../stores/payment'
+import { useStore } from '@nanostores/react'
+import { CheckCircle, ArrowRight, HardDrive, Users } from 'react-feather'
+import { 
+  $userSubscription,
+  loadUserSubscription,
+  formatStorageLimit
+} from '../stores/payment'
 import { showSuccessToast } from '../utils/toast'
 import { Layout } from '../components/layout/Layout'
 
 export const BillingSuccessPage = () => {
   const navigate = useNavigate()
+  const subscription = useStore($userSubscription)
 
   useEffect(() => {
     // Reload subscription data after successful payment
@@ -23,6 +29,8 @@ export const BillingSuccessPage = () => {
   const handleViewBilling = () => {
     navigate('/billing')
   }
+
+  const currentPlan = subscription?.plan
 
   return (
     <Layout>
@@ -44,24 +52,50 @@ export const BillingSuccessPage = () => {
 
             {/* Feature Highlights */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">You now have access to:</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                {currentPlan ? `${currentPlan.name} Features:` : 'You now have access to:'}
+              </h3>
               <div className="space-y-3 text-left">
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                  <span className="text-sm text-gray-700">100GB storage space</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                  <span className="text-sm text-gray-700">Up to 50 team members</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                  <span className="text-sm text-gray-700">Unlimited workspaces</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                  <span className="text-sm text-gray-700">Priority customer support</span>
-                </div>
+                {currentPlan ? (
+                  <>
+                    <div className="flex items-center">
+                      <HardDrive className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">{formatStorageLimit(currentPlan.storage_limit_bytes)} storage space</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Up to {currentPlan.users_limit} team members</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Unlimited workspaces</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Priority customer support</span>
+                    </div>
+                  </>
+                ) : (
+                  // Fallback if subscription data is still loading
+                  <>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Enhanced storage space</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">More team members</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Unlimited workspaces</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                      <span className="text-sm text-gray-700">Priority customer support</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
