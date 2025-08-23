@@ -466,6 +466,159 @@ export class GetUserSubscriptionResponse extends pb_1.Message {
         return GetUserSubscriptionResponse.deserialize(bytes);
     }
 }
+export class GetPlansRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {}) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") { }
+    }
+    static fromObject(data: {}): GetPlansRequest {
+        const message = new GetPlansRequest({});
+        return message;
+    }
+    toObject() {
+        const data: {} = {};
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlansRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlansRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlansRequest {
+        return GetPlansRequest.deserialize(bytes);
+    }
+}
+export class GetPlansResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        plans?: Plan[];
+        success?: boolean;
+        error_message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("plans" in data && data.plans != undefined) {
+                this.plans = data.plans;
+            }
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+        }
+    }
+    get plans() {
+        return pb_1.Message.getRepeatedWrapperField(this, Plan, 1) as Plan[];
+    }
+    set plans(value: Plan[]) {
+        pb_1.Message.setRepeatedWrapperField(this, 1, value);
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 2, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        plans?: ReturnType<typeof Plan.prototype.toObject>[];
+        success?: boolean;
+        error_message?: string;
+    }): GetPlansResponse {
+        const message = new GetPlansResponse({});
+        if (data.plans != null) {
+            message.plans = data.plans.map(item => Plan.fromObject(item));
+        }
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            plans?: ReturnType<typeof Plan.prototype.toObject>[];
+            success?: boolean;
+            error_message?: string;
+        } = {};
+        if (this.plans != null) {
+            data.plans = this.plans.map((item: Plan) => item.toObject());
+        }
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.plans.length)
+            writer.writeRepeatedMessage(1, this.plans, (item: Plan) => item.serialize(writer));
+        if (this.success != false)
+            writer.writeBool(2, this.success);
+        if (this.error_message.length)
+            writer.writeString(3, this.error_message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlansResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlansResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    reader.readMessage(message.plans, () => pb_1.Message.addToRepeatedWrapperField(message, 1, Plan.deserialize(reader), Plan));
+                    break;
+                case 2:
+                    message.success = reader.readBool();
+                    break;
+                case 3:
+                    message.error_message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlansResponse {
+        return GetPlansResponse.deserialize(bytes);
+    }
+}
 export class CreateCheckoutSessionRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
@@ -1991,6 +2144,15 @@ export abstract class UnimplementedPaymentServiceService {
             responseSerialize: (message: GetUserSubscriptionResponse) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => GetUserSubscriptionResponse.deserialize(new Uint8Array(bytes))
         },
+        GetPlans: {
+            path: "/paymentservice.PaymentService/GetPlans",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetPlansRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetPlansRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetPlansResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetPlansResponse.deserialize(new Uint8Array(bytes))
+        },
         CreateCheckoutSession: {
             path: "/paymentservice.PaymentService/CreateCheckoutSession",
             requestStream: false,
@@ -2022,6 +2184,7 @@ export abstract class UnimplementedPaymentServiceService {
     [method: string]: grpc_1.UntypedHandleCall;
     abstract CheckUserAccess(call: grpc_1.ServerUnaryCall<CheckUserAccessRequest, CheckUserAccessResponse>, callback: grpc_1.sendUnaryData<CheckUserAccessResponse>): void;
     abstract GetUserSubscription(call: grpc_1.ServerUnaryCall<GetUserSubscriptionRequest, GetUserSubscriptionResponse>, callback: grpc_1.sendUnaryData<GetUserSubscriptionResponse>): void;
+    abstract GetPlans(call: grpc_1.ServerUnaryCall<GetPlansRequest, GetPlansResponse>, callback: grpc_1.sendUnaryData<GetPlansResponse>): void;
     abstract CreateCheckoutSession(call: grpc_1.ServerUnaryCall<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>, callback: grpc_1.sendUnaryData<CreateCheckoutSessionResponse>): void;
     abstract UpdateUserUsage(call: grpc_1.ServerUnaryCall<UpdateUserUsageRequest, UpdateUserUsageResponse>, callback: grpc_1.sendUnaryData<UpdateUserUsageResponse>): void;
     abstract InitializeUser(call: grpc_1.ServerUnaryCall<InitializeUserRequest, InitializeUserResponse>, callback: grpc_1.sendUnaryData<InitializeUserResponse>): void;
@@ -2043,6 +2206,10 @@ export class PaymentServiceClient {
     private static GetUserSubscription = new grpc_web_1.MethodDescriptor<GetUserSubscriptionRequest, GetUserSubscriptionResponse>("/paymentservice.PaymentService/GetUserSubscription", grpc_web_1.MethodType.UNARY, GetUserSubscriptionRequest, GetUserSubscriptionResponse, (message: GetUserSubscriptionRequest) => message.serialize(), GetUserSubscriptionResponse.deserialize);
     GetUserSubscription(message: GetUserSubscriptionRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<GetUserSubscriptionRequest, GetUserSubscriptionResponse>(this._address + "/paymentservice.PaymentService/GetUserSubscription", message, metadata || {}, PaymentServiceClient.GetUserSubscription);
+    }
+    private static GetPlans = new grpc_web_1.MethodDescriptor<GetPlansRequest, GetPlansResponse>("/paymentservice.PaymentService/GetPlans", grpc_web_1.MethodType.UNARY, GetPlansRequest, GetPlansResponse, (message: GetPlansRequest) => message.serialize(), GetPlansResponse.deserialize);
+    GetPlans(message: GetPlansRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetPlansRequest, GetPlansResponse>(this._address + "/paymentservice.PaymentService/GetPlans", message, metadata || {}, PaymentServiceClient.GetPlans);
     }
     private static CreateCheckoutSession = new grpc_web_1.MethodDescriptor<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>("/paymentservice.PaymentService/CreateCheckoutSession", grpc_web_1.MethodType.UNARY, CreateCheckoutSessionRequest, CreateCheckoutSessionResponse, (message: CreateCheckoutSessionRequest) => message.serialize(), CreateCheckoutSessionResponse.deserialize);
     CreateCheckoutSession(message: CreateCheckoutSessionRequest, metadata: grpc_web_1.Metadata | null) {
