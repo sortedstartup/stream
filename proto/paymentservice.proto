@@ -13,6 +13,9 @@ service PaymentService {
   // Get user subscription and usage details
   rpc GetUserSubscription(GetUserSubscriptionRequest) returns (GetUserSubscriptionResponse);
   
+  // Get available subscription plans
+  rpc GetPlans(GetPlansRequest) returns (GetPlansResponse);
+  
   // Create payment checkout session (provider-agnostic)
   rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
   
@@ -45,6 +48,17 @@ message GetUserSubscriptionRequest {
 
 message GetUserSubscriptionResponse {
   UserSubscriptionInfo subscription_info = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Messages for GetPlans
+message GetPlansRequest {
+  // Empty request - returns all active plans
+}
+
+message GetPlansResponse {
+  repeated Plan plans = 1;
   bool success = 2;
   string error_message = 3;
 }
