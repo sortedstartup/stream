@@ -68,7 +68,7 @@ func New() (MonolithConfig, error) {
 	viper.SetDefault("paymentService.db.url", "db.sqlite")
 	viper.SetDefault("paymentService.paymentProvider", "stripe")
 	viper.SetDefault("paymentService.stripe.secretKey", "")
-	viper.SetDefault("paymentService.stripe.publishableKey", "pk_test_51RpGge2QDgkP0mKu485q09VvgvRjXnAw64jjx0K6D55uJX3gVFtBwnLTm7RD651o5b5Ftopi50xlPqCUXhyH75Ar00iOOH6iNT")
+	viper.SetDefault("paymentService.stripe.publishableKey", "")
 	viper.SetDefault("paymentService.stripe.webhookSecret", "")
 	viper.SetDefault("paymentService.stripe.standardPriceId", "")
 	viper.SetDefault("paymentService.stripe.premiumPriceId", "")
