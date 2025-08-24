@@ -191,13 +191,31 @@ export const addUserToTenant = async (tenantId: string, username: string, role: 
     
     if (!response.message) {
       // Don't set global error - let modal handle it
-      return false
+      return { success: false, error: 'Failed to add user' }
     }
     
-    return true
+    return { success: true }
   } catch (error) {
-    // Don't set global error - let modal handle it
-    return false
+    console.error('Add user error:', error)
+    // Extract error message from gRPC error
+    let errorMessage = 'Failed to add user. Please try again.'
+    
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+      // Check for specific payment restriction errors (storage and user limits only)
+      if (error.message.includes('User limit exceeded')) {
+        errorMessage = 'Cannot add user: User limit exceeded. Please upgrade your plan to add more members.'
+      } else if (error.message.includes('Subscription is inactive')) {
+        errorMessage = 'Cannot add user: Subscription is inactive. Please reactivate to add members.'
+      } else if (error.message.includes('user not found')) {
+        errorMessage = 'User not found. Please check the email address and try again.'
+      } else if (error.message.includes('only super admins')) {
+        errorMessage = 'Only workspace administrators can add members.'
+      } else {
+        errorMessage = error.message
+      }
+    }
+    
+    return { success: false, error: errorMessage }
   }
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"embed"
 	"fmt"
 	"io"
@@ -28,6 +29,10 @@ import (
 
 	userAPI "sortedstartup.com/stream/userservice/api"
 	userProto "sortedstartup.com/stream/userservice/proto"
+
+	paymentAPI "sortedstartup.com/stream/paymentservice/api"
+	paymentDB "sortedstartup.com/stream/paymentservice/db"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 )
 
 //go:embed webapp/dist
@@ -52,6 +57,26 @@ func (w *UserServiceClientWrapper) GetTenants(ctx context.Context, req *userProt
 	return w.userAPI.GetTenants(ctx, req)
 }
 
+func (w *UserServiceClientWrapper) InitializeUserSubscription(ctx context.Context, req *userProto.InitializeUserSubscriptionRequest, opts ...grpc.CallOption) (*userProto.InitializeUserSubscriptionResponse, error) {
+	return w.userAPI.InitializeUserSubscription(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) CheckUserAccess(ctx context.Context, req *userProto.CheckUserAccessRequest, opts ...grpc.CallOption) (*userProto.CheckUserAccessResponse, error) {
+	return w.userAPI.CheckUserAccess(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) UpdateUserUsage(ctx context.Context, req *userProto.UpdateUserUsageRequest, opts ...grpc.CallOption) (*userProto.UpdateUserUsageResponse, error) {
+	return w.userAPI.UpdateUserUsage(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) GetUserUsage(ctx context.Context, req *userProto.GetUserUsageRequest, opts ...grpc.CallOption) (*userProto.GetUserUsageResponse, error) {
+	return w.userAPI.GetUserUsage(ctx, req)
+}
+
+func (w *UserServiceClientWrapper) GetPlanInfo(ctx context.Context, req *userProto.GetPlanInfoRequest, opts ...grpc.CallOption) (*userProto.GetPlanInfoResponse, error) {
+	return w.userAPI.GetPlanInfo(ctx, req)
+}
+
 // TenantServiceClientWrapper wraps the TenantAPI to implement the TenantServiceClient interface
 type TenantServiceClientWrapper struct {
 	tenantAPI *userAPI.TenantAPI
@@ -69,17 +94,94 @@ func (w *TenantServiceClientWrapper) GetUsers(ctx context.Context, req *userProt
 	return w.tenantAPI.GetUsers(ctx, req)
 }
 
+// PaymentServiceClientWrapper wraps the PaymentAPI to implement the PaymentServiceClient interface
+type PaymentServiceClientWrapper struct {
+	paymentAPI *paymentAPI.PaymentServer
+}
+
+func (w *PaymentServiceClientWrapper) GetUserSubscription(ctx context.Context, req *paymentProto.GetUserSubscriptionRequest, opts ...grpc.CallOption) (*paymentProto.GetUserSubscriptionResponse, error) {
+	return w.paymentAPI.GetUserSubscription(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) CreateCheckoutSession(ctx context.Context, req *paymentProto.CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*paymentProto.CreateCheckoutSessionResponse, error) {
+	return w.paymentAPI.CreateCheckoutSession(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) GetPlans(ctx context.Context, req *paymentProto.GetPlansRequest, opts ...grpc.CallOption) (*paymentProto.GetPlansResponse, error) {
+	return w.paymentAPI.GetPlans(ctx, req)
+}
+
+func (w *PaymentServiceClientWrapper) CreateUserSubscription(ctx context.Context, req *paymentProto.CreateUserSubscriptionRequest, opts ...grpc.CallOption) (*paymentProto.CreateUserSubscriptionResponse, error) {
+	return w.paymentAPI.CreateUserSubscription(ctx, req)
+}
+
+// VideoServiceClientWrapper wraps the VideoAPI to implement the VideoServiceClient interface
+type VideoServiceClientWrapper struct {
+	videoAPI *videoAPI.VideoAPI
+}
+
+// Add other VideoService methods as needed
+func (w *VideoServiceClientWrapper) CreateVideo(ctx context.Context, req *videoProto.CreateVideoRequest, opts ...grpc.CallOption) (*videoProto.Video, error) {
+	return w.videoAPI.CreateVideo(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) GetVideo(ctx context.Context, req *videoProto.GetVideoRequest, opts ...grpc.CallOption) (*videoProto.Video, error) {
+	return w.videoAPI.GetVideo(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) ListVideos(ctx context.Context, req *videoProto.ListVideosRequest, opts ...grpc.CallOption) (*videoProto.ListVideosResponse, error) {
+	return w.videoAPI.ListVideos(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) UpdateVideo(ctx context.Context, req *videoProto.UpdateVideoRequest, opts ...grpc.CallOption) (*videoProto.Video, error) {
+	return w.videoAPI.UpdateVideo(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) DeleteVideo(ctx context.Context, req *videoProto.DeleteVideoRequest, opts ...grpc.CallOption) (*videoProto.DeleteVideoResponse, error) {
+	return w.videoAPI.DeleteVideo(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) MoveVideoToChannel(ctx context.Context, req *videoProto.MoveVideoToChannelRequest, opts ...grpc.CallOption) (*videoProto.MoveVideoToChannelResponse, error) {
+	return w.videoAPI.MoveVideoToChannel(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) RemoveVideoFromChannel(ctx context.Context, req *videoProto.RemoveVideoFromChannelRequest, opts ...grpc.CallOption) (*videoProto.RemoveVideoFromChannelResponse, error) {
+	return w.videoAPI.RemoveVideoFromChannel(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) ShareVideo(ctx context.Context, req *videoProto.ShareVideoRequest, opts ...grpc.CallOption) (*videoProto.ShareLink, error) {
+	return w.videoAPI.ShareVideo(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) CheckStorageAccess(ctx context.Context, req *videoProto.CheckStorageAccessRequest, opts ...grpc.CallOption) (*videoProto.CheckStorageAccessResponse, error) {
+	return w.videoAPI.CheckStorageAccess(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) UpdateStorageUsage(ctx context.Context, req *videoProto.UpdateStorageUsageRequest, opts ...grpc.CallOption) (*videoProto.UpdateStorageUsageResponse, error) {
+	return w.videoAPI.UpdateStorageUsage(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) GetStorageUsage(ctx context.Context, req *videoProto.GetStorageUsageRequest, opts ...grpc.CallOption) (*videoProto.GetStorageUsageResponse, error) {
+	return w.videoAPI.GetStorageUsage(ctx, req)
+}
+
+func (w *VideoServiceClientWrapper) GetUserStorageInfo(ctx context.Context, req *videoProto.GetUserStorageInfoRequest, opts ...grpc.CallOption) (*videoProto.GetUserStorageInfoResponse, error) {
+	return w.videoAPI.GetUserStorageInfo(ctx, req)
+}
+
 type Monolith struct {
 	Config   *config.MonolithConfig
 	Firebase *auth.Firebase
 
-	VideoAPI      *videoAPI.VideoAPI
-	CommentAPI    *commentAPI.CommentAPI
-	UserAPI       *userAPI.UserAPI
-	TenantAPI     *userAPI.TenantAPI
-	ChannelAPI    *videoAPI.ChannelAPI
-	GRPCServer    *grpc.Server
-	GRPCWebServer *http.Server
+	VideoAPI       *videoAPI.VideoAPI
+	CommentAPI     *commentAPI.CommentAPI
+	UserAPI        *userAPI.UserAPI
+	TenantAPI      *userAPI.TenantAPI
+	ChannelAPI     *videoAPI.ChannelAPI
+	PaymentAPI     *paymentAPI.PaymentServer
+	PaymentHTTPAPI *paymentAPI.HTTPServer
+	GRPCServer     *grpc.Server
+	GRPCWebServer  *http.Server
 
 	log *slog.Logger
 }
@@ -143,18 +245,43 @@ func NewMonolith() (*Monolith, error) {
 		return nil, err
 	}
 
-	log.Info("Creating userservice API")
-	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService)
+	log.Info("Creating paymentservice API")
+	// Create payment service database connection
+	paymentDBConn, err := sql.Open(config.PaymentService.DB.Driver, config.PaymentService.DB.Url)
+	if err != nil {
+		log.Error("Could not create payment database", "err", err)
+		return nil, err
+	}
+
+	// Run payment service migrations
+	err = paymentDB.MigrateDB(config.PaymentService.DB.Driver, config.PaymentService.DB.Url)
+	if err != nil {
+		log.Error("Could not migrate payment database", "err", err)
+		return nil, err
+	}
+
+	paymentQueries := paymentDB.New(paymentDBConn)
+	paymentAPIServer := paymentAPI.NewPaymentServer(paymentQueries, &config.PaymentService)
+	paymentHTTPServer := paymentAPI.NewHTTPServer(paymentQueries, &config.PaymentService)
+
+	// Create payment service client wrapper for other services
+	paymentServiceClientWrapper := &PaymentServiceClientWrapper{paymentAPI: paymentAPIServer}
+
+	log.Info("Creating userservice API first")
+	// Create UserService first (no longer needs VideoService since storage limits moved to UserService)
+	userAPI, tenantAPI, err := userAPI.NewUserAPI(config.UserService, paymentServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create userservice API", "err", err)
 		return nil, err
 	}
 
-	log.Info("Creating videoservice API")
-	// Create wrapper to avoid circular dependency
+	// Create service client wrappers
 	userServiceClientWrapper := &UserServiceClientWrapper{userAPI: userAPI}
 	tenantServiceClientWrapper := &TenantServiceClientWrapper{tenantAPI: tenantAPI}
-	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper)
+
+	log.Info("Creating videoservice API")
+	// Create VideoService with UserService client for tenant validation
+	videoAPI, channelAPI, err := videoAPI.NewVideoAPIProduction(config.VideoService, userServiceClientWrapper, tenantServiceClientWrapper, paymentServiceClientWrapper)
 	if err != nil {
 		log.Error("Could not create videoservice API", "err", err)
 		return nil, err
@@ -196,6 +323,9 @@ func NewMonolith() (*Monolith, error) {
 
 	// Wrap the gRPC web handler with Firebase auth middleware
 	authenticatedGrpcWebHandler := interceptors.FirebaseHTTPHeaderAuthMiddleware(firebase, grpcWebHandler)
+
+	// Register webhook endpoint (no auth required for Stripe webhooks)
+	parentMux.HandleFunc("/api/paymentservice/webhook/stripe", paymentHTTPServer.StripeWebhook)
 
 	parentMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if wrappedGrpc.IsGrpcWebRequest(r) || wrappedGrpc.IsAcceptableGrpcCorsRequest(r) {
@@ -257,16 +387,18 @@ func NewMonolith() (*Monolith, error) {
 	}
 
 	return &Monolith{
-		Config:        &config,
-		VideoAPI:      videoAPI,
-		ChannelAPI:    channelAPI,
-		CommentAPI:    commentAPI,
-		UserAPI:       userAPI,
-		TenantAPI:     tenantAPI,
-		Firebase:      firebase,
-		GRPCServer:    grpcServer,
-		GRPCWebServer: httpServer,
-		log:           log,
+		Config:         &config,
+		VideoAPI:       videoAPI,
+		ChannelAPI:     channelAPI,
+		CommentAPI:     commentAPI,
+		UserAPI:        userAPI,
+		TenantAPI:      tenantAPI,
+		PaymentAPI:     paymentAPIServer,
+		PaymentHTTPAPI: paymentHTTPServer,
+		Firebase:       firebase,
+		GRPCServer:     grpcServer,
+		GRPCWebServer:  httpServer,
+		log:            log,
 	}, nil
 }
 
@@ -274,6 +406,12 @@ func (m *Monolith) InitServices() error {
 
 	m.log.Info("Initializing User Service")
 	err := m.UserAPI.Init()
+	if err != nil {
+		return err
+	}
+
+	m.log.Info("Initializing Payment Service")
+	err = m.PaymentAPI.Init(context.Background())
 	if err != nil {
 		return err
 	}
@@ -331,6 +469,7 @@ func (m *Monolith) startServer() error {
 	commentProto.RegisterCommentServiceServer(m.GRPCServer, m.CommentAPI)
 	userProto.RegisterUserServiceServer(m.GRPCServer, m.UserAPI)
 	userProto.RegisterTenantServiceServer(m.GRPCServer, m.TenantAPI)
+	paymentProto.RegisterPaymentServiceServer(m.GRPCServer, m.PaymentAPI)
 
 	reflection.Register(m.GRPCServer)
 

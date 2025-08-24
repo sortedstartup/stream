@@ -27,29 +27,28 @@ func MigrateDB(driver string, dbURL string) error {
 		log.Fatal(err)
 	}
 
-	slog.Info("Migrating database", "dbURL", dbURL)
+	slog.Info("Starting migration process", "dbURL", dbURL, "table", MIGRATION_TABLE)
 
 	sqlDB, err := sql.Open(driver, dbURL)
 	if err != nil {
-		slog.Error("error", "err", err)
+		slog.Error("Failed to open database", "err", err, "driver", driver, "dbURL", dbURL)
 		return err
 	}
 	dbInstance, err := sqlite.WithInstance(sqlDB, &sqlite.Config{MigrationsTable: MIGRATION_TABLE})
 	if err != nil {
-		slog.Error("error", "err", err)
+		slog.Error("Failed to create database instance", "err", err)
 		return err
 	}
 
 	//TODO: externalize in config
 	m, err := migrate.NewWithInstance("iofs", _migrationFiles, "DUMMY", dbInstance)
-
 	if err != nil {
-		slog.Error("error", "err", err)
+		slog.Error("Failed to create migration instance", "err", err)
 		return fmt.Errorf("failed creating new migration: %w", err)
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		slog.Error("error", "err", err)
+		slog.Error("Migration failed", "err", err, "errorType", fmt.Sprintf("%T", err))
 		return fmt.Errorf("failed while migrating: %w", err)
 	}
 

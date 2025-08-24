@@ -15,6 +15,7 @@ INSERT INTO videoservice_videos (
     channel_id,
     is_private,
     is_deleted,
+    file_size_bytes,
     created_at,
     updated_at
 ) VALUES (
@@ -27,6 +28,7 @@ INSERT INTO videoservice_videos (
     @channel_id,
     @is_private,
     @is_deleted,
+    @file_size_bytes,
     @created_at,
     @updated_at
 );
@@ -177,6 +179,15 @@ UPDATE videoservice_videos
 SET is_deleted = TRUE, updated_at = @updated_at
 WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
 
+-- name: GetVideoFileSizeForDeletion :one
+SELECT file_size_bytes, uploaded_user_id, channel_id 
+FROM videoservice_videos 
+WHERE id = @video_id AND tenant_id = @tenant_id AND is_deleted = FALSE;
+
+-- name: UpdateVideoFileSize :exec
+UPDATE videoservice_videos 
+SET file_size_bytes = @file_size_bytes, updated_at = @updated_at
+WHERE id = @video_id;
 -- name: GetVideoCountsPerChannelByTenantID :many
 SELECT 
   channel_id,
@@ -184,4 +195,28 @@ SELECT
 FROM videoservice_videos
 WHERE tenant_id = @tenant_id AND is_deleted = FALSE AND channel_id IS NOT NULL AND channel_id != ''
 GROUP BY channel_id;
+
+-- Storage usage queries (moved from payment service)
+-- name: GetUserStorageUsage :one
+SELECT * FROM videoservice_user_storage_usage WHERE user_id = ? LIMIT 1;
+
+-- name: CreateUserStorageUsage :one
+INSERT INTO videoservice_user_storage_usage (
+    user_id, storage_used_bytes, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: AddUserStorageUsage :exec
+UPDATE videoservice_user_storage_usage 
+SET storage_used_bytes = storage_used_bytes + ?, last_calculated_at = ?, updated_at = ?
+WHERE user_id = ?;
+
+-- name: UpsertUserStorageUsage :exec
+INSERT INTO videoservice_user_storage_usage (
+    user_id, storage_used_bytes, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id) DO UPDATE SET
+    storage_used_bytes = excluded.storage_used_bytes,
+    last_calculated_at = excluded.last_calculated_at,
+    updated_at = excluded.updated_at;
 

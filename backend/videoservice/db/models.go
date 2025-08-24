@@ -28,6 +28,14 @@ type VideoserviceChannelMember struct {
 	CreatedAt time.Time
 }
 
+type VideoserviceUserStorageUsage struct {
+	UserID           string
+	StorageUsedBytes sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
 type VideoserviceVideo struct {
 	ID             string
 	Title          string
@@ -40,4 +48,5 @@ type VideoserviceVideo struct {
 	TenantID       sql.NullString
 	ChannelID      sql.NullString
 	IsDeleted      sql.NullBool
+	FileSizeBytes  sql.NullInt64
 }

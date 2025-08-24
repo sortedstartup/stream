@@ -3,20 +3,34 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import Footer from './Footer'
 import { CreateWorkspaceModal } from '../modals'
+import { UsageWarningBanner } from '../UsageWarningBanner'
 import { createTenant, switchTenant } from '../../stores/tenants'
 import { showSuccessToast } from '../../utils/toast'
 import { useNavigate } from "react-router"
+import { loadUserSubscription, $userSubscription } from '../../stores/payment'
+import { $currentUser } from '../../auth/store/auth'
+import { useStore } from '@nanostores/react'
 
 export const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const navigate = useNavigate()
+  const currentUser = useStore($currentUser)
+  const subscription = useStore($userSubscription)
 
   useEffect(() => {
     const handler = () => setShowCreateModal(true)
     document.addEventListener('open-create-workspace', handler)
+    
     return () => document.removeEventListener('open-create-workspace', handler)
   }, [])
+
+  // Load subscription data when user is available
+  useEffect(() => {
+    if (currentUser?.uid) {
+      loadUserSubscription()
+    }
+  }, [currentUser])
 
   const handleCreateTenant = async (name, description) => {
     const result = await createTenant(name, description || '')
@@ -60,6 +74,12 @@ export const Layout = ({ children }) => {
         {/* Main Content */}
         <main className="flex-1 w-full md:ml-16 px-4 overflow-x-hidden">
           <div className="max-w-screen-xl mx-auto py-4">
+            {/* Global Usage Warning Banner */}
+            {subscription && (
+              <div className="mb-4">
+                <UsageWarningBanner subscription={subscription} />
+              </div>
+            )}
             {children}
           </div>
         </main>

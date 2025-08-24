@@ -15,6 +15,7 @@ import (
 	"sortedstartup.com/stream/common/auth"
 	"sortedstartup.com/stream/common/constants"
 	"sortedstartup.com/stream/common/interceptors"
+	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	userProto "sortedstartup.com/stream/userservice/proto"
 	"sortedstartup.com/stream/videoservice/config"
 	"sortedstartup.com/stream/videoservice/db"
@@ -27,10 +28,11 @@ type VideoAPI struct {
 	db            *sql.DB
 
 	log       *slog.Logger
-	dbQueries  db.DBQuerier 
+	dbQueries db.DBQuerier
 
 	// gRPC clients for other services
-	userServiceClient userProto.UserServiceClient
+	userServiceClient    userProto.UserServiceClient
+	paymentServiceClient paymentProto.PaymentServiceClient
 
 	// Policy validator for common video operations
 	policyValidator *VideoPolicyValidator
@@ -56,7 +58,7 @@ type ChannelAPI struct {
 	proto.UnimplementedChannelServiceServer
 }
 
-func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient) (*VideoAPI, *ChannelAPI, error) {
+func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient userProto.UserServiceClient, tenantServiceClient userProto.TenantServiceClient, paymentServiceClient paymentProto.PaymentServiceClient) (*VideoAPI, *ChannelAPI, error) {
 	slog.Info("NewVideoAPIProduction")
 
 	fbAuth, err := auth.NewFirebase()
@@ -89,14 +91,15 @@ func NewVideoAPIProduction(config config.VideoServiceConfig, userServiceClient u
 	policyValidator := NewVideoPolicyValidator(dbQueries, userServiceClient, childLogger)
 
 	videoAPI := &VideoAPI{
-		HTTPServerMux:     ServerMux,
-		config:            config,
-		db:                _db,
-		log:               childLogger,
-		dbQueries:         dbQueries,
-		userServiceClient: userServiceClient,
-		policyValidator:   policyValidator,
-		channelAPI:        channelAPI,
+		HTTPServerMux:        ServerMux,
+		config:               config,
+		db:                   _db,
+		log:                  childLogger,
+		dbQueries:            dbQueries,
+		userServiceClient:    userServiceClient,
+		paymentServiceClient: paymentServiceClient,
+		policyValidator:      policyValidator,
+		channelAPI:           channelAPI,
 	}
 
 	// The authentication is handled in mono/main.go
@@ -118,6 +121,17 @@ func (s *VideoAPI) Init() error {
 		return err
 	}
 	s.log.Info("Migrating database done")
+
+	// Run file size backfill for existing videos (only if needed)
+	s.log.Info("Checking for videos that need file size backfill...")
+	err = s.backfillFileSizes()
+	if err != nil {
+		s.log.Error("File size backfill failed", "error", err)
+		// Don't fail startup, just log the error
+	} else {
+		s.log.Info("File size backfill completed")
+	}
+
 	return nil
 }
 
@@ -173,6 +187,34 @@ func getUserTenantInfo(ctx context.Context, userServiceClient userProto.UserServ
 
 	// User is not a member of this tenant
 	return "", false, status.Error(codes.PermissionDenied, "access denied: you are not a member of this tenant")
+}
+
+// getTenantOwner gets the owner (created_by) of a specific tenant
+// This is needed for payment access checks where we need to check the tenant owner's limits
+func getTenantOwner(ctx context.Context, userServiceClient userProto.UserServiceClient, log *slog.Logger, tenantID string) (string, error) {
+	if tenantID == "" {
+		return "", status.Error(codes.InvalidArgument, "tenant ID is required")
+	}
+
+	// We need to get tenant info, but GetTenants only returns tenants for the current user
+	// As a workaround, we'll call getUserTenantInfo which should work if the current user has access to the tenant
+	// The tenant owner info is available in the tenant object
+	resp, err := userServiceClient.GetTenants(ctx, &userProto.GetTenantsRequest{})
+	if err != nil {
+		log.Error("Failed to get tenants from userservice", "error", err, "tenantID", tenantID)
+		return "", status.Error(codes.Internal, "failed to get tenant information")
+	}
+
+	// Find the requested tenant and get the owner
+	for _, tenantUser := range resp.TenantUsers {
+		if tenantUser.Tenant.Id == tenantID {
+			return tenantUser.Tenant.CreatedBy, nil
+		}
+	}
+
+	// If tenant not found in user's list, this means user doesn't have access
+	// This should not happen if isUserInTenant was called first
+	return "", status.Error(codes.PermissionDenied, "access denied: tenant not found or access denied")
 }
 
 func (s *VideoAPI) ListVideos(ctx context.Context, req *proto.ListVideosRequest) (*proto.ListVideosResponse, error) {
@@ -406,6 +448,16 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 		return nil, err
 	}
 
+	// Get video file size for storage usage update before deletion
+	videoInfo, err := s.dbQueries.GetVideoFileSizeForDeletion(ctx, db.GetVideoFileSizeForDeletionParams{
+		VideoID:  req.VideoId,
+		TenantID: sql.NullString{String: tenantID, Valid: true},
+	})
+	if err != nil {
+		s.log.Error("Error getting video file size for deletion", "err", err, "videoID", req.VideoId)
+		return nil, status.Error(codes.Internal, "failed to get video information")
+	}
+
 	// Soft delete the video
 	err = s.dbQueries.SoftDeleteVideo(ctx, db.SoftDeleteVideoParams{
 		VideoID:   req.VideoId,
@@ -415,6 +467,13 @@ func (s *VideoAPI) DeleteVideo(ctx context.Context, req *proto.DeleteVideoReques
 	if err != nil {
 		s.log.Error("Error soft deleting video", "err", err, "videoID", req.VideoId)
 		return nil, status.Error(codes.Internal, "failed to delete video")
+	}
+
+	// TODO: Update storage usage in videoservice_user_storage_usage table (subtract the file size)
+	if videoInfo.FileSizeBytes.Valid && videoInfo.FileSizeBytes.Int64 > 0 {
+		s.log.Info("TODO: Subtract storage usage for video deletion", "userID", videoInfo.UploadedUserID, "fileSize", videoInfo.FileSizeBytes.Int64)
+	} else {
+		s.log.Warn("Video has no file size recorded, storage usage not updated for deletion", "videoID", req.VideoId, "userID", videoInfo.UploadedUserID)
 	}
 
 	return &proto.DeleteVideoResponse{
@@ -491,7 +550,7 @@ func (s *ChannelAPI) CreateChannel(ctx context.Context, req *proto.CreateChannel
 	}
 
 	if len(req.Name) > 50 {
-    	return nil, status.Errorf(codes.InvalidArgument, "channel name cannot exceed 50 characters")
+		return nil, status.Errorf(codes.InvalidArgument, "channel name cannot exceed 50 characters")
 	}
 
 	// Create channel
@@ -576,7 +635,6 @@ func (s *ChannelAPI) GetChannels(ctx context.Context, req *proto.GetChannelsRequ
 		return nil, status.Errorf(codes.Internal, "failed to get video counts: %v", err)
 	}
 
-	
 	// Build map for lookup
 	countMap := make(map[string]int32)
 	for _, vc := range videoCounts {
@@ -902,5 +960,280 @@ func (s *ChannelAPI) RemoveMember(ctx context.Context, req *proto.RemoveChannelM
 
 	return &proto.RemoveChannelMemberResponse{
 		Message: "Member removed successfully",
+	}, nil
+}
+
+// CheckStorageAccess checks if user can perform storage action (moved from payment service)
+func (s *VideoAPI) CheckStorageAccess(ctx context.Context, req *proto.CheckStorageAccessRequest) (*proto.CheckStorageAccessResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	s.log.Info("CheckStorageAccess", "userID", req.UserId, "requestedBytes", req.RequestedBytes)
+
+	// 1. Get user's subscription from PaymentService
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err != nil {
+		s.log.Error("Failed to get user subscription", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to get user subscription")
+	}
+
+	if !subscription.Success {
+		s.log.Warn("User has no subscription", "userID", req.UserId)
+		return &proto.CheckStorageAccessResponse{
+			HasAccess:      false,
+			Reason:         "no_subscription",
+			IsNearLimit:    false,
+			WarningMessage: "No subscription found. Please upgrade to continue.",
+		}, nil
+	}
+
+	// 2. Get plan details - plan limits are stored in payment service DB
+	planID := subscription.SubscriptionInfo.Plan.Id
+	s.log.Info("User plan", "userID", req.UserId, "planID", planID)
+
+	// Get plan limits from application-specific config
+	appPlanLimit := s.config.GetPlanLimitByID(planID)
+	if appPlanLimit == nil {
+		s.log.Error("Unknown plan", "planID", planID)
+		return nil, status.Error(codes.Internal, "unknown plan")
+	}
+
+	planLimits := &PlanLimits{
+		StorageLimit: appPlanLimit.StorageLimitBytes(),
+	}
+
+	// 3. Get current storage usage from VideoService database
+	queries := s.dbQueries.(*db.Queries) // Cast to access new methods
+	usage, err := queries.GetUserStorageUsage(ctx, req.UserId)
+	if err != nil && err != sql.ErrNoRows {
+		s.log.Error("Failed to get user storage usage", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to get storage usage")
+	}
+
+	currentUsage := int64(0)
+	if err == nil {
+		currentUsage = usage.StorageUsedBytes.Int64
+	}
+
+	// 4. Check subscription status
+	if subscription.SubscriptionInfo.Subscription.Status != "active" {
+		return &proto.CheckStorageAccessResponse{
+			HasAccess: false,
+			Reason:    "subscription_inactive",
+			StorageInfo: &proto.StorageInfo{
+				UsedBytes:    currentUsage,
+				LimitBytes:   planLimits.StorageLimit,
+				UsagePercent: float64(currentUsage) / float64(planLimits.StorageLimit) * 100,
+				PlanId:       planID,
+			},
+			IsNearLimit:    false,
+			WarningMessage: "Subscription is inactive",
+		}, nil
+	}
+
+	// 5. Check if request would exceed storage limit
+	wouldExceed := currentUsage+req.RequestedBytes > planLimits.StorageLimit
+	usagePercent := float64(currentUsage) / float64(planLimits.StorageLimit) * 100
+	isNearLimit := usagePercent > 75
+
+	hasAccess := !wouldExceed
+	reason := ""
+	warningMessage := ""
+
+	if !hasAccess {
+		reason = "storage_limit_exceeded"
+	}
+
+	if isNearLimit && hasAccess {
+		warningMessage = "Storage %.1f%% full. Consider upgrading your plan."
+	}
+
+	return &proto.CheckStorageAccessResponse{
+		HasAccess: hasAccess,
+		Reason:    reason,
+		StorageInfo: &proto.StorageInfo{
+			UsedBytes:    currentUsage,
+			LimitBytes:   planLimits.StorageLimit,
+			UsagePercent: usagePercent,
+			PlanId:       planID,
+		},
+		IsNearLimit:    isNearLimit,
+		WarningMessage: warningMessage,
+	}, nil
+}
+
+// UpdateStorageUsage updates user storage usage (moved from payment service)
+func (s *VideoAPI) UpdateStorageUsage(ctx context.Context, req *proto.UpdateStorageUsageRequest) (*proto.UpdateStorageUsageResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	now := time.Now().Unix()
+
+	// Use UpsertUserStorageUsage to handle both create and update
+	queries := s.dbQueries.(*db.Queries) // Cast to access new methods
+	err := queries.UpsertUserStorageUsage(ctx, db.UpsertUserStorageUsageParams{
+		UserID:           req.UserId,
+		StorageUsedBytes: sql.NullInt64{Int64: req.UsageChange, Valid: true},
+		LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	})
+	if err != nil {
+		s.log.Error("Failed to update storage usage", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to update storage usage")
+	}
+
+	// Get updated usage to return
+	usage, err := queries.GetUserStorageUsage(ctx, req.UserId)
+	if err != nil {
+		s.log.Error("Failed to get updated storage usage", "error", err, "userID", req.UserId)
+		return &proto.UpdateStorageUsageResponse{
+			Success: true,
+		}, nil
+	}
+
+	return &proto.UpdateStorageUsageResponse{
+		Success: true,
+		UpdatedInfo: &proto.StorageInfo{
+			UsedBytes:  usage.StorageUsedBytes.Int64,
+			LimitBytes: 0, // Will be filled by caller if needed
+			PlanId:     "",
+		},
+	}, nil
+}
+
+// GetStorageUsage gets user storage usage
+func (s *VideoAPI) GetStorageUsage(ctx context.Context, req *proto.GetStorageUsageRequest) (*proto.GetStorageUsageResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	// Get user's subscription to determine plan
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err != nil || !subscription.Success {
+		return nil, status.Error(codes.Internal, "failed to get user subscription")
+	}
+
+	// Get plan limits from VideoService config
+	planID := subscription.SubscriptionInfo.Plan.Id
+	appPlanLimit := s.config.GetPlanLimitByID(planID)
+	if appPlanLimit == nil {
+		return nil, status.Error(codes.Internal, "unknown plan")
+	}
+
+	queries := s.dbQueries.(*db.Queries) // Cast to access new methods
+	usage, err := queries.GetUserStorageUsage(ctx, req.UserId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &proto.GetStorageUsageResponse{
+				Success: true,
+				StorageInfo: &proto.StorageInfo{
+					UsedBytes:    0,
+					LimitBytes:   appPlanLimit.StorageLimitBytes(),
+					UsagePercent: 0,
+					PlanId:       planID,
+				},
+			}, nil
+		}
+		return nil, status.Error(codes.Internal, "failed to get storage usage")
+	}
+
+	// Calculate usage percentage
+	usagePercent := float64(0)
+	if appPlanLimit.StorageLimitBytes() > 0 {
+		usagePercent = (float64(usage.StorageUsedBytes.Int64) / float64(appPlanLimit.StorageLimitBytes())) * 100
+	}
+
+	return &proto.GetStorageUsageResponse{
+		Success: true,
+		StorageInfo: &proto.StorageInfo{
+			UsedBytes:    usage.StorageUsedBytes.Int64,
+			LimitBytes:   appPlanLimit.StorageLimitBytes(),
+			UsagePercent: usagePercent,
+			PlanId:       planID,
+		},
+	}, nil
+}
+
+// PlanLimits represents plan storage limits
+type PlanLimits struct {
+	StorageLimit int64
+}
+
+// GetUserStorageInfo gets user storage usage with plan limits (for frontend display)
+func (s *VideoAPI) GetUserStorageInfo(ctx context.Context, req *proto.GetUserStorageInfoRequest) (*proto.GetUserStorageInfoResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	s.log.Info("GetUserStorageInfo", "userID", req.UserId)
+
+	// 1. Get user's subscription from PaymentService to get plan ID
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err != nil {
+		s.log.Error("Failed to get user subscription", "error", err, "userID", req.UserId)
+		return &proto.GetUserStorageInfoResponse{
+			Success:      false,
+			ErrorMessage: "Failed to get subscription info",
+		}, nil
+	}
+
+	if !subscription.Success {
+		s.log.Warn("User has no subscription", "userID", req.UserId)
+		return &proto.GetUserStorageInfoResponse{
+			Success:      false,
+			ErrorMessage: "No subscription found",
+		}, nil
+	}
+
+	// 2. Get plan limits from application-specific config
+	planID := subscription.SubscriptionInfo.Plan.Id
+	appPlanLimit := s.config.GetPlanLimitByID(planID)
+	if appPlanLimit == nil {
+		s.log.Error("Unknown plan", "planID", planID)
+		return &proto.GetUserStorageInfoResponse{
+			Success:      false,
+			ErrorMessage: "Unknown plan",
+		}, nil
+	}
+
+	// 3. Get current storage usage from VideoService database
+	queries := s.dbQueries.(*db.Queries)
+	usage, err := queries.GetUserStorageUsage(ctx, req.UserId)
+	if err != nil && err != sql.ErrNoRows {
+		s.log.Error("Failed to get user storage usage", "error", err, "userID", req.UserId)
+		return &proto.GetUserStorageInfoResponse{
+			Success:      false,
+			ErrorMessage: "Failed to get storage usage",
+		}, nil
+	}
+
+	currentUsage := int64(0)
+	if err == nil {
+		currentUsage = usage.StorageUsedBytes.Int64
+	}
+
+	// 4. Calculate usage percentage
+	usagePercent := float64(0)
+	if appPlanLimit.StorageLimitBytes() > 0 {
+		usagePercent = float64(currentUsage) / float64(appPlanLimit.StorageLimitBytes()) * 100
+	}
+
+	return &proto.GetUserStorageInfoResponse{
+		Success: true,
+		StorageInfo: &proto.StorageInfo{
+			UsedBytes:    currentUsage,
+			LimitBytes:   appPlanLimit.StorageLimitBytes(),
+			UsagePercent: usagePercent,
+			PlanId:       planID,
+		},
 	}, nil
 }

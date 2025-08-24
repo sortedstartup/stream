@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package paymentservice;
+option go_package = "sortedstartup.com/stream/paymentservice/proto";
+
+import "google/protobuf/timestamp.proto";
+
+// Generic Payment service for managing user subscriptions (pure payment functionality)
+service PaymentService {
+  // Get user subscription and usage details
+  rpc GetUserSubscription(GetUserSubscriptionRequest) returns (GetUserSubscriptionResponse);
+  
+  // Get available subscription plans
+  rpc GetPlans(GetPlansRequest) returns (GetPlansResponse);
+  
+  // Create payment checkout session (provider-agnostic)
+  rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
+  
+  // Create user subscription (called by application services)
+  rpc CreateUserSubscription(CreateUserSubscriptionRequest) returns (CreateUserSubscriptionResponse);
+}
+
+// Messages for CreateUserSubscription
+message CreateUserSubscriptionRequest {
+  string user_id = 1;
+  string plan_id = 2;                    // "free", "standard", "premium"
+}
+
+message CreateUserSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+  string subscription_id = 3;
+}
+
+// Messages for GetUserSubscription
+message GetUserSubscriptionRequest {
+  string user_id = 1;
+}
+
+message GetUserSubscriptionResponse {
+  UserSubscriptionInfo subscription_info = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Messages for GetPlans
+message GetPlansRequest {
+  // Empty request - returns all active plans
+}
+
+message GetPlansResponse {
+  repeated Plan plans = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Messages for CreateCheckoutSession
+message CreateCheckoutSessionRequest {
+  string user_id = 1;                    // User who wants to pay
+  string plan_id = 2;                    // "standard", "premium"
+  string success_url = 3;                // Frontend redirect after payment
+  string cancel_url = 4;                 // Frontend redirect after cancel
+}
+
+message CreateCheckoutSessionResponse {
+  string checkout_url = 1;               // URL to redirect user to
+  string session_id = 2;                 // Provider session ID
+  bool success = 3;
+  string error_message = 4;
+}
+
+
+
+// Shared data structures
+message UserSubscriptionInfo {
+  string user_id = 1;
+  Subscription subscription = 2;
+  Plan plan = 3;
+}
+
+message Subscription {
+  string id = 1;
+  string user_id = 2;                    // User who paid
+  string plan_id = 3;
+  string provider = 4;                   // "stripe" or "razorpay"
+  string provider_customer_id = 5;
+  string provider_subscription_id = 6;
+  string status = 7;                     // "active", "canceled", "past_due", "incomplete"
+  google.protobuf.Timestamp current_period_start = 8;
+  google.protobuf.Timestamp current_period_end = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message Plan {
+  string id = 1;
+  string name = 2;
+  int64 price_cents = 3;
+  bool is_active = 4;
+} 
