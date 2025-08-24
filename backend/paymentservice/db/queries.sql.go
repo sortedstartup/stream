@@ -10,111 +10,25 @@ import (
 	"database/sql"
 )
 
-const checkUserAccess = `-- name: CheckUserAccess :one
-SELECT 
-    -- Subscription info
-    s.user_id,
-    s.plan_id,
-    s.status as subscription_status,
-    
-    -- Plan limits
-    p.storage_limit_bytes,
-    p.users_limit,
-    p.name as plan_name,
-    p.price_cents,
-    
-    -- Current usage
-    COALESCE(u.storage_used_bytes, 0) as current_storage_bytes,
-    COALESCE(u.users_count, 0) as current_users_count,
-    
-    -- Access decision for storage
-    CASE 
-        WHEN s.status = 'active' 
-         AND COALESCE(u.storage_used_bytes, 0) < p.storage_limit_bytes
-        THEN 1 
-        ELSE 0 
-    END as has_storage_access,
-    
-    -- Access decision for users
-    CASE 
-        WHEN s.status = 'active' 
-         AND COALESCE(u.users_count, 0) < p.users_limit
-        THEN 1 
-        ELSE 0 
-    END as has_users_access,
-    
-    -- Usage percentages for warnings (rounded to integer)
-    CAST(CAST(COALESCE(u.storage_used_bytes, 0) AS FLOAT) / p.storage_limit_bytes * 100 AS INTEGER) as storage_usage_percent,
-    CAST(CAST(COALESCE(u.users_count, 0) AS FLOAT) / p.users_limit * 100 AS INTEGER) as users_usage_percent
-
-FROM paymentservice_user_subscriptions s
-LEFT JOIN paymentservice_plans p ON s.plan_id = p.id  
-LEFT JOIN paymentservice_user_usage u ON s.user_id = u.user_id
-WHERE s.user_id = ?
-`
-
-type CheckUserAccessRow struct {
-	UserID              string
-	PlanID              string
-	SubscriptionStatus  string
-	StorageLimitBytes   sql.NullInt64
-	UsersLimit          sql.NullInt64
-	PlanName            sql.NullString
-	PriceCents          sql.NullInt64
-	CurrentStorageBytes int64
-	CurrentUsersCount   int64
-	HasStorageAccess    int64
-	HasUsersAccess      int64
-	StorageUsagePercent int64
-	UsersUsagePercent   int64
-}
-
-// Core access check query (main functionality)
-func (q *Queries) CheckUserAccess(ctx context.Context, userID string) (CheckUserAccessRow, error) {
-	row := q.db.QueryRowContext(ctx, checkUserAccess, userID)
-	var i CheckUserAccessRow
-	err := row.Scan(
-		&i.UserID,
-		&i.PlanID,
-		&i.SubscriptionStatus,
-		&i.StorageLimitBytes,
-		&i.UsersLimit,
-		&i.PlanName,
-		&i.PriceCents,
-		&i.CurrentStorageBytes,
-		&i.CurrentUsersCount,
-		&i.HasStorageAccess,
-		&i.HasUsersAccess,
-		&i.StorageUsagePercent,
-		&i.UsersUsagePercent,
-	)
-	return i, err
-}
-
 const createPlan = `-- name: CreatePlan :one
 INSERT INTO paymentservice_plans (
-    id, name, storage_limit_bytes, users_limit, 
-    price_cents, is_active, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
-RETURNING id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at
+    id, name, price_cents, is_active, created_at, updated_at
+) VALUES (?, ?, ?, TRUE, ?, ?)
+RETURNING id, name, price_cents, is_active, created_at, updated_at
 `
 
 type CreatePlanParams struct {
-	ID                string
-	Name              string
-	StorageLimitBytes int64
-	UsersLimit        int64
-	PriceCents        sql.NullInt64
-	CreatedAt         int64
-	UpdatedAt         int64
+	ID         string
+	Name       string
+	PriceCents sql.NullInt64
+	CreatedAt  int64
+	UpdatedAt  int64
 }
 
 func (q *Queries) CreatePlan(ctx context.Context, arg CreatePlanParams) (PaymentservicePlan, error) {
 	row := q.db.QueryRowContext(ctx, createPlan,
 		arg.ID,
 		arg.Name,
-		arg.StorageLimitBytes,
-		arg.UsersLimit,
 		arg.PriceCents,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -123,8 +37,6 @@ func (q *Queries) CreatePlan(ctx context.Context, arg CreatePlanParams) (Payment
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.StorageLimitBytes,
-		&i.UsersLimit,
 		&i.PriceCents,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -187,46 +99,8 @@ func (q *Queries) CreateUserSubscription(ctx context.Context, arg CreateUserSubs
 	return i, err
 }
 
-const createUserUsage = `-- name: CreateUserUsage :one
-INSERT INTO paymentservice_user_usage (
-    user_id, storage_used_bytes, users_count,
-    last_calculated_at, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?)
-RETURNING user_id, storage_used_bytes, users_count, last_calculated_at, created_at, updated_at
-`
-
-type CreateUserUsageParams struct {
-	UserID           string
-	StorageUsedBytes sql.NullInt64
-	UsersCount       sql.NullInt64
-	LastCalculatedAt sql.NullInt64
-	CreatedAt        int64
-	UpdatedAt        int64
-}
-
-func (q *Queries) CreateUserUsage(ctx context.Context, arg CreateUserUsageParams) (PaymentserviceUserUsage, error) {
-	row := q.db.QueryRowContext(ctx, createUserUsage,
-		arg.UserID,
-		arg.StorageUsedBytes,
-		arg.UsersCount,
-		arg.LastCalculatedAt,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	var i PaymentserviceUserUsage
-	err := row.Scan(
-		&i.UserID,
-		&i.StorageUsedBytes,
-		&i.UsersCount,
-		&i.LastCalculatedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getActivePlans = `-- name: GetActivePlans :many
-SELECT id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at FROM paymentservice_plans WHERE is_active = TRUE ORDER BY price_cents ASC
+SELECT id, name, price_cents, is_active, created_at, updated_at FROM paymentservice_plans WHERE is_active = TRUE ORDER BY price_cents ASC
 `
 
 func (q *Queries) GetActivePlans(ctx context.Context) ([]PaymentservicePlan, error) {
@@ -241,8 +115,6 @@ func (q *Queries) GetActivePlans(ctx context.Context) ([]PaymentservicePlan, err
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.StorageLimitBytes,
-			&i.UsersLimit,
 			&i.PriceCents,
 			&i.IsActive,
 			&i.CreatedAt,
@@ -263,7 +135,7 @@ func (q *Queries) GetActivePlans(ctx context.Context) ([]PaymentservicePlan, err
 
 const getPlan = `-- name: GetPlan :one
 
-SELECT id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at FROM paymentservice_plans WHERE id = ? LIMIT 1
+SELECT id, name, price_cents, is_active, created_at, updated_at FROM paymentservice_plans WHERE id = ? LIMIT 1
 `
 
 // Generic Payment Service Queries (Application Agnostic)
@@ -274,8 +146,6 @@ func (q *Queries) GetPlan(ctx context.Context, id string) (PaymentservicePlan, e
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.StorageLimitBytes,
-		&i.UsersLimit,
 		&i.PriceCents,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -320,47 +190,23 @@ func (q *Queries) GetUserSubscription(ctx context.Context, userID string) (Payme
 	return i, err
 }
 
-const getUserUsage = `-- name: GetUserUsage :one
-SELECT user_id, storage_used_bytes, users_count, last_calculated_at, created_at, updated_at FROM paymentservice_user_usage WHERE user_id = ? LIMIT 1
-`
-
-// User usage queries (core functionality)
-func (q *Queries) GetUserUsage(ctx context.Context, userID string) (PaymentserviceUserUsage, error) {
-	row := q.db.QueryRowContext(ctx, getUserUsage, userID)
-	var i PaymentserviceUserUsage
-	err := row.Scan(
-		&i.UserID,
-		&i.StorageUsedBytes,
-		&i.UsersCount,
-		&i.LastCalculatedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const updatePlan = `-- name: UpdatePlan :one
 UPDATE paymentservice_plans 
-SET name = ?, storage_limit_bytes = ?, users_limit = ?, 
-    price_cents = ?, updated_at = ?
+SET name = ?, price_cents = ?, updated_at = ?
 WHERE id = ?
-RETURNING id, name, storage_limit_bytes, users_limit, price_cents, is_active, created_at, updated_at
+RETURNING id, name, price_cents, is_active, created_at, updated_at
 `
 
 type UpdatePlanParams struct {
-	Name              string
-	StorageLimitBytes int64
-	UsersLimit        int64
-	PriceCents        sql.NullInt64
-	UpdatedAt         int64
-	ID                string
+	Name       string
+	PriceCents sql.NullInt64
+	UpdatedAt  int64
+	ID         string
 }
 
 func (q *Queries) UpdatePlan(ctx context.Context, arg UpdatePlanParams) (PaymentservicePlan, error) {
 	row := q.db.QueryRowContext(ctx, updatePlan,
 		arg.Name,
-		arg.StorageLimitBytes,
-		arg.UsersLimit,
 		arg.PriceCents,
 		arg.UpdatedAt,
 		arg.ID,
@@ -369,37 +215,12 @@ func (q *Queries) UpdatePlan(ctx context.Context, arg UpdatePlanParams) (Payment
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.StorageLimitBytes,
-		&i.UsersLimit,
 		&i.PriceCents,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const updateUserStorageUsage = `-- name: UpdateUserStorageUsage :exec
-UPDATE paymentservice_user_usage 
-SET storage_used_bytes = storage_used_bytes + ?, last_calculated_at = ?, updated_at = ?
-WHERE user_id = ?
-`
-
-type UpdateUserStorageUsageParams struct {
-	StorageUsedBytes sql.NullInt64
-	LastCalculatedAt sql.NullInt64
-	UpdatedAt        int64
-	UserID           string
-}
-
-func (q *Queries) UpdateUserStorageUsage(ctx context.Context, arg UpdateUserStorageUsageParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserStorageUsage,
-		arg.StorageUsedBytes,
-		arg.LastCalculatedAt,
-		arg.UpdatedAt,
-		arg.UserID,
-	)
-	return err
 }
 
 const updateUserSubscriptionPlan = `-- name: UpdateUserSubscriptionPlan :exec
@@ -461,29 +282,6 @@ func (q *Queries) UpdateUserSubscriptionStatus(ctx context.Context, arg UpdateUs
 		arg.Status,
 		arg.CurrentPeriodStart,
 		arg.CurrentPeriodEnd,
-		arg.UpdatedAt,
-		arg.UserID,
-	)
-	return err
-}
-
-const updateUserUsersCount = `-- name: UpdateUserUsersCount :exec
-UPDATE paymentservice_user_usage 
-SET users_count = users_count + ?, last_calculated_at = ?, updated_at = ?
-WHERE user_id = ?
-`
-
-type UpdateUserUsersCountParams struct {
-	UsersCount       sql.NullInt64
-	LastCalculatedAt sql.NullInt64
-	UpdatedAt        int64
-	UserID           string
-}
-
-func (q *Queries) UpdateUserUsersCount(ctx context.Context, arg UpdateUserUsersCountParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserUsersCount,
-		arg.UsersCount,
-		arg.LastCalculatedAt,
 		arg.UpdatedAt,
 		arg.UserID,
 	)

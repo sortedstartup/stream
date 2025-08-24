@@ -19,32 +19,26 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PaymentService_CheckUserAccess_FullMethodName       = "/paymentservice.PaymentService/CheckUserAccess"
-	PaymentService_GetUserSubscription_FullMethodName   = "/paymentservice.PaymentService/GetUserSubscription"
-	PaymentService_GetPlans_FullMethodName              = "/paymentservice.PaymentService/GetPlans"
-	PaymentService_CreateCheckoutSession_FullMethodName = "/paymentservice.PaymentService/CreateCheckoutSession"
-	PaymentService_UpdateUserUsage_FullMethodName       = "/paymentservice.PaymentService/UpdateUserUsage"
-	PaymentService_InitializeUser_FullMethodName        = "/paymentservice.PaymentService/InitializeUser"
+	PaymentService_GetUserSubscription_FullMethodName    = "/paymentservice.PaymentService/GetUserSubscription"
+	PaymentService_GetPlans_FullMethodName               = "/paymentservice.PaymentService/GetPlans"
+	PaymentService_CreateCheckoutSession_FullMethodName  = "/paymentservice.PaymentService/CreateCheckoutSession"
+	PaymentService_CreateUserSubscription_FullMethodName = "/paymentservice.PaymentService/CreateUserSubscription"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Generic Payment service for managing user subscriptions and usage limits
+// Generic Payment service for managing user subscriptions (pure payment functionality)
 type PaymentServiceClient interface {
-	// Check if user can perform specific action
-	CheckUserAccess(ctx context.Context, in *CheckUserAccessRequest, opts ...grpc.CallOption) (*CheckUserAccessResponse, error)
 	// Get user subscription and usage details
 	GetUserSubscription(ctx context.Context, in *GetUserSubscriptionRequest, opts ...grpc.CallOption) (*GetUserSubscriptionResponse, error)
 	// Get available subscription plans
 	GetPlans(ctx context.Context, in *GetPlansRequest, opts ...grpc.CallOption) (*GetPlansResponse, error)
 	// Create payment checkout session (provider-agnostic)
 	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
-	// Update user usage (called by application services)
-	UpdateUserUsage(ctx context.Context, in *UpdateUserUsageRequest, opts ...grpc.CallOption) (*UpdateUserUsageResponse, error)
-	// Initialize user with free subscription
-	InitializeUser(ctx context.Context, in *InitializeUserRequest, opts ...grpc.CallOption) (*InitializeUserResponse, error)
+	// Create user subscription (called by application services)
+	CreateUserSubscription(ctx context.Context, in *CreateUserSubscriptionRequest, opts ...grpc.CallOption) (*CreateUserSubscriptionResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -53,16 +47,6 @@ type paymentServiceClient struct {
 
 func NewPaymentServiceClient(cc grpc.ClientConnInterface) PaymentServiceClient {
 	return &paymentServiceClient{cc}
-}
-
-func (c *paymentServiceClient) CheckUserAccess(ctx context.Context, in *CheckUserAccessRequest, opts ...grpc.CallOption) (*CheckUserAccessResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckUserAccessResponse)
-	err := c.cc.Invoke(ctx, PaymentService_CheckUserAccess_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *paymentServiceClient) GetUserSubscription(ctx context.Context, in *GetUserSubscriptionRequest, opts ...grpc.CallOption) (*GetUserSubscriptionResponse, error) {
@@ -95,20 +79,10 @@ func (c *paymentServiceClient) CreateCheckoutSession(ctx context.Context, in *Cr
 	return out, nil
 }
 
-func (c *paymentServiceClient) UpdateUserUsage(ctx context.Context, in *UpdateUserUsageRequest, opts ...grpc.CallOption) (*UpdateUserUsageResponse, error) {
+func (c *paymentServiceClient) CreateUserSubscription(ctx context.Context, in *CreateUserSubscriptionRequest, opts ...grpc.CallOption) (*CreateUserSubscriptionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateUserUsageResponse)
-	err := c.cc.Invoke(ctx, PaymentService_UpdateUserUsage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *paymentServiceClient) InitializeUser(ctx context.Context, in *InitializeUserRequest, opts ...grpc.CallOption) (*InitializeUserResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InitializeUserResponse)
-	err := c.cc.Invoke(ctx, PaymentService_InitializeUser_FullMethodName, in, out, cOpts...)
+	out := new(CreateUserSubscriptionResponse)
+	err := c.cc.Invoke(ctx, PaymentService_CreateUserSubscription_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,20 +93,16 @@ func (c *paymentServiceClient) InitializeUser(ctx context.Context, in *Initializ
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility.
 //
-// Generic Payment service for managing user subscriptions and usage limits
+// Generic Payment service for managing user subscriptions (pure payment functionality)
 type PaymentServiceServer interface {
-	// Check if user can perform specific action
-	CheckUserAccess(context.Context, *CheckUserAccessRequest) (*CheckUserAccessResponse, error)
 	// Get user subscription and usage details
 	GetUserSubscription(context.Context, *GetUserSubscriptionRequest) (*GetUserSubscriptionResponse, error)
 	// Get available subscription plans
 	GetPlans(context.Context, *GetPlansRequest) (*GetPlansResponse, error)
 	// Create payment checkout session (provider-agnostic)
 	CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error)
-	// Update user usage (called by application services)
-	UpdateUserUsage(context.Context, *UpdateUserUsageRequest) (*UpdateUserUsageResponse, error)
-	// Initialize user with free subscription
-	InitializeUser(context.Context, *InitializeUserRequest) (*InitializeUserResponse, error)
+	// Create user subscription (called by application services)
+	CreateUserSubscription(context.Context, *CreateUserSubscriptionRequest) (*CreateUserSubscriptionResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -143,9 +113,6 @@ type PaymentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPaymentServiceServer struct{}
 
-func (UnimplementedPaymentServiceServer) CheckUserAccess(context.Context, *CheckUserAccessRequest) (*CheckUserAccessResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckUserAccess not implemented")
-}
 func (UnimplementedPaymentServiceServer) GetUserSubscription(context.Context, *GetUserSubscriptionRequest) (*GetUserSubscriptionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserSubscription not implemented")
 }
@@ -155,11 +122,8 @@ func (UnimplementedPaymentServiceServer) GetPlans(context.Context, *GetPlansRequ
 func (UnimplementedPaymentServiceServer) CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCheckoutSession not implemented")
 }
-func (UnimplementedPaymentServiceServer) UpdateUserUsage(context.Context, *UpdateUserUsageRequest) (*UpdateUserUsageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserUsage not implemented")
-}
-func (UnimplementedPaymentServiceServer) InitializeUser(context.Context, *InitializeUserRequest) (*InitializeUserResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InitializeUser not implemented")
+func (UnimplementedPaymentServiceServer) CreateUserSubscription(context.Context, *CreateUserSubscriptionRequest) (*CreateUserSubscriptionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUserSubscription not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue()                        {}
@@ -180,24 +144,6 @@ func RegisterPaymentServiceServer(s grpc.ServiceRegistrar, srv PaymentServiceSer
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&PaymentService_ServiceDesc, srv)
-}
-
-func _PaymentService_CheckUserAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckUserAccessRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PaymentServiceServer).CheckUserAccess(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PaymentService_CheckUserAccess_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServiceServer).CheckUserAccess(ctx, req.(*CheckUserAccessRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _PaymentService_GetUserSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -254,38 +200,20 @@ func _PaymentService_CreateCheckoutSession_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PaymentService_UpdateUserUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateUserUsageRequest)
+func _PaymentService_CreateUserSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserSubscriptionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PaymentServiceServer).UpdateUserUsage(ctx, in)
+		return srv.(PaymentServiceServer).CreateUserSubscription(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PaymentService_UpdateUserUsage_FullMethodName,
+		FullMethod: PaymentService_CreateUserSubscription_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServiceServer).UpdateUserUsage(ctx, req.(*UpdateUserUsageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PaymentService_InitializeUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitializeUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PaymentServiceServer).InitializeUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PaymentService_InitializeUser_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServiceServer).InitializeUser(ctx, req.(*InitializeUserRequest))
+		return srv.(PaymentServiceServer).CreateUserSubscription(ctx, req.(*CreateUserSubscriptionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -297,10 +225,6 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "paymentservice.PaymentService",
 	HandlerType: (*PaymentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CheckUserAccess",
-			Handler:    _PaymentService_CheckUserAccess_Handler,
-		},
 		{
 			MethodName: "GetUserSubscription",
 			Handler:    _PaymentService_GetUserSubscription_Handler,
@@ -314,12 +238,8 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PaymentService_CreateCheckoutSession_Handler,
 		},
 		{
-			MethodName: "UpdateUserUsage",
-			Handler:    _PaymentService_UpdateUserUsage_Handler,
-		},
-		{
-			MethodName: "InitializeUser",
-			Handler:    _PaymentService_InitializeUser_Handler,
+			MethodName: "CreateUserSubscription",
+			Handler:    _PaymentService_CreateUserSubscription_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

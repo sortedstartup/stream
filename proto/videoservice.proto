@@ -22,6 +22,17 @@ service VideoService {
 
   // Sharing
   rpc ShareVideo(ShareVideoRequest) returns (ShareLink);
+  
+  // Storage access control (moved from payment service)
+  rpc CheckStorageAccess(CheckStorageAccessRequest) returns (CheckStorageAccessResponse);
+  rpc UpdateStorageUsage(UpdateStorageUsageRequest) returns (UpdateStorageUsageResponse);
+  rpc GetStorageUsage(GetStorageUsageRequest) returns (GetStorageUsageResponse);
+  
+  // Plan storage limits
+  rpc GetPlanStorageLimit(GetPlanStorageLimitRequest) returns (GetPlanStorageLimitResponse);
+  
+  // Get user storage usage with plan limits (for frontend display)
+  rpc GetUserStorageInfo(GetUserStorageInfoRequest) returns (GetUserStorageInfoResponse);
 }
 
 service ChannelService {
@@ -202,4 +213,69 @@ message RemoveVideoFromChannelRequest {
 message RemoveVideoFromChannelResponse {
   string message = 1;
   Video video = 2;
+}
+
+// Storage access control messages (moved from payment service)
+message CheckStorageAccessRequest {
+  string user_id = 1;
+  int64 requested_bytes = 2;
+  string tenant_id = 3; // optional
+}
+
+message CheckStorageAccessResponse {
+  bool has_access = 1;
+  string reason = 2;
+  StorageInfo storage_info = 3;
+  bool is_near_limit = 4;
+  string warning_message = 5;
+}
+
+message StorageInfo {
+  int64 used_bytes = 1;
+  int64 limit_bytes = 2;
+  double usage_percent = 3;
+  string plan_id = 4;
+}
+
+message UpdateStorageUsageRequest {
+  string user_id = 1;
+  int64 usage_change = 2; // Can be positive (add) or negative (subtract)
+}
+
+message UpdateStorageUsageResponse {
+  bool success = 1;
+  string error_message = 2;
+  StorageInfo updated_info = 3;
+}
+
+message GetStorageUsageRequest {
+  string user_id = 1;
+}
+
+message GetStorageUsageResponse {
+  bool success = 1;
+  string error_message = 2;
+  StorageInfo storage_info = 3;
+}
+
+// Get user storage info with plan limits (for frontend)
+message GetUserStorageInfoRequest {
+  string user_id = 1;
+}
+
+message GetUserStorageInfoResponse {
+  bool success = 1;
+  string error_message = 2;
+  StorageInfo storage_info = 3;
+}
+
+// Get plan storage limit
+message GetPlanStorageLimitRequest {
+  string plan_id = 1;
+}
+
+message GetPlanStorageLimitResponse {
+  bool success = 1;
+  string error_message = 2;
+  int64 storage_limit_bytes = 3;
 }

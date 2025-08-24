@@ -1,12 +1,10 @@
--- Payment service database schema - Model 2 (Pay Per User)
+-- Payment service database schema (Pure Payment Functionality)
 -- Supports multiple payment providers (Stripe, Razorpay)
 
 -- Plan definitions table (generic for any application)
 CREATE TABLE paymentservice_plans (
     id TEXT PRIMARY KEY,                    -- 'free', 'standard', 'premium'
     name TEXT NOT NULL,
-    storage_limit_bytes INTEGER NOT NULL,  -- Storage limit in bytes
-    users_limit INTEGER NOT NULL,          -- Users limit
     price_cents INTEGER DEFAULT 0,         -- 0 for free, provider price for paid
     is_active BOOLEAN DEFAULT TRUE,
     created_at INTEGER NOT NULL,
@@ -30,19 +28,6 @@ CREATE TABLE paymentservice_user_subscriptions (
     FOREIGN KEY (plan_id) REFERENCES paymentservice_plans(id)
 );
 
--- User usage tracking table (generic usage metrics)
-CREATE TABLE paymentservice_user_usage (
-    user_id TEXT PRIMARY KEY,
-    storage_used_bytes INTEGER DEFAULT 0,   -- Total storage used by user
-    users_count INTEGER DEFAULT 0,          -- Total users managed by this user
-    last_calculated_at INTEGER,            -- Last time usage was calculated
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    
-    FOREIGN KEY (user_id) REFERENCES paymentservice_user_subscriptions(user_id)
-);
-
 -- Indexes for better performance
 CREATE INDEX idx_user_subscriptions_user_id ON paymentservice_user_subscriptions(user_id);
-CREATE INDEX idx_user_subscriptions_status ON paymentservice_user_subscriptions(status);
-CREATE INDEX idx_user_usage_user_id ON paymentservice_user_usage(user_id); 
+CREATE INDEX idx_user_subscriptions_status ON paymentservice_user_subscriptions(status); 

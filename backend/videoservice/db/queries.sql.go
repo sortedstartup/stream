@@ -11,6 +11,29 @@ import (
 	"time"
 )
 
+const addUserStorageUsage = `-- name: AddUserStorageUsage :exec
+UPDATE videoservice_user_storage_usage 
+SET storage_used_bytes = storage_used_bytes + ?, last_calculated_at = ?, updated_at = ?
+WHERE user_id = ?
+`
+
+type AddUserStorageUsageParams struct {
+	StorageUsedBytes sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	UpdatedAt        int64
+	UserID           string
+}
+
+func (q *Queries) AddUserStorageUsage(ctx context.Context, arg AddUserStorageUsageParams) error {
+	_, err := q.db.ExecContext(ctx, addUserStorageUsage,
+		arg.StorageUsedBytes,
+		arg.LastCalculatedAt,
+		arg.UpdatedAt,
+		arg.UserID,
+	)
+	return err
+}
+
 const createChannel = `-- name: CreateChannel :one
 INSERT INTO videoservice_channels (
     id,
@@ -109,6 +132,40 @@ func (q *Queries) CreateChannelMember(ctx context.Context, arg CreateChannelMemb
 		&i.Role,
 		&i.AddedBy,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createUserStorageUsage = `-- name: CreateUserStorageUsage :one
+INSERT INTO videoservice_user_storage_usage (
+    user_id, storage_used_bytes, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+RETURNING user_id, storage_used_bytes, last_calculated_at, created_at, updated_at
+`
+
+type CreateUserStorageUsageParams struct {
+	UserID           string
+	StorageUsedBytes sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) CreateUserStorageUsage(ctx context.Context, arg CreateUserStorageUsageParams) (VideoserviceUserStorageUsage, error) {
+	row := q.db.QueryRowContext(ctx, createUserStorageUsage,
+		arg.UserID,
+		arg.StorageUsedBytes,
+		arg.LastCalculatedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i VideoserviceUserStorageUsage
+	err := row.Scan(
+		&i.UserID,
+		&i.StorageUsedBytes,
+		&i.LastCalculatedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -506,6 +563,24 @@ func (q *Queries) GetUserRoleInChannel(ctx context.Context, arg GetUserRoleInCha
 	return role, err
 }
 
+const getUserStorageUsage = `-- name: GetUserStorageUsage :one
+SELECT user_id, storage_used_bytes, last_calculated_at, created_at, updated_at FROM videoservice_user_storage_usage WHERE user_id = ? LIMIT 1
+`
+
+// Storage usage queries (moved from payment service)
+func (q *Queries) GetUserStorageUsage(ctx context.Context, userID string) (VideoserviceUserStorageUsage, error) {
+	row := q.db.QueryRowContext(ctx, getUserStorageUsage, userID)
+	var i VideoserviceUserStorageUsage
+	err := row.Scan(
+		&i.UserID,
+		&i.StorageUsedBytes,
+		&i.LastCalculatedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getVideoByVideoIDAndTenantID = `-- name: GetVideoByVideoIDAndTenantID :one
 SELECT id, title, description, url, created_at, uploaded_user_id, updated_at, is_private, tenant_id, channel_id, is_deleted, file_size_bytes FROM videoservice_videos 
 WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
@@ -575,7 +650,7 @@ func (q *Queries) GetVideoCountsPerChannelByTenantID(ctx context.Context, tenant
 }
 
 const getVideoFileSizeForDeletion = `-- name: GetVideoFileSizeForDeletion :one
-SELECT file_size_bytes, uploaded_user_id 
+SELECT file_size_bytes, uploaded_user_id, channel_id 
 FROM videoservice_videos 
 WHERE id = ?1 AND tenant_id = ?2 AND is_deleted = FALSE
 `
@@ -588,12 +663,13 @@ type GetVideoFileSizeForDeletionParams struct {
 type GetVideoFileSizeForDeletionRow struct {
 	FileSizeBytes  sql.NullInt64
 	UploadedUserID string
+	ChannelID      sql.NullString
 }
 
 func (q *Queries) GetVideoFileSizeForDeletion(ctx context.Context, arg GetVideoFileSizeForDeletionParams) (GetVideoFileSizeForDeletionRow, error) {
 	row := q.db.QueryRowContext(ctx, getVideoFileSizeForDeletion, arg.VideoID, arg.TenantID)
 	var i GetVideoFileSizeForDeletionRow
-	err := row.Scan(&i.FileSizeBytes, &i.UploadedUserID)
+	err := row.Scan(&i.FileSizeBytes, &i.UploadedUserID, &i.ChannelID)
 	return i, err
 }
 
@@ -814,5 +890,34 @@ type UpdateVideoFileSizeParams struct {
 
 func (q *Queries) UpdateVideoFileSize(ctx context.Context, arg UpdateVideoFileSizeParams) error {
 	_, err := q.db.ExecContext(ctx, updateVideoFileSize, arg.FileSizeBytes, arg.UpdatedAt, arg.VideoID)
+	return err
+}
+
+const upsertUserStorageUsage = `-- name: UpsertUserStorageUsage :exec
+INSERT INTO videoservice_user_storage_usage (
+    user_id, storage_used_bytes, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id) DO UPDATE SET
+    storage_used_bytes = excluded.storage_used_bytes,
+    last_calculated_at = excluded.last_calculated_at,
+    updated_at = excluded.updated_at
+`
+
+type UpsertUserStorageUsageParams struct {
+	UserID           string
+	StorageUsedBytes sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) UpsertUserStorageUsage(ctx context.Context, arg UpsertUserStorageUsageParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserStorageUsage,
+		arg.UserID,
+		arg.StorageUsedBytes,
+		arg.LastCalculatedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	return err
 }
