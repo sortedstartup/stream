@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"sortedstartup.com/stream/common/interceptors"
 	"sortedstartup.com/stream/videoservice/db"
+	"sortedstartup.com/stream/videoservice/proto"
 )
 
 const (
@@ -158,6 +159,75 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	channelID := strings.TrimSpace(string(channelData))
 
+	// Determine who should be charged based on upload type
+	var payingUserID string
+	if channelID != "" {
+		// Channel upload - tenant owner pays
+		slog.Info("Channel upload detected, checking tenant owner's payment limits", "channelID", channelID, "tenantID", tenantID)
+		tenantOwner, err := getTenantOwner(r.Context(), api.userServiceClient, api.log, tenantID)
+		if err != nil {
+			http.Error(w, "Failed to determine tenant owner", http.StatusInternalServerError)
+			slog.Error("Failed to get tenant owner", "err", err, "tenantID", tenantID)
+			return
+		}
+		payingUserID = tenantOwner
+		slog.Info("Tenant owner will be charged for storage", "tenantOwner", tenantOwner, "uploader", userID)
+	} else {
+		// "My Videos" upload - uploader pays
+		slog.Info("My Videos upload detected, checking uploader's payment limits", "uploader", userID)
+		payingUserID = userID
+	}
+
+	// Check storage access via VideoService (moved from PaymentService)
+	slog.Info("Checking storage access for upload", "payingUserID", payingUserID, "uploader", userID, "channelID", channelID)
+	accessResp, err := api.CheckStorageAccess(r.Context(), &proto.CheckStorageAccessRequest{
+		UserId:         payingUserID,
+		RequestedBytes: int64(r.ContentLength), // Check if the upload size would exceed limits
+	})
+	if err != nil {
+		http.Error(w, "Storage access check failed", http.StatusServiceUnavailable)
+		slog.Error("Storage access check error", "err", err, "payingUserID", payingUserID)
+		return
+	}
+
+	if !accessResp.HasAccess {
+		var errorMessage string
+		if payingUserID == userID {
+			// Uploader's own limits exceeded
+			switch accessResp.Reason {
+			case "subscription_inactive":
+				errorMessage = "Upload failed: Your subscription is inactive. Please reactivate to continue uploading."
+			case "storage_limit_exceeded":
+				errorMessage = "Upload failed: Storage limit exceeded. Please upgrade your plan to continue uploading."
+			default:
+				errorMessage = "Upload failed: Access denied. Please check your subscription status."
+			}
+		} else {
+			// Tenant owner's limits exceeded
+			switch accessResp.Reason {
+			case "subscription_inactive":
+				errorMessage = "Upload failed: Workspace owner's subscription is inactive. Please contact the workspace owner."
+			case "storage_limit_exceeded":
+				errorMessage = "Upload failed: Workspace storage limit exceeded. Please contact the workspace owner to upgrade."
+			default:
+				errorMessage = "Upload failed: Access denied. Please contact the workspace owner."
+			}
+		}
+
+		http.Error(w, errorMessage, http.StatusPaymentRequired) // 402 Payment Required
+		slog.Warn("Upload blocked due to payment restrictions",
+			"payingUserID", payingUserID,
+			"uploader", userID,
+			"reason", accessResp.Reason,
+			"requestedSize", r.ContentLength)
+		return
+	}
+
+	// Log usage warning if near limit
+	if accessResp.IsNearLimit && accessResp.WarningMessage != "" {
+		slog.Warn("User approaching storage limit", "payingUserID", payingUserID, "warning", accessResp.WarningMessage)
+	}
+
 	// Read video file (part 4)
 	videoPart, err := reader.NextPart()
 	if err != nil {
@@ -248,6 +318,16 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("File streamed successfully", "filename", fileName, "original", originalFilename)
 
+	// Get file size to store in database
+	fileInfo, err := outFile.Stat()
+	if err != nil {
+		os.Remove(outputPath)
+		slog.Error("Failed to get file size for database storage", "err", err, "filename", fileName)
+		http.Error(w, "Failed to process file", http.StatusInternalServerError)
+		return
+	}
+	fileSizeForDB := fileInfo.Size()
+
 	// Save video details to the database
 	err = api.dbQueries.CreateVideoUploaded(r.Context(), db.CreateVideoUploadedParams{
 		ID:             uid,
@@ -259,6 +339,7 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		ChannelID:      sql.NullString{String: channelID, Valid: channelID != ""},
 		IsPrivate:      sql.NullBool{Bool: true, Valid: true},  // All videos are private by default
 		IsDeleted:      sql.NullBool{Bool: false, Valid: true}, // All videos start as not deleted
+		FileSizeBytes:  sql.NullInt64{Int64: fileSizeForDB, Valid: true},
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	})
@@ -268,6 +349,31 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to add video to the database", "err", err)
 		http.Error(w, "Failed to add video to the library", http.StatusInternalServerError)
 		return
+	}
+
+	// Update storage usage in videoservice_user_storage_usage table
+	slog.Info("Updating storage usage", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
+
+	// Get current usage first
+	currentUsageResp, err := api.GetStorageUsage(r.Context(), &proto.GetStorageUsageRequest{
+		UserId: payingUserID,
+	})
+	if err != nil {
+		slog.Error("Failed to get current storage usage", "err", err, "payingUserID", payingUserID)
+		// Don't fail the upload, just log the error
+	} else {
+		// Update with new total usage
+		newTotal := currentUsageResp.StorageInfo.UsedBytes + fileSizeForDB
+		_, err = api.UpdateStorageUsage(r.Context(), &proto.UpdateStorageUsageRequest{
+			UserId:      payingUserID,
+			UsageChange: newTotal, // Set the new total
+		})
+		if err != nil {
+			slog.Error("Failed to update storage usage", "err", err, "payingUserID", payingUserID, "fileSize", fileSizeForDB)
+			// Don't fail the upload, just log the error
+		} else {
+			slog.Info("Storage usage updated successfully", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB, "newTotal", newTotal)
+		}
 	}
 
 	// Success! Respond and exit

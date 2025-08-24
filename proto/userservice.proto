@@ -10,6 +10,17 @@ service UserService {
   rpc CreateUserIfNotExists(CreateUserRequest) returns (CreateUserResponse);
   // Get all the tenants which I (current logged in user) am a part of 
   rpc GetTenants(GetTenantsRequest) returns (GetTenantsResponse);
+  
+  // User subscription initialization (moved from PaymentService)
+  rpc InitializeUserSubscription(InitializeUserSubscriptionRequest) returns (InitializeUserSubscriptionResponse);
+  
+  // User limit methods  
+  rpc CheckUserAccess(CheckUserAccessRequest) returns (CheckUserAccessResponse);
+  rpc UpdateUserUsage(UpdateUserUsageRequest) returns (UpdateUserUsageResponse);
+  rpc GetUserUsage(GetUserUsageRequest) returns (GetUserUsageResponse);
+  
+  // Plan information with application-specific limits
+  rpc GetPlanInfo(GetPlanInfoRequest) returns (GetPlanInfoResponse);
 }
 
 service TenantService {
@@ -90,4 +101,76 @@ message GetUsersRequest {
 message GetUsersResponse {
   string message = 1;
   repeated TenantUser tenant_users = 2;
+}
+
+// User subscription initialization (moved from PaymentService)
+message InitializeUserSubscriptionRequest {
+  string user_id = 1;
+}
+
+message InitializeUserSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// User access control messages
+message CheckUserAccessRequest {
+  string user_id = 1;
+  int64 requested_user_count = 2;
+  string tenant_id = 3; // optional
+}
+
+message CheckUserAccessResponse {
+  bool has_access = 1;
+  string reason = 2;
+  UserLimitInfo user_info = 3;
+  bool is_near_limit = 4;
+  string warning_message = 5;
+}
+
+message UserLimitInfo {
+  int64 current_users = 1;
+  int64 limit_users = 2;
+  double usage_percent = 3;
+  string plan_id = 4;
+}
+
+message UpdateUserUsageRequest {
+  string user_id = 1;
+  int64 usage_change = 2; // Can be positive (add) or negative (subtract)
+}
+
+message UpdateUserUsageResponse {
+  bool success = 1;
+  string error_message = 2;
+  UserLimitInfo updated_info = 3;
+}
+
+message GetUserUsageRequest {
+  string user_id = 1;
+}
+
+message GetUserUsageResponse {
+  bool success = 1;
+  string error_message = 2;
+  UserLimitInfo user_info = 3;
+}
+
+message GetPlanInfoRequest {
+  string plan_id = 1;
+}
+
+message GetPlanInfoResponse {
+  bool success = 1;
+  string error_message = 2;
+  PlanInfo plan_info = 3;
+}
+
+message PlanInfo {
+  string id = 1;
+  string name = 2;
+  int64 price_cents = 3;
+  bool is_active = 4;
+  int64 storage_limit_bytes = 5;
+  int64 users_limit = 6;
 }

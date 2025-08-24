@@ -33,6 +33,7 @@ export class Video extends pb_1.Message {
         visibility?: Visibility;
         created_at?: dependency_1.Timestamp;
         channel_id?: string;
+        duration_seconds?: number;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -66,6 +67,9 @@ export class Video extends pb_1.Message {
             }
             if ("channel_id" in data && data.channel_id != undefined) {
                 this.channel_id = data.channel_id;
+            }
+            if ("duration_seconds" in data && data.duration_seconds != undefined) {
+                this.duration_seconds = data.duration_seconds;
             }
         }
     }
@@ -132,6 +136,12 @@ export class Video extends pb_1.Message {
     set channel_id(value: string) {
         pb_1.Message.setField(this, 10, value);
     }
+    get duration_seconds() {
+        return pb_1.Message.getFieldWithDefault(this, 11, 0) as number;
+    }
+    set duration_seconds(value: number) {
+        pb_1.Message.setField(this, 11, value);
+    }
     static fromObject(data: {
         id?: string;
         title?: string;
@@ -143,6 +153,7 @@ export class Video extends pb_1.Message {
         visibility?: Visibility;
         created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
         channel_id?: string;
+        duration_seconds?: number;
     }): Video {
         const message = new Video({});
         if (data.id != null) {
@@ -175,6 +186,9 @@ export class Video extends pb_1.Message {
         if (data.channel_id != null) {
             message.channel_id = data.channel_id;
         }
+        if (data.duration_seconds != null) {
+            message.duration_seconds = data.duration_seconds;
+        }
         return message;
     }
     toObject() {
@@ -189,6 +203,7 @@ export class Video extends pb_1.Message {
             visibility?: Visibility;
             created_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
             channel_id?: string;
+            duration_seconds?: number;
         } = {};
         if (this.id != null) {
             data.id = this.id;
@@ -220,6 +235,9 @@ export class Video extends pb_1.Message {
         if (this.channel_id != null) {
             data.channel_id = this.channel_id;
         }
+        if (this.duration_seconds != null) {
+            data.duration_seconds = this.duration_seconds;
+        }
         return data;
     }
     serialize(): Uint8Array;
@@ -246,6 +264,8 @@ export class Video extends pb_1.Message {
             writer.writeMessage(9, this.created_at, () => this.created_at.serialize(writer));
         if (this.channel_id.length)
             writer.writeString(10, this.channel_id);
+        if (this.duration_seconds != 0)
+            writer.writeInt64(11, this.duration_seconds);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -284,6 +304,9 @@ export class Video extends pb_1.Message {
                     break;
                 case 10:
                     message.channel_id = reader.readString();
+                    break;
+                case 11:
+                    message.duration_seconds = reader.readInt64();
                     break;
                 default: reader.skipField();
             }
@@ -2925,6 +2948,1169 @@ export class RemoveVideoFromChannelResponse extends pb_1.Message {
         return RemoveVideoFromChannelResponse.deserialize(bytes);
     }
 }
+export class CheckStorageAccessRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+        requested_bytes?: number;
+        tenant_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("requested_bytes" in data && data.requested_bytes != undefined) {
+                this.requested_bytes = data.requested_bytes;
+            }
+            if ("tenant_id" in data && data.tenant_id != undefined) {
+                this.tenant_id = data.tenant_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get requested_bytes() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set requested_bytes(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get tenant_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set tenant_id(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+        requested_bytes?: number;
+        tenant_id?: string;
+    }): CheckStorageAccessRequest {
+        const message = new CheckStorageAccessRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.requested_bytes != null) {
+            message.requested_bytes = data.requested_bytes;
+        }
+        if (data.tenant_id != null) {
+            message.tenant_id = data.tenant_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+            requested_bytes?: number;
+            tenant_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.requested_bytes != null) {
+            data.requested_bytes = this.requested_bytes;
+        }
+        if (this.tenant_id != null) {
+            data.tenant_id = this.tenant_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (this.requested_bytes != 0)
+            writer.writeInt64(2, this.requested_bytes);
+        if (this.tenant_id.length)
+            writer.writeString(3, this.tenant_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckStorageAccessRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckStorageAccessRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                case 2:
+                    message.requested_bytes = reader.readInt64();
+                    break;
+                case 3:
+                    message.tenant_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CheckStorageAccessRequest {
+        return CheckStorageAccessRequest.deserialize(bytes);
+    }
+}
+export class CheckStorageAccessResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        has_access?: boolean;
+        reason?: string;
+        storage_info?: StorageInfo;
+        is_near_limit?: boolean;
+        warning_message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("has_access" in data && data.has_access != undefined) {
+                this.has_access = data.has_access;
+            }
+            if ("reason" in data && data.reason != undefined) {
+                this.reason = data.reason;
+            }
+            if ("storage_info" in data && data.storage_info != undefined) {
+                this.storage_info = data.storage_info;
+            }
+            if ("is_near_limit" in data && data.is_near_limit != undefined) {
+                this.is_near_limit = data.is_near_limit;
+            }
+            if ("warning_message" in data && data.warning_message != undefined) {
+                this.warning_message = data.warning_message;
+            }
+        }
+    }
+    get has_access() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set has_access(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get reason() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set reason(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get storage_info() {
+        return pb_1.Message.getWrapperField(this, StorageInfo, 3) as StorageInfo;
+    }
+    set storage_info(value: StorageInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_storage_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    get is_near_limit() {
+        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
+    }
+    set is_near_limit(value: boolean) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get warning_message() {
+        return pb_1.Message.getFieldWithDefault(this, 5, "") as string;
+    }
+    set warning_message(value: string) {
+        pb_1.Message.setField(this, 5, value);
+    }
+    static fromObject(data: {
+        has_access?: boolean;
+        reason?: string;
+        storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+        is_near_limit?: boolean;
+        warning_message?: string;
+    }): CheckStorageAccessResponse {
+        const message = new CheckStorageAccessResponse({});
+        if (data.has_access != null) {
+            message.has_access = data.has_access;
+        }
+        if (data.reason != null) {
+            message.reason = data.reason;
+        }
+        if (data.storage_info != null) {
+            message.storage_info = StorageInfo.fromObject(data.storage_info);
+        }
+        if (data.is_near_limit != null) {
+            message.is_near_limit = data.is_near_limit;
+        }
+        if (data.warning_message != null) {
+            message.warning_message = data.warning_message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            has_access?: boolean;
+            reason?: string;
+            storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+            is_near_limit?: boolean;
+            warning_message?: string;
+        } = {};
+        if (this.has_access != null) {
+            data.has_access = this.has_access;
+        }
+        if (this.reason != null) {
+            data.reason = this.reason;
+        }
+        if (this.storage_info != null) {
+            data.storage_info = this.storage_info.toObject();
+        }
+        if (this.is_near_limit != null) {
+            data.is_near_limit = this.is_near_limit;
+        }
+        if (this.warning_message != null) {
+            data.warning_message = this.warning_message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.has_access != false)
+            writer.writeBool(1, this.has_access);
+        if (this.reason.length)
+            writer.writeString(2, this.reason);
+        if (this.has_storage_info)
+            writer.writeMessage(3, this.storage_info, () => this.storage_info.serialize(writer));
+        if (this.is_near_limit != false)
+            writer.writeBool(4, this.is_near_limit);
+        if (this.warning_message.length)
+            writer.writeString(5, this.warning_message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckStorageAccessResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckStorageAccessResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.has_access = reader.readBool();
+                    break;
+                case 2:
+                    message.reason = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.storage_info, () => message.storage_info = StorageInfo.deserialize(reader));
+                    break;
+                case 4:
+                    message.is_near_limit = reader.readBool();
+                    break;
+                case 5:
+                    message.warning_message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CheckStorageAccessResponse {
+        return CheckStorageAccessResponse.deserialize(bytes);
+    }
+}
+export class StorageInfo extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        used_bytes?: number;
+        limit_bytes?: number;
+        usage_percent?: number;
+        plan_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("used_bytes" in data && data.used_bytes != undefined) {
+                this.used_bytes = data.used_bytes;
+            }
+            if ("limit_bytes" in data && data.limit_bytes != undefined) {
+                this.limit_bytes = data.limit_bytes;
+            }
+            if ("usage_percent" in data && data.usage_percent != undefined) {
+                this.usage_percent = data.usage_percent;
+            }
+            if ("plan_id" in data && data.plan_id != undefined) {
+                this.plan_id = data.plan_id;
+            }
+        }
+    }
+    get used_bytes() {
+        return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
+    }
+    set used_bytes(value: number) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get limit_bytes() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set limit_bytes(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get usage_percent() {
+        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+    }
+    set usage_percent(value: number) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get plan_id() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set plan_id(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    static fromObject(data: {
+        used_bytes?: number;
+        limit_bytes?: number;
+        usage_percent?: number;
+        plan_id?: string;
+    }): StorageInfo {
+        const message = new StorageInfo({});
+        if (data.used_bytes != null) {
+            message.used_bytes = data.used_bytes;
+        }
+        if (data.limit_bytes != null) {
+            message.limit_bytes = data.limit_bytes;
+        }
+        if (data.usage_percent != null) {
+            message.usage_percent = data.usage_percent;
+        }
+        if (data.plan_id != null) {
+            message.plan_id = data.plan_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            used_bytes?: number;
+            limit_bytes?: number;
+            usage_percent?: number;
+            plan_id?: string;
+        } = {};
+        if (this.used_bytes != null) {
+            data.used_bytes = this.used_bytes;
+        }
+        if (this.limit_bytes != null) {
+            data.limit_bytes = this.limit_bytes;
+        }
+        if (this.usage_percent != null) {
+            data.usage_percent = this.usage_percent;
+        }
+        if (this.plan_id != null) {
+            data.plan_id = this.plan_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.used_bytes != 0)
+            writer.writeInt64(1, this.used_bytes);
+        if (this.limit_bytes != 0)
+            writer.writeInt64(2, this.limit_bytes);
+        if (this.usage_percent != 0)
+            writer.writeDouble(3, this.usage_percent);
+        if (this.plan_id.length)
+            writer.writeString(4, this.plan_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): StorageInfo {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new StorageInfo();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.used_bytes = reader.readInt64();
+                    break;
+                case 2:
+                    message.limit_bytes = reader.readInt64();
+                    break;
+                case 3:
+                    message.usage_percent = reader.readDouble();
+                    break;
+                case 4:
+                    message.plan_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): StorageInfo {
+        return StorageInfo.deserialize(bytes);
+    }
+}
+export class UpdateStorageUsageRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+        usage_change?: number;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("usage_change" in data && data.usage_change != undefined) {
+                this.usage_change = data.usage_change;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get usage_change() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set usage_change(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+        usage_change?: number;
+    }): UpdateStorageUsageRequest {
+        const message = new UpdateStorageUsageRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.usage_change != null) {
+            message.usage_change = data.usage_change;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+            usage_change?: number;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.usage_change != null) {
+            data.usage_change = this.usage_change;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (this.usage_change != 0)
+            writer.writeInt64(2, this.usage_change);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateStorageUsageRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateStorageUsageRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                case 2:
+                    message.usage_change = reader.readInt64();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateStorageUsageRequest {
+        return UpdateStorageUsageRequest.deserialize(bytes);
+    }
+}
+export class UpdateStorageUsageResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        updated_info?: StorageInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("updated_info" in data && data.updated_info != undefined) {
+                this.updated_info = data.updated_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get updated_info() {
+        return pb_1.Message.getWrapperField(this, StorageInfo, 3) as StorageInfo;
+    }
+    set updated_info(value: StorageInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_updated_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        updated_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+    }): UpdateStorageUsageResponse {
+        const message = new UpdateStorageUsageResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.updated_info != null) {
+            message.updated_info = StorageInfo.fromObject(data.updated_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            updated_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.updated_info != null) {
+            data.updated_info = this.updated_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_updated_info)
+            writer.writeMessage(3, this.updated_info, () => this.updated_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateStorageUsageResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateStorageUsageResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.updated_info, () => message.updated_info = StorageInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateStorageUsageResponse {
+        return UpdateStorageUsageResponse.deserialize(bytes);
+    }
+}
+export class GetStorageUsageRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+    }): GetStorageUsageRequest {
+        const message = new GetStorageUsageRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetStorageUsageRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetStorageUsageRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetStorageUsageRequest {
+        return GetStorageUsageRequest.deserialize(bytes);
+    }
+}
+export class GetStorageUsageResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        storage_info?: StorageInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("storage_info" in data && data.storage_info != undefined) {
+                this.storage_info = data.storage_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get storage_info() {
+        return pb_1.Message.getWrapperField(this, StorageInfo, 3) as StorageInfo;
+    }
+    set storage_info(value: StorageInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_storage_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+    }): GetStorageUsageResponse {
+        const message = new GetStorageUsageResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.storage_info != null) {
+            message.storage_info = StorageInfo.fromObject(data.storage_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.storage_info != null) {
+            data.storage_info = this.storage_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_storage_info)
+            writer.writeMessage(3, this.storage_info, () => this.storage_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetStorageUsageResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetStorageUsageResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.storage_info, () => message.storage_info = StorageInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetStorageUsageResponse {
+        return GetStorageUsageResponse.deserialize(bytes);
+    }
+}
+export class GetUserStorageInfoRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+    }): GetUserStorageInfoRequest {
+        const message = new GetUserStorageInfoRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserStorageInfoRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserStorageInfoRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUserStorageInfoRequest {
+        return GetUserStorageInfoRequest.deserialize(bytes);
+    }
+}
+export class GetUserStorageInfoResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        storage_info?: StorageInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("storage_info" in data && data.storage_info != undefined) {
+                this.storage_info = data.storage_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get storage_info() {
+        return pb_1.Message.getWrapperField(this, StorageInfo, 3) as StorageInfo;
+    }
+    set storage_info(value: StorageInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_storage_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+    }): GetUserStorageInfoResponse {
+        const message = new GetUserStorageInfoResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.storage_info != null) {
+            message.storage_info = StorageInfo.fromObject(data.storage_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            storage_info?: ReturnType<typeof StorageInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.storage_info != null) {
+            data.storage_info = this.storage_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_storage_info)
+            writer.writeMessage(3, this.storage_info, () => this.storage_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserStorageInfoResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserStorageInfoResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.storage_info, () => message.storage_info = StorageInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUserStorageInfoResponse {
+        return GetUserStorageInfoResponse.deserialize(bytes);
+    }
+}
+export class GetPlanStorageLimitRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        plan_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("plan_id" in data && data.plan_id != undefined) {
+                this.plan_id = data.plan_id;
+            }
+        }
+    }
+    get plan_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set plan_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        plan_id?: string;
+    }): GetPlanStorageLimitRequest {
+        const message = new GetPlanStorageLimitRequest({});
+        if (data.plan_id != null) {
+            message.plan_id = data.plan_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            plan_id?: string;
+        } = {};
+        if (this.plan_id != null) {
+            data.plan_id = this.plan_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.plan_id.length)
+            writer.writeString(1, this.plan_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlanStorageLimitRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlanStorageLimitRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.plan_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlanStorageLimitRequest {
+        return GetPlanStorageLimitRequest.deserialize(bytes);
+    }
+}
+export class GetPlanStorageLimitResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        storage_limit_bytes?: number;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("storage_limit_bytes" in data && data.storage_limit_bytes != undefined) {
+                this.storage_limit_bytes = data.storage_limit_bytes;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get storage_limit_bytes() {
+        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+    }
+    set storage_limit_bytes(value: number) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        storage_limit_bytes?: number;
+    }): GetPlanStorageLimitResponse {
+        const message = new GetPlanStorageLimitResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.storage_limit_bytes != null) {
+            message.storage_limit_bytes = data.storage_limit_bytes;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            storage_limit_bytes?: number;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.storage_limit_bytes != null) {
+            data.storage_limit_bytes = this.storage_limit_bytes;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.storage_limit_bytes != 0)
+            writer.writeInt64(3, this.storage_limit_bytes);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlanStorageLimitResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlanStorageLimitResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    message.storage_limit_bytes = reader.readInt64();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlanStorageLimitResponse {
+        return GetPlanStorageLimitResponse.deserialize(bytes);
+    }
+}
 export abstract class UnimplementedVideoServiceService {
     static definition = {
         CreateVideo: {
@@ -2998,6 +4184,51 @@ export abstract class UnimplementedVideoServiceService {
             requestDeserialize: (bytes: Buffer) => ShareVideoRequest.deserialize(new Uint8Array(bytes)),
             responseSerialize: (message: ShareLink) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => ShareLink.deserialize(new Uint8Array(bytes))
+        },
+        CheckStorageAccess: {
+            path: "/videoservice.VideoService/CheckStorageAccess",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CheckStorageAccessRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CheckStorageAccessRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CheckStorageAccessResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CheckStorageAccessResponse.deserialize(new Uint8Array(bytes))
+        },
+        UpdateStorageUsage: {
+            path: "/videoservice.VideoService/UpdateStorageUsage",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: UpdateStorageUsageRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => UpdateStorageUsageRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: UpdateStorageUsageResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => UpdateStorageUsageResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetStorageUsage: {
+            path: "/videoservice.VideoService/GetStorageUsage",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetStorageUsageRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetStorageUsageRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetStorageUsageResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetStorageUsageResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetPlanStorageLimit: {
+            path: "/videoservice.VideoService/GetPlanStorageLimit",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetPlanStorageLimitRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetPlanStorageLimitRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetPlanStorageLimitResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetPlanStorageLimitResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetUserStorageInfo: {
+            path: "/videoservice.VideoService/GetUserStorageInfo",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetUserStorageInfoRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetUserStorageInfoRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetUserStorageInfoResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetUserStorageInfoResponse.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
@@ -3009,6 +4240,11 @@ export abstract class UnimplementedVideoServiceService {
     abstract MoveVideoToChannel(call: grpc_1.ServerUnaryCall<MoveVideoToChannelRequest, MoveVideoToChannelResponse>, callback: grpc_1.sendUnaryData<MoveVideoToChannelResponse>): void;
     abstract RemoveVideoFromChannel(call: grpc_1.ServerUnaryCall<RemoveVideoFromChannelRequest, RemoveVideoFromChannelResponse>, callback: grpc_1.sendUnaryData<RemoveVideoFromChannelResponse>): void;
     abstract ShareVideo(call: grpc_1.ServerUnaryCall<ShareVideoRequest, ShareLink>, callback: grpc_1.sendUnaryData<ShareLink>): void;
+    abstract CheckStorageAccess(call: grpc_1.ServerUnaryCall<CheckStorageAccessRequest, CheckStorageAccessResponse>, callback: grpc_1.sendUnaryData<CheckStorageAccessResponse>): void;
+    abstract UpdateStorageUsage(call: grpc_1.ServerUnaryCall<UpdateStorageUsageRequest, UpdateStorageUsageResponse>, callback: grpc_1.sendUnaryData<UpdateStorageUsageResponse>): void;
+    abstract GetStorageUsage(call: grpc_1.ServerUnaryCall<GetStorageUsageRequest, GetStorageUsageResponse>, callback: grpc_1.sendUnaryData<GetStorageUsageResponse>): void;
+    abstract GetPlanStorageLimit(call: grpc_1.ServerUnaryCall<GetPlanStorageLimitRequest, GetPlanStorageLimitResponse>, callback: grpc_1.sendUnaryData<GetPlanStorageLimitResponse>): void;
+    abstract GetUserStorageInfo(call: grpc_1.ServerUnaryCall<GetUserStorageInfoRequest, GetUserStorageInfoResponse>, callback: grpc_1.sendUnaryData<GetUserStorageInfoResponse>): void;
 }
 export class VideoServiceClient {
     private _address: string;
@@ -3051,6 +4287,26 @@ export class VideoServiceClient {
     private static ShareVideo = new grpc_web_1.MethodDescriptor<ShareVideoRequest, ShareLink>("/videoservice.VideoService/ShareVideo", grpc_web_1.MethodType.UNARY, ShareVideoRequest, ShareLink, (message: ShareVideoRequest) => message.serialize(), ShareLink.deserialize);
     ShareVideo(message: ShareVideoRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<ShareVideoRequest, ShareLink>(this._address + "/videoservice.VideoService/ShareVideo", message, metadata || {}, VideoServiceClient.ShareVideo);
+    }
+    private static CheckStorageAccess = new grpc_web_1.MethodDescriptor<CheckStorageAccessRequest, CheckStorageAccessResponse>("/videoservice.VideoService/CheckStorageAccess", grpc_web_1.MethodType.UNARY, CheckStorageAccessRequest, CheckStorageAccessResponse, (message: CheckStorageAccessRequest) => message.serialize(), CheckStorageAccessResponse.deserialize);
+    CheckStorageAccess(message: CheckStorageAccessRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CheckStorageAccessRequest, CheckStorageAccessResponse>(this._address + "/videoservice.VideoService/CheckStorageAccess", message, metadata || {}, VideoServiceClient.CheckStorageAccess);
+    }
+    private static UpdateStorageUsage = new grpc_web_1.MethodDescriptor<UpdateStorageUsageRequest, UpdateStorageUsageResponse>("/videoservice.VideoService/UpdateStorageUsage", grpc_web_1.MethodType.UNARY, UpdateStorageUsageRequest, UpdateStorageUsageResponse, (message: UpdateStorageUsageRequest) => message.serialize(), UpdateStorageUsageResponse.deserialize);
+    UpdateStorageUsage(message: UpdateStorageUsageRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<UpdateStorageUsageRequest, UpdateStorageUsageResponse>(this._address + "/videoservice.VideoService/UpdateStorageUsage", message, metadata || {}, VideoServiceClient.UpdateStorageUsage);
+    }
+    private static GetStorageUsage = new grpc_web_1.MethodDescriptor<GetStorageUsageRequest, GetStorageUsageResponse>("/videoservice.VideoService/GetStorageUsage", grpc_web_1.MethodType.UNARY, GetStorageUsageRequest, GetStorageUsageResponse, (message: GetStorageUsageRequest) => message.serialize(), GetStorageUsageResponse.deserialize);
+    GetStorageUsage(message: GetStorageUsageRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetStorageUsageRequest, GetStorageUsageResponse>(this._address + "/videoservice.VideoService/GetStorageUsage", message, metadata || {}, VideoServiceClient.GetStorageUsage);
+    }
+    private static GetPlanStorageLimit = new grpc_web_1.MethodDescriptor<GetPlanStorageLimitRequest, GetPlanStorageLimitResponse>("/videoservice.VideoService/GetPlanStorageLimit", grpc_web_1.MethodType.UNARY, GetPlanStorageLimitRequest, GetPlanStorageLimitResponse, (message: GetPlanStorageLimitRequest) => message.serialize(), GetPlanStorageLimitResponse.deserialize);
+    GetPlanStorageLimit(message: GetPlanStorageLimitRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetPlanStorageLimitRequest, GetPlanStorageLimitResponse>(this._address + "/videoservice.VideoService/GetPlanStorageLimit", message, metadata || {}, VideoServiceClient.GetPlanStorageLimit);
+    }
+    private static GetUserStorageInfo = new grpc_web_1.MethodDescriptor<GetUserStorageInfoRequest, GetUserStorageInfoResponse>("/videoservice.VideoService/GetUserStorageInfo", grpc_web_1.MethodType.UNARY, GetUserStorageInfoRequest, GetUserStorageInfoResponse, (message: GetUserStorageInfoRequest) => message.serialize(), GetUserStorageInfoResponse.deserialize);
+    GetUserStorageInfo(message: GetUserStorageInfoRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetUserStorageInfoRequest, GetUserStorageInfoResponse>(this._address + "/videoservice.VideoService/GetUserStorageInfo", message, metadata || {}, VideoServiceClient.GetUserStorageInfo);
     }
 }
 export abstract class UnimplementedChannelServiceService {

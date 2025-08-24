@@ -1327,6 +1327,1328 @@ export class GetUsersResponse extends pb_1.Message {
         return GetUsersResponse.deserialize(bytes);
     }
 }
+export class InitializeUserSubscriptionRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+    }): InitializeUserSubscriptionRequest {
+        const message = new InitializeUserSubscriptionRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): InitializeUserSubscriptionRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new InitializeUserSubscriptionRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): InitializeUserSubscriptionRequest {
+        return InitializeUserSubscriptionRequest.deserialize(bytes);
+    }
+}
+export class InitializeUserSubscriptionResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+    }): InitializeUserSubscriptionResponse {
+        const message = new InitializeUserSubscriptionResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): InitializeUserSubscriptionResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new InitializeUserSubscriptionResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): InitializeUserSubscriptionResponse {
+        return InitializeUserSubscriptionResponse.deserialize(bytes);
+    }
+}
+export class CheckUserAccessRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+        requested_user_count?: number;
+        tenant_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("requested_user_count" in data && data.requested_user_count != undefined) {
+                this.requested_user_count = data.requested_user_count;
+            }
+            if ("tenant_id" in data && data.tenant_id != undefined) {
+                this.tenant_id = data.tenant_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get requested_user_count() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set requested_user_count(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get tenant_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+    }
+    set tenant_id(value: string) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+        requested_user_count?: number;
+        tenant_id?: string;
+    }): CheckUserAccessRequest {
+        const message = new CheckUserAccessRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.requested_user_count != null) {
+            message.requested_user_count = data.requested_user_count;
+        }
+        if (data.tenant_id != null) {
+            message.tenant_id = data.tenant_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+            requested_user_count?: number;
+            tenant_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.requested_user_count != null) {
+            data.requested_user_count = this.requested_user_count;
+        }
+        if (this.tenant_id != null) {
+            data.tenant_id = this.tenant_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (this.requested_user_count != 0)
+            writer.writeInt64(2, this.requested_user_count);
+        if (this.tenant_id.length)
+            writer.writeString(3, this.tenant_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckUserAccessRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckUserAccessRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                case 2:
+                    message.requested_user_count = reader.readInt64();
+                    break;
+                case 3:
+                    message.tenant_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CheckUserAccessRequest {
+        return CheckUserAccessRequest.deserialize(bytes);
+    }
+}
+export class CheckUserAccessResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        has_access?: boolean;
+        reason?: string;
+        user_info?: UserLimitInfo;
+        is_near_limit?: boolean;
+        warning_message?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("has_access" in data && data.has_access != undefined) {
+                this.has_access = data.has_access;
+            }
+            if ("reason" in data && data.reason != undefined) {
+                this.reason = data.reason;
+            }
+            if ("user_info" in data && data.user_info != undefined) {
+                this.user_info = data.user_info;
+            }
+            if ("is_near_limit" in data && data.is_near_limit != undefined) {
+                this.is_near_limit = data.is_near_limit;
+            }
+            if ("warning_message" in data && data.warning_message != undefined) {
+                this.warning_message = data.warning_message;
+            }
+        }
+    }
+    get has_access() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set has_access(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get reason() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set reason(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get user_info() {
+        return pb_1.Message.getWrapperField(this, UserLimitInfo, 3) as UserLimitInfo;
+    }
+    set user_info(value: UserLimitInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_user_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    get is_near_limit() {
+        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
+    }
+    set is_near_limit(value: boolean) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get warning_message() {
+        return pb_1.Message.getFieldWithDefault(this, 5, "") as string;
+    }
+    set warning_message(value: string) {
+        pb_1.Message.setField(this, 5, value);
+    }
+    static fromObject(data: {
+        has_access?: boolean;
+        reason?: string;
+        user_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+        is_near_limit?: boolean;
+        warning_message?: string;
+    }): CheckUserAccessResponse {
+        const message = new CheckUserAccessResponse({});
+        if (data.has_access != null) {
+            message.has_access = data.has_access;
+        }
+        if (data.reason != null) {
+            message.reason = data.reason;
+        }
+        if (data.user_info != null) {
+            message.user_info = UserLimitInfo.fromObject(data.user_info);
+        }
+        if (data.is_near_limit != null) {
+            message.is_near_limit = data.is_near_limit;
+        }
+        if (data.warning_message != null) {
+            message.warning_message = data.warning_message;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            has_access?: boolean;
+            reason?: string;
+            user_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+            is_near_limit?: boolean;
+            warning_message?: string;
+        } = {};
+        if (this.has_access != null) {
+            data.has_access = this.has_access;
+        }
+        if (this.reason != null) {
+            data.reason = this.reason;
+        }
+        if (this.user_info != null) {
+            data.user_info = this.user_info.toObject();
+        }
+        if (this.is_near_limit != null) {
+            data.is_near_limit = this.is_near_limit;
+        }
+        if (this.warning_message != null) {
+            data.warning_message = this.warning_message;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.has_access != false)
+            writer.writeBool(1, this.has_access);
+        if (this.reason.length)
+            writer.writeString(2, this.reason);
+        if (this.has_user_info)
+            writer.writeMessage(3, this.user_info, () => this.user_info.serialize(writer));
+        if (this.is_near_limit != false)
+            writer.writeBool(4, this.is_near_limit);
+        if (this.warning_message.length)
+            writer.writeString(5, this.warning_message);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckUserAccessResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckUserAccessResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.has_access = reader.readBool();
+                    break;
+                case 2:
+                    message.reason = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.user_info, () => message.user_info = UserLimitInfo.deserialize(reader));
+                    break;
+                case 4:
+                    message.is_near_limit = reader.readBool();
+                    break;
+                case 5:
+                    message.warning_message = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): CheckUserAccessResponse {
+        return CheckUserAccessResponse.deserialize(bytes);
+    }
+}
+export class UserLimitInfo extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        current_users?: number;
+        limit_users?: number;
+        usage_percent?: number;
+        plan_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("current_users" in data && data.current_users != undefined) {
+                this.current_users = data.current_users;
+            }
+            if ("limit_users" in data && data.limit_users != undefined) {
+                this.limit_users = data.limit_users;
+            }
+            if ("usage_percent" in data && data.usage_percent != undefined) {
+                this.usage_percent = data.usage_percent;
+            }
+            if ("plan_id" in data && data.plan_id != undefined) {
+                this.plan_id = data.plan_id;
+            }
+        }
+    }
+    get current_users() {
+        return pb_1.Message.getFieldWithDefault(this, 1, 0) as number;
+    }
+    set current_users(value: number) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get limit_users() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set limit_users(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get usage_percent() {
+        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+    }
+    set usage_percent(value: number) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get plan_id() {
+        return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+    }
+    set plan_id(value: string) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    static fromObject(data: {
+        current_users?: number;
+        limit_users?: number;
+        usage_percent?: number;
+        plan_id?: string;
+    }): UserLimitInfo {
+        const message = new UserLimitInfo({});
+        if (data.current_users != null) {
+            message.current_users = data.current_users;
+        }
+        if (data.limit_users != null) {
+            message.limit_users = data.limit_users;
+        }
+        if (data.usage_percent != null) {
+            message.usage_percent = data.usage_percent;
+        }
+        if (data.plan_id != null) {
+            message.plan_id = data.plan_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            current_users?: number;
+            limit_users?: number;
+            usage_percent?: number;
+            plan_id?: string;
+        } = {};
+        if (this.current_users != null) {
+            data.current_users = this.current_users;
+        }
+        if (this.limit_users != null) {
+            data.limit_users = this.limit_users;
+        }
+        if (this.usage_percent != null) {
+            data.usage_percent = this.usage_percent;
+        }
+        if (this.plan_id != null) {
+            data.plan_id = this.plan_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.current_users != 0)
+            writer.writeInt64(1, this.current_users);
+        if (this.limit_users != 0)
+            writer.writeInt64(2, this.limit_users);
+        if (this.usage_percent != 0)
+            writer.writeDouble(3, this.usage_percent);
+        if (this.plan_id.length)
+            writer.writeString(4, this.plan_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UserLimitInfo {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UserLimitInfo();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.current_users = reader.readInt64();
+                    break;
+                case 2:
+                    message.limit_users = reader.readInt64();
+                    break;
+                case 3:
+                    message.usage_percent = reader.readDouble();
+                    break;
+                case 4:
+                    message.plan_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UserLimitInfo {
+        return UserLimitInfo.deserialize(bytes);
+    }
+}
+export class UpdateUserUsageRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+        usage_change?: number;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+            if ("usage_change" in data && data.usage_change != undefined) {
+                this.usage_change = data.usage_change;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get usage_change() {
+        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
+    }
+    set usage_change(value: number) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+        usage_change?: number;
+    }): UpdateUserUsageRequest {
+        const message = new UpdateUserUsageRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        if (data.usage_change != null) {
+            message.usage_change = data.usage_change;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+            usage_change?: number;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        if (this.usage_change != null) {
+            data.usage_change = this.usage_change;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (this.usage_change != 0)
+            writer.writeInt64(2, this.usage_change);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserUsageRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserUsageRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                case 2:
+                    message.usage_change = reader.readInt64();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateUserUsageRequest {
+        return UpdateUserUsageRequest.deserialize(bytes);
+    }
+}
+export class UpdateUserUsageResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        updated_info?: UserLimitInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("updated_info" in data && data.updated_info != undefined) {
+                this.updated_info = data.updated_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get updated_info() {
+        return pb_1.Message.getWrapperField(this, UserLimitInfo, 3) as UserLimitInfo;
+    }
+    set updated_info(value: UserLimitInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_updated_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        updated_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+    }): UpdateUserUsageResponse {
+        const message = new UpdateUserUsageResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.updated_info != null) {
+            message.updated_info = UserLimitInfo.fromObject(data.updated_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            updated_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.updated_info != null) {
+            data.updated_info = this.updated_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_updated_info)
+            writer.writeMessage(3, this.updated_info, () => this.updated_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserUsageResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserUsageResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.updated_info, () => message.updated_info = UserLimitInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): UpdateUserUsageResponse {
+        return UpdateUserUsageResponse.deserialize(bytes);
+    }
+}
+export class GetUserUsageRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        user_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("user_id" in data && data.user_id != undefined) {
+                this.user_id = data.user_id;
+            }
+        }
+    }
+    get user_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set user_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        user_id?: string;
+    }): GetUserUsageRequest {
+        const message = new GetUserUsageRequest({});
+        if (data.user_id != null) {
+            message.user_id = data.user_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            user_id?: string;
+        } = {};
+        if (this.user_id != null) {
+            data.user_id = this.user_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.user_id.length)
+            writer.writeString(1, this.user_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserUsageRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserUsageRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.user_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUserUsageRequest {
+        return GetUserUsageRequest.deserialize(bytes);
+    }
+}
+export class GetUserUsageResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        user_info?: UserLimitInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("user_info" in data && data.user_info != undefined) {
+                this.user_info = data.user_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get user_info() {
+        return pb_1.Message.getWrapperField(this, UserLimitInfo, 3) as UserLimitInfo;
+    }
+    set user_info(value: UserLimitInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_user_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        user_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+    }): GetUserUsageResponse {
+        const message = new GetUserUsageResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.user_info != null) {
+            message.user_info = UserLimitInfo.fromObject(data.user_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            user_info?: ReturnType<typeof UserLimitInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.user_info != null) {
+            data.user_info = this.user_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_user_info)
+            writer.writeMessage(3, this.user_info, () => this.user_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetUserUsageResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetUserUsageResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.user_info, () => message.user_info = UserLimitInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetUserUsageResponse {
+        return GetUserUsageResponse.deserialize(bytes);
+    }
+}
+export class GetPlanInfoRequest extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        plan_id?: string;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("plan_id" in data && data.plan_id != undefined) {
+                this.plan_id = data.plan_id;
+            }
+        }
+    }
+    get plan_id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set plan_id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    static fromObject(data: {
+        plan_id?: string;
+    }): GetPlanInfoRequest {
+        const message = new GetPlanInfoRequest({});
+        if (data.plan_id != null) {
+            message.plan_id = data.plan_id;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            plan_id?: string;
+        } = {};
+        if (this.plan_id != null) {
+            data.plan_id = this.plan_id;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.plan_id.length)
+            writer.writeString(1, this.plan_id);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlanInfoRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlanInfoRequest();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.plan_id = reader.readString();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlanInfoRequest {
+        return GetPlanInfoRequest.deserialize(bytes);
+    }
+}
+export class GetPlanInfoResponse extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        success?: boolean;
+        error_message?: string;
+        plan_info?: PlanInfo;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
+            }
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
+            }
+            if ("plan_info" in data && data.plan_info != undefined) {
+                this.plan_info = data.plan_info;
+            }
+        }
+    }
+    get success() {
+        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
+    }
+    set success(value: boolean) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get error_message() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set error_message(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get plan_info() {
+        return pb_1.Message.getWrapperField(this, PlanInfo, 3) as PlanInfo;
+    }
+    set plan_info(value: PlanInfo) {
+        pb_1.Message.setWrapperField(this, 3, value);
+    }
+    get has_plan_info() {
+        return pb_1.Message.getField(this, 3) != null;
+    }
+    static fromObject(data: {
+        success?: boolean;
+        error_message?: string;
+        plan_info?: ReturnType<typeof PlanInfo.prototype.toObject>;
+    }): GetPlanInfoResponse {
+        const message = new GetPlanInfoResponse({});
+        if (data.success != null) {
+            message.success = data.success;
+        }
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
+        }
+        if (data.plan_info != null) {
+            message.plan_info = PlanInfo.fromObject(data.plan_info);
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            success?: boolean;
+            error_message?: string;
+            plan_info?: ReturnType<typeof PlanInfo.prototype.toObject>;
+        } = {};
+        if (this.success != null) {
+            data.success = this.success;
+        }
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
+        }
+        if (this.plan_info != null) {
+            data.plan_info = this.plan_info.toObject();
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.has_plan_info)
+            writer.writeMessage(3, this.plan_info, () => this.plan_info.serialize(writer));
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GetPlanInfoResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GetPlanInfoResponse();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.success = reader.readBool();
+                    break;
+                case 2:
+                    message.error_message = reader.readString();
+                    break;
+                case 3:
+                    reader.readMessage(message.plan_info, () => message.plan_info = PlanInfo.deserialize(reader));
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): GetPlanInfoResponse {
+        return GetPlanInfoResponse.deserialize(bytes);
+    }
+}
+export class PlanInfo extends pb_1.Message {
+    #one_of_decls: number[][] = [];
+    constructor(data?: any[] | {
+        id?: string;
+        name?: string;
+        price_cents?: number;
+        is_active?: boolean;
+        storage_limit_bytes?: number;
+        users_limit?: number;
+    }) {
+        super();
+        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
+        if (!Array.isArray(data) && typeof data == "object") {
+            if ("id" in data && data.id != undefined) {
+                this.id = data.id;
+            }
+            if ("name" in data && data.name != undefined) {
+                this.name = data.name;
+            }
+            if ("price_cents" in data && data.price_cents != undefined) {
+                this.price_cents = data.price_cents;
+            }
+            if ("is_active" in data && data.is_active != undefined) {
+                this.is_active = data.is_active;
+            }
+            if ("storage_limit_bytes" in data && data.storage_limit_bytes != undefined) {
+                this.storage_limit_bytes = data.storage_limit_bytes;
+            }
+            if ("users_limit" in data && data.users_limit != undefined) {
+                this.users_limit = data.users_limit;
+            }
+        }
+    }
+    get id() {
+        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+    }
+    set id(value: string) {
+        pb_1.Message.setField(this, 1, value);
+    }
+    get name() {
+        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+    }
+    set name(value: string) {
+        pb_1.Message.setField(this, 2, value);
+    }
+    get price_cents() {
+        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
+    }
+    set price_cents(value: number) {
+        pb_1.Message.setField(this, 3, value);
+    }
+    get is_active() {
+        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
+    }
+    set is_active(value: boolean) {
+        pb_1.Message.setField(this, 4, value);
+    }
+    get storage_limit_bytes() {
+        return pb_1.Message.getFieldWithDefault(this, 5, 0) as number;
+    }
+    set storage_limit_bytes(value: number) {
+        pb_1.Message.setField(this, 5, value);
+    }
+    get users_limit() {
+        return pb_1.Message.getFieldWithDefault(this, 6, 0) as number;
+    }
+    set users_limit(value: number) {
+        pb_1.Message.setField(this, 6, value);
+    }
+    static fromObject(data: {
+        id?: string;
+        name?: string;
+        price_cents?: number;
+        is_active?: boolean;
+        storage_limit_bytes?: number;
+        users_limit?: number;
+    }): PlanInfo {
+        const message = new PlanInfo({});
+        if (data.id != null) {
+            message.id = data.id;
+        }
+        if (data.name != null) {
+            message.name = data.name;
+        }
+        if (data.price_cents != null) {
+            message.price_cents = data.price_cents;
+        }
+        if (data.is_active != null) {
+            message.is_active = data.is_active;
+        }
+        if (data.storage_limit_bytes != null) {
+            message.storage_limit_bytes = data.storage_limit_bytes;
+        }
+        if (data.users_limit != null) {
+            message.users_limit = data.users_limit;
+        }
+        return message;
+    }
+    toObject() {
+        const data: {
+            id?: string;
+            name?: string;
+            price_cents?: number;
+            is_active?: boolean;
+            storage_limit_bytes?: number;
+            users_limit?: number;
+        } = {};
+        if (this.id != null) {
+            data.id = this.id;
+        }
+        if (this.name != null) {
+            data.name = this.name;
+        }
+        if (this.price_cents != null) {
+            data.price_cents = this.price_cents;
+        }
+        if (this.is_active != null) {
+            data.is_active = this.is_active;
+        }
+        if (this.storage_limit_bytes != null) {
+            data.storage_limit_bytes = this.storage_limit_bytes;
+        }
+        if (this.users_limit != null) {
+            data.users_limit = this.users_limit;
+        }
+        return data;
+    }
+    serialize(): Uint8Array;
+    serialize(w: pb_1.BinaryWriter): void;
+    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
+        const writer = w || new pb_1.BinaryWriter();
+        if (this.id.length)
+            writer.writeString(1, this.id);
+        if (this.name.length)
+            writer.writeString(2, this.name);
+        if (this.price_cents != 0)
+            writer.writeInt64(3, this.price_cents);
+        if (this.is_active != false)
+            writer.writeBool(4, this.is_active);
+        if (this.storage_limit_bytes != 0)
+            writer.writeInt64(5, this.storage_limit_bytes);
+        if (this.users_limit != 0)
+            writer.writeInt64(6, this.users_limit);
+        if (!w)
+            return writer.getResultBuffer();
+    }
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): PlanInfo {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new PlanInfo();
+        while (reader.nextField()) {
+            if (reader.isEndGroup())
+                break;
+            switch (reader.getFieldNumber()) {
+                case 1:
+                    message.id = reader.readString();
+                    break;
+                case 2:
+                    message.name = reader.readString();
+                    break;
+                case 3:
+                    message.price_cents = reader.readInt64();
+                    break;
+                case 4:
+                    message.is_active = reader.readBool();
+                    break;
+                case 5:
+                    message.storage_limit_bytes = reader.readInt64();
+                    break;
+                case 6:
+                    message.users_limit = reader.readInt64();
+                    break;
+                default: reader.skipField();
+            }
+        }
+        return message;
+    }
+    serializeBinary(): Uint8Array {
+        return this.serialize();
+    }
+    static deserializeBinary(bytes: Uint8Array): PlanInfo {
+        return PlanInfo.deserialize(bytes);
+    }
+}
 export abstract class UnimplementedUserServiceService {
     static definition = {
         CreateUserIfNotExists: {
@@ -1346,11 +2668,61 @@ export abstract class UnimplementedUserServiceService {
             requestDeserialize: (bytes: Buffer) => GetTenantsRequest.deserialize(new Uint8Array(bytes)),
             responseSerialize: (message: GetTenantsResponse) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => GetTenantsResponse.deserialize(new Uint8Array(bytes))
+        },
+        InitializeUserSubscription: {
+            path: "/userservice.UserService/InitializeUserSubscription",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: InitializeUserSubscriptionRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => InitializeUserSubscriptionRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: InitializeUserSubscriptionResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => InitializeUserSubscriptionResponse.deserialize(new Uint8Array(bytes))
+        },
+        CheckUserAccess: {
+            path: "/userservice.UserService/CheckUserAccess",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: CheckUserAccessRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CheckUserAccessRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CheckUserAccessResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CheckUserAccessResponse.deserialize(new Uint8Array(bytes))
+        },
+        UpdateUserUsage: {
+            path: "/userservice.UserService/UpdateUserUsage",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: UpdateUserUsageRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => UpdateUserUsageRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: UpdateUserUsageResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => UpdateUserUsageResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetUserUsage: {
+            path: "/userservice.UserService/GetUserUsage",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetUserUsageRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetUserUsageRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetUserUsageResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetUserUsageResponse.deserialize(new Uint8Array(bytes))
+        },
+        GetPlanInfo: {
+            path: "/userservice.UserService/GetPlanInfo",
+            requestStream: false,
+            responseStream: false,
+            requestSerialize: (message: GetPlanInfoRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => GetPlanInfoRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: GetPlanInfoResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => GetPlanInfoResponse.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
     abstract CreateUserIfNotExists(call: grpc_1.ServerUnaryCall<CreateUserRequest, CreateUserResponse>, callback: grpc_1.sendUnaryData<CreateUserResponse>): void;
     abstract GetTenants(call: grpc_1.ServerUnaryCall<GetTenantsRequest, GetTenantsResponse>, callback: grpc_1.sendUnaryData<GetTenantsResponse>): void;
+    abstract InitializeUserSubscription(call: grpc_1.ServerUnaryCall<InitializeUserSubscriptionRequest, InitializeUserSubscriptionResponse>, callback: grpc_1.sendUnaryData<InitializeUserSubscriptionResponse>): void;
+    abstract CheckUserAccess(call: grpc_1.ServerUnaryCall<CheckUserAccessRequest, CheckUserAccessResponse>, callback: grpc_1.sendUnaryData<CheckUserAccessResponse>): void;
+    abstract UpdateUserUsage(call: grpc_1.ServerUnaryCall<UpdateUserUsageRequest, UpdateUserUsageResponse>, callback: grpc_1.sendUnaryData<UpdateUserUsageResponse>): void;
+    abstract GetUserUsage(call: grpc_1.ServerUnaryCall<GetUserUsageRequest, GetUserUsageResponse>, callback: grpc_1.sendUnaryData<GetUserUsageResponse>): void;
+    abstract GetPlanInfo(call: grpc_1.ServerUnaryCall<GetPlanInfoRequest, GetPlanInfoResponse>, callback: grpc_1.sendUnaryData<GetPlanInfoResponse>): void;
 }
 export class UserServiceClient {
     private _address: string;
@@ -1369,6 +2741,26 @@ export class UserServiceClient {
     private static GetTenants = new grpc_web_1.MethodDescriptor<GetTenantsRequest, GetTenantsResponse>("/userservice.UserService/GetTenants", grpc_web_1.MethodType.UNARY, GetTenantsRequest, GetTenantsResponse, (message: GetTenantsRequest) => message.serialize(), GetTenantsResponse.deserialize);
     GetTenants(message: GetTenantsRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<GetTenantsRequest, GetTenantsResponse>(this._address + "/userservice.UserService/GetTenants", message, metadata || {}, UserServiceClient.GetTenants);
+    }
+    private static InitializeUserSubscription = new grpc_web_1.MethodDescriptor<InitializeUserSubscriptionRequest, InitializeUserSubscriptionResponse>("/userservice.UserService/InitializeUserSubscription", grpc_web_1.MethodType.UNARY, InitializeUserSubscriptionRequest, InitializeUserSubscriptionResponse, (message: InitializeUserSubscriptionRequest) => message.serialize(), InitializeUserSubscriptionResponse.deserialize);
+    InitializeUserSubscription(message: InitializeUserSubscriptionRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<InitializeUserSubscriptionRequest, InitializeUserSubscriptionResponse>(this._address + "/userservice.UserService/InitializeUserSubscription", message, metadata || {}, UserServiceClient.InitializeUserSubscription);
+    }
+    private static CheckUserAccess = new grpc_web_1.MethodDescriptor<CheckUserAccessRequest, CheckUserAccessResponse>("/userservice.UserService/CheckUserAccess", grpc_web_1.MethodType.UNARY, CheckUserAccessRequest, CheckUserAccessResponse, (message: CheckUserAccessRequest) => message.serialize(), CheckUserAccessResponse.deserialize);
+    CheckUserAccess(message: CheckUserAccessRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CheckUserAccessRequest, CheckUserAccessResponse>(this._address + "/userservice.UserService/CheckUserAccess", message, metadata || {}, UserServiceClient.CheckUserAccess);
+    }
+    private static UpdateUserUsage = new grpc_web_1.MethodDescriptor<UpdateUserUsageRequest, UpdateUserUsageResponse>("/userservice.UserService/UpdateUserUsage", grpc_web_1.MethodType.UNARY, UpdateUserUsageRequest, UpdateUserUsageResponse, (message: UpdateUserUsageRequest) => message.serialize(), UpdateUserUsageResponse.deserialize);
+    UpdateUserUsage(message: UpdateUserUsageRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<UpdateUserUsageRequest, UpdateUserUsageResponse>(this._address + "/userservice.UserService/UpdateUserUsage", message, metadata || {}, UserServiceClient.UpdateUserUsage);
+    }
+    private static GetUserUsage = new grpc_web_1.MethodDescriptor<GetUserUsageRequest, GetUserUsageResponse>("/userservice.UserService/GetUserUsage", grpc_web_1.MethodType.UNARY, GetUserUsageRequest, GetUserUsageResponse, (message: GetUserUsageRequest) => message.serialize(), GetUserUsageResponse.deserialize);
+    GetUserUsage(message: GetUserUsageRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetUserUsageRequest, GetUserUsageResponse>(this._address + "/userservice.UserService/GetUserUsage", message, metadata || {}, UserServiceClient.GetUserUsage);
+    }
+    private static GetPlanInfo = new grpc_web_1.MethodDescriptor<GetPlanInfoRequest, GetPlanInfoResponse>("/userservice.UserService/GetPlanInfo", grpc_web_1.MethodType.UNARY, GetPlanInfoRequest, GetPlanInfoResponse, (message: GetPlanInfoRequest) => message.serialize(), GetPlanInfoResponse.deserialize);
+    GetPlanInfo(message: GetPlanInfoRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<GetPlanInfoRequest, GetPlanInfoResponse>(this._address + "/userservice.UserService/GetPlanInfo", message, metadata || {}, UserServiceClient.GetPlanInfo);
     }
 }
 export abstract class UnimplementedTenantServiceService {

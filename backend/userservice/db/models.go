@@ -32,3 +32,11 @@ type UserserviceUser struct {
 	Email     string
 	CreatedAt time.Time
 }
+
+type UserserviceUserLimit struct {
+	UserID           string
+	UsersCount       sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}

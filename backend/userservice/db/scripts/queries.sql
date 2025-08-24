@@ -37,6 +37,9 @@ INSERT INTO userservice_tenants (
     @created_by
 ) RETURNING id, name, description, is_personal, created_at, created_by;
 
+-- name: GetTenantByID :one
+SELECT * FROM userservice_tenants WHERE id = @id;
+
 -- name: GetUserTenants :many
 SELECT 
     tu.id as tenant_user_id,
@@ -83,3 +86,27 @@ ORDER BY tu.created_at ASC;
 -- name: GetUserRoleInTenant :one
 SELECT role FROM userservice_tenant_users 
 WHERE tenant_id = @tenant_id AND user_id = @user_id;
+
+-- User limits queries (moved from payment service)
+-- name: GetUserLimits :one
+SELECT * FROM userservice_user_limits WHERE user_id = ? LIMIT 1;
+
+-- name: CreateUserLimits :one
+INSERT INTO userservice_user_limits (
+    user_id, users_count, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: AddUserCount :exec
+UPDATE userservice_user_limits 
+SET users_count = users_count + ?, last_calculated_at = ?, updated_at = ?
+WHERE user_id = ?;
+
+-- name: UpsertUserLimits :exec
+INSERT INTO userservice_user_limits (
+    user_id, users_count, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id) DO UPDATE SET
+    users_count = excluded.users_count,
+    last_calculated_at = excluded.last_calculated_at,
+    updated_at = excluded.updated_at;
