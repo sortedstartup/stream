@@ -9,8 +9,13 @@ import {
   $availablePlans,
   $isLoadingPlans,
   $plansError,
+  $storageUsage,
+  $userUsage,
+  $isLoadingUsage,
   loadUserSubscription,
   loadPlans,
+  loadUsageData,
+  loadPlanInfo,
   createCheckoutSession,
   isFreePlan,
   isPaidPlan,
@@ -32,22 +37,50 @@ export const BillingPage = () => {
   const availablePlans = useStore($availablePlans)
   const isLoadingPlans = useStore($isLoadingPlans)
   const plansError = useStore($plansError)
+  const storageUsage = useStore($storageUsage)
+  const userUsage = useStore($userUsage)
+  const isLoadingUsage = useStore($isLoadingUsage)
   const currentUser = useStore($currentUser)
   const authInitialized = useStore($authInitialized)
   
   const [upgradeError, setUpgradeError] = useState('')
   const [checkoutPlanId, setCheckoutPlanId] = useState(null) // Track which plan is being processed
+  const [planInfos, setPlanInfos] = useState({}) // Store plan info for upgrade plans
   
   // Check if user data is ready for checkout - wait for auth to initialize
   const isUserReady = authInitialized && Boolean(currentUser?.uid)
 
   useEffect(() => {
-    // Load subscription and plans when billing page is accessed and auth is ready
+    // Load subscription, plans, and usage when billing page is accessed and auth is ready
     if (authInitialized && currentUser?.uid) {
       loadUserSubscription()
       loadPlans()
+      loadUsageData()
     }
   }, [authInitialized, currentUser?.uid])
+
+  // Load plan info for upgrade plans when available plans are loaded
+  useEffect(() => {
+    const loadUpgradePlanInfos = async () => {
+      if (availablePlans.length > 0) {
+        const planInfoPromises = availablePlans.map(async (plan) => {
+          try {
+            const planInfo = await loadPlanInfo(plan.id)
+            return { [plan.id]: planInfo }
+          } catch (error) {
+            console.error(`Failed to load plan info for ${plan.id}:`, error)
+            return { [plan.id]: null }
+          }
+        })
+        
+        const planInfoResults = await Promise.all(planInfoPromises)
+        const combinedPlanInfos = planInfoResults.reduce((acc, curr) => ({ ...acc, ...curr }), {})
+        setPlanInfos(combinedPlanInfos)
+      }
+    }
+
+    loadUpgradePlanInfos()
+  }, [availablePlans])
 
   // Show loading if auth is not yet initialized
   if (!authInitialized) {
@@ -120,12 +153,12 @@ export const BillingPage = () => {
   }
 
   const currentPlan = subscription?.plan
-  const storageUsed = formatStorageUsed(subscription?.usage?.storage_used_bytes || 0)
-  const storageLimit = formatStorageLimit(currentPlan?.storage_limit_bytes || 0)
-  const storagePercent = getStorageUsagePercent(subscription)
-  const usersCount = subscription?.usage?.users_count || 0
-  const usersLimit = currentPlan?.users_limit || 0
-  const usersPercent = getUsersUsagePercent(subscription)
+  const storageUsed = formatStorageUsed(storageUsage?.used_bytes || 0)
+  const storageLimit = formatStorageLimit(storageUsage?.limit_bytes || 0)
+  const storagePercent = getStorageUsagePercent(storageUsage)
+  const usersCount = userUsage?.current_users || 0
+  const usersLimit = userUsage?.limit_users || 0
+  const usersPercent = getUsersUsagePercent(userUsage)
   
   // Find available upgrade plans (exclude free, current plan, and downgrades)
   const upgradePlans = availablePlans.filter(plan => {
@@ -171,11 +204,11 @@ export const BillingPage = () => {
                         <div className="text-sm text-gray-600">
                           <div className="flex items-center">
                             <HardDrive className="w-4 h-4 mr-1" />
-                            {formatStorageLimit(currentPlan.storage_limit_bytes)}
+                            {storageLimit}
                           </div>
                           <div className="flex items-center mt-1">
                             <Users className="w-4 h-4 mr-1" />
-                            {currentPlan.users_limit} users
+                            {usersLimit} users
                           </div>
                         </div>
                       </div>
@@ -264,11 +297,19 @@ export const BillingPage = () => {
                       <div className="space-y-4 mb-6">
                         <div className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                          <span className="text-sm">{formatStorageLimit(plan.storage_limit_bytes)} Storage</span>
+                          <span className="text-sm">
+                            {planInfos[plan.id]?.storage_limit_bytes 
+                              ? `${Math.round(planInfos[plan.id].storage_limit_bytes / (1024 * 1024 * 1024))}GB Storage`
+                              : 'Enhanced Storage'}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                          <span className="text-sm">{plan.users_limit} Users</span>
+                          <span className="text-sm">
+                            {planInfos[plan.id]?.users_limit 
+                              ? `Up to ${planInfos[plan.id].users_limit} Team Members`
+                              : 'More Team Members'}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-2" />

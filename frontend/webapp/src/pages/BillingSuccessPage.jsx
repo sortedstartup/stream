@@ -4,7 +4,10 @@ import { useStore } from '@nanostores/react'
 import { CheckCircle, ArrowRight, HardDrive, Users } from 'react-feather'
 import { 
   $userSubscription,
+  $storageUsage,
+  $userUsage,
   loadUserSubscription,
+  loadUsageData,
   formatStorageLimit
 } from '../stores/payment'
 import { showSuccessToast } from '../utils/toast'
@@ -13,10 +16,13 @@ import { Layout } from '../components/layout/Layout'
 export const BillingSuccessPage = () => {
   const navigate = useNavigate()
   const subscription = useStore($userSubscription)
+  const storageUsage = useStore($storageUsage)
+  const userUsage = useStore($userUsage)
 
   useEffect(() => {
-    // Reload subscription data after successful payment
+    // Reload subscription and usage data after successful payment
     loadUserSubscription()
+    loadUsageData()
     
     // Show success message
     showSuccessToast('Payment successful! Your subscription has been upgraded.')
@@ -60,11 +66,15 @@ export const BillingSuccessPage = () => {
                   <>
                     <div className="flex items-center">
                       <HardDrive className="h-4 w-4 text-green-500 mr-3" />
-                      <span className="text-sm text-gray-700">{formatStorageLimit(currentPlan.storage_limit_bytes)} storage space</span>
+                      <span className="text-sm text-gray-700">
+                        {storageUsage?.limit_bytes ? formatStorageLimit(storageUsage.limit_bytes) : 'Enhanced'} storage space
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 text-green-500 mr-3" />
-                      <span className="text-sm text-gray-700">Up to {currentPlan.users_limit} team members</span>
+                      <span className="text-sm text-gray-700">
+                        Up to {userUsage?.limit_users || 'more'} team members
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-3" />

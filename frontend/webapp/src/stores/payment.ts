@@ -2,15 +2,17 @@ import { atom } from 'nanostores'
 import { $authToken, $currentUser } from '../auth/store/auth'
 import { 
   PaymentServiceClient, 
+  CreateCheckoutSessionRequest,
   GetUserSubscriptionRequest,
   GetPlansRequest,
   GetPlansResponse,
-  CreateCheckoutSessionRequest,
   UserSubscriptionInfo,
   Plan,
-  UserUsage,
+
   Subscription
 } from '../proto/paymentservice'
+import { VideoServiceClient, GetStorageUsageRequest, StorageInfo } from '../proto/videoservice'
+import { UserServiceClient, GetUserUsageRequest, UserLimitInfo, GetPlanInfoRequest } from '../proto/userservice'
 import { Timestamp } from '../proto/google/protobuf/timestamp'
 import { useStore } from '@nanostores/react'
 
@@ -24,6 +26,18 @@ export const $isCreatingCheckout = atom<boolean>(false)
 export const $availablePlans = atom<Plan[]>([])
 export const $isLoadingPlans = atom<boolean>(false)
 export const $plansError = atom<string | null>(null)
+
+// Usage data stores
+export const $storageUsage = atom<StorageInfo | null>(null)
+export const $userUsage = atom<UserLimitInfo | null>(null)
+export const $isLoadingUsage = atom<boolean>(false)
+export const $usageError = atom<string>('')
+
+// Plan info stores (for getting detailed plan limits)
+export const $planInfoCache = atom<Record<string, any>>({})
+export const $isLoadingPlanInfo = atom<boolean>(false)
+
+
 
 const apiUrl = import.meta.env.VITE_PUBLIC_API_URL?.replace(/\/$/, "")
 
@@ -144,6 +158,134 @@ export const loadPlans = async () => {
   }
 }
 
+// Load usage data from VideoService and UserService
+export const loadUsageData = async () => {
+  const currentUser = $currentUser.get()
+  if (!currentUser?.uid) {
+    console.log('No current user, skipping usage load')
+    return
+  }
+
+  $isLoadingUsage.set(true)
+  $usageError.set('')
+
+  try {
+    // Create clients similar to PaymentService client
+    const videoClient = new VideoServiceClient(
+      apiUrl,
+      {},
+      {
+        unaryInterceptors: [
+          {
+            intercept: (request, invoker) => {
+              const metadata = request.getMetadata();
+              metadata["authorization"] = $authToken.get();
+              return invoker(request);
+            },
+          },
+        ],
+      }
+    )
+
+    const userClient = new UserServiceClient(
+      apiUrl,
+      {},
+      {
+        unaryInterceptors: [
+          {
+            intercept: (request, invoker) => {
+              const metadata = request.getMetadata();
+              metadata["authorization"] = $authToken.get();
+              return invoker(request);
+            },
+          },
+        ],
+      }
+    )
+
+    // Create requests similar to PaymentService pattern
+    const storageRequest = new GetStorageUsageRequest()
+    storageRequest.user_id = currentUser.uid
+
+    const userRequest = new GetUserUsageRequest()
+    userRequest.user_id = currentUser.uid
+
+    // Make calls similar to PaymentService pattern
+    const [storageResponse, userResponse] = await Promise.all([
+      videoClient.GetStorageUsage(storageRequest, {}),
+      userClient.GetUserUsage(userRequest, {})
+    ])
+
+    if (storageResponse.success && storageResponse.storage_info) {
+      $storageUsage.set(storageResponse.storage_info)
+    }
+
+    if (userResponse.success && userResponse.user_info) {
+      $userUsage.set(userResponse.user_info)
+    }
+
+  } catch (error) {
+    console.error('Failed to load usage data:', error)
+    $usageError.set('Failed to load usage information')
+  } finally {
+    $isLoadingUsage.set(false)
+  }
+}
+
+// Load plan info with actual limits from UserService
+export const loadPlanInfo = async (planId: string) => {
+  const currentUser = $currentUser.get()
+  if (!currentUser?.uid) {
+    console.warn('No current user for plan info')
+    return null
+  }
+
+  // Check cache first
+  const cache = $planInfoCache.get()
+  if (cache[planId]) {
+    return cache[planId]
+  }
+
+  $isLoadingPlanInfo.set(true)
+
+  try {
+    const userClient = new UserServiceClient(
+      apiUrl,
+      {},
+      {
+        unaryInterceptors: [
+          {
+            intercept: (request, invoker) => {
+              const metadata = request.getMetadata();
+              metadata["authorization"] = $authToken.get();
+              return invoker(request);
+            },
+          },
+        ],
+      }
+    )
+
+    const request = new GetPlanInfoRequest()
+    request.plan_id = planId
+
+    const response = await userClient.GetPlanInfo(request, {})
+    
+    if (response.success && response.plan_info) {
+      // Cache the result
+      const updatedCache = { ...cache, [planId]: response.plan_info }
+      $planInfoCache.set(updatedCache)
+      return response.plan_info
+    } else {
+      throw new Error(response.error_message || 'Failed to get plan info')
+    }
+  } catch (error) {
+    console.error('Failed to load plan info:', error)
+    throw error
+  } finally {
+    $isLoadingPlanInfo.set(false)
+  }
+}
+
 // Helper functions for subscription info
 export const isFreePlan = (subscription: UserSubscriptionInfo | null): boolean => {
   return subscription?.plan?.id === 'free' || !subscription?.plan
@@ -153,13 +295,19 @@ export const isPaidPlan = (subscription: UserSubscriptionInfo | null): boolean =
   return subscription?.plan?.id !== 'free' && subscription?.subscription?.status === 'active'
 }
 
-export const getStorageUsagePercent = (subscription: UserSubscriptionInfo | null): number => {
-  return subscription?.usage?.storage_usage_percent || 0
+export const getStorageUsagePercent = (storageUsage: StorageInfo | null): number => {
+  if (!storageUsage || !storageUsage.limit_bytes) return 0
+  return (storageUsage.used_bytes / storageUsage.limit_bytes) * 100
 }
 
-export const getUsersUsagePercent = (subscription: UserSubscriptionInfo | null): number => {
-  return subscription?.usage?.users_usage_percent || 0
+export const getUsersUsagePercent = (userUsage: UserLimitInfo | null): number => {
+  if (!userUsage || !userUsage.limit_users) return 0
+  return (userUsage.current_users / userUsage.limit_users) * 100
 }
+
+
+
+
 
 export const formatStorageUsed = (bytes: number): string => {
   if (bytes === 0) return '0 B'
