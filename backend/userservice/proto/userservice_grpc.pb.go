@@ -19,8 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUserIfNotExists_FullMethodName = "/userservice.UserService/CreateUserIfNotExists"
-	UserService_GetTenants_FullMethodName            = "/userservice.UserService/GetTenants"
+	UserService_CreateUserIfNotExists_FullMethodName      = "/userservice.UserService/CreateUserIfNotExists"
+	UserService_GetTenants_FullMethodName                 = "/userservice.UserService/GetTenants"
+	UserService_InitializeUserSubscription_FullMethodName = "/userservice.UserService/InitializeUserSubscription"
+	UserService_CheckUserAccess_FullMethodName            = "/userservice.UserService/CheckUserAccess"
+	UserService_UpdateUserUsage_FullMethodName            = "/userservice.UserService/UpdateUserUsage"
+	UserService_GetUserUsage_FullMethodName               = "/userservice.UserService/GetUserUsage"
+	UserService_GetPlanInfo_FullMethodName                = "/userservice.UserService/GetPlanInfo"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -30,6 +35,14 @@ type UserServiceClient interface {
 	CreateUserIfNotExists(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	// Get all the tenants which I (current logged in user) am a part of
 	GetTenants(ctx context.Context, in *GetTenantsRequest, opts ...grpc.CallOption) (*GetTenantsResponse, error)
+	// User subscription initialization (moved from PaymentService)
+	InitializeUserSubscription(ctx context.Context, in *InitializeUserSubscriptionRequest, opts ...grpc.CallOption) (*InitializeUserSubscriptionResponse, error)
+	// User limit methods
+	CheckUserAccess(ctx context.Context, in *CheckUserAccessRequest, opts ...grpc.CallOption) (*CheckUserAccessResponse, error)
+	UpdateUserUsage(ctx context.Context, in *UpdateUserUsageRequest, opts ...grpc.CallOption) (*UpdateUserUsageResponse, error)
+	GetUserUsage(ctx context.Context, in *GetUserUsageRequest, opts ...grpc.CallOption) (*GetUserUsageResponse, error)
+	// Plan information with application-specific limits
+	GetPlanInfo(ctx context.Context, in *GetPlanInfoRequest, opts ...grpc.CallOption) (*GetPlanInfoResponse, error)
 }
 
 type userServiceClient struct {
@@ -60,6 +73,56 @@ func (c *userServiceClient) GetTenants(ctx context.Context, in *GetTenantsReques
 	return out, nil
 }
 
+func (c *userServiceClient) InitializeUserSubscription(ctx context.Context, in *InitializeUserSubscriptionRequest, opts ...grpc.CallOption) (*InitializeUserSubscriptionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InitializeUserSubscriptionResponse)
+	err := c.cc.Invoke(ctx, UserService_InitializeUserSubscription_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) CheckUserAccess(ctx context.Context, in *CheckUserAccessRequest, opts ...grpc.CallOption) (*CheckUserAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserAccessResponse)
+	err := c.cc.Invoke(ctx, UserService_CheckUserAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UpdateUserUsage(ctx context.Context, in *UpdateUserUsageRequest, opts ...grpc.CallOption) (*UpdateUserUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserUsageResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateUserUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUserUsage(ctx context.Context, in *GetUserUsageRequest, opts ...grpc.CallOption) (*GetUserUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserUsageResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetPlanInfo(ctx context.Context, in *GetPlanInfoRequest, opts ...grpc.CallOption) (*GetPlanInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPlanInfoResponse)
+	err := c.cc.Invoke(ctx, UserService_GetPlanInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -67,6 +130,14 @@ type UserServiceServer interface {
 	CreateUserIfNotExists(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	// Get all the tenants which I (current logged in user) am a part of
 	GetTenants(context.Context, *GetTenantsRequest) (*GetTenantsResponse, error)
+	// User subscription initialization (moved from PaymentService)
+	InitializeUserSubscription(context.Context, *InitializeUserSubscriptionRequest) (*InitializeUserSubscriptionResponse, error)
+	// User limit methods
+	CheckUserAccess(context.Context, *CheckUserAccessRequest) (*CheckUserAccessResponse, error)
+	UpdateUserUsage(context.Context, *UpdateUserUsageRequest) (*UpdateUserUsageResponse, error)
+	GetUserUsage(context.Context, *GetUserUsageRequest) (*GetUserUsageResponse, error)
+	// Plan information with application-specific limits
+	GetPlanInfo(context.Context, *GetPlanInfoRequest) (*GetPlanInfoResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -82,6 +153,21 @@ func (UnimplementedUserServiceServer) CreateUserIfNotExists(context.Context, *Cr
 }
 func (UnimplementedUserServiceServer) GetTenants(context.Context, *GetTenantsRequest) (*GetTenantsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTenants not implemented")
+}
+func (UnimplementedUserServiceServer) InitializeUserSubscription(context.Context, *InitializeUserSubscriptionRequest) (*InitializeUserSubscriptionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitializeUserSubscription not implemented")
+}
+func (UnimplementedUserServiceServer) CheckUserAccess(context.Context, *CheckUserAccessRequest) (*CheckUserAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserAccess not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateUserUsage(context.Context, *UpdateUserUsageRequest) (*UpdateUserUsageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserUsage not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserUsage(context.Context, *GetUserUsageRequest) (*GetUserUsageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserUsage not implemented")
+}
+func (UnimplementedUserServiceServer) GetPlanInfo(context.Context, *GetPlanInfoRequest) (*GetPlanInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlanInfo not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -140,6 +226,96 @@ func _UserService_GetTenants_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_InitializeUserSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitializeUserSubscriptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).InitializeUserSubscription(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_InitializeUserSubscription_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).InitializeUserSubscription(ctx, req.(*InitializeUserSubscriptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_CheckUserAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CheckUserAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CheckUserAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CheckUserAccess(ctx, req.(*CheckUserAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UpdateUserUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateUserUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateUserUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateUserUsage(ctx, req.(*UpdateUserUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUserUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserUsage(ctx, req.(*GetUserUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetPlanInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPlanInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetPlanInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetPlanInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetPlanInfo(ctx, req.(*GetPlanInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +330,26 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTenants",
 			Handler:    _UserService_GetTenants_Handler,
+		},
+		{
+			MethodName: "InitializeUserSubscription",
+			Handler:    _UserService_InitializeUserSubscription_Handler,
+		},
+		{
+			MethodName: "CheckUserAccess",
+			Handler:    _UserService_CheckUserAccess_Handler,
+		},
+		{
+			MethodName: "UpdateUserUsage",
+			Handler:    _UserService_UpdateUserUsage_Handler,
+		},
+		{
+			MethodName: "GetUserUsage",
+			Handler:    _UserService_GetUserUsage_Handler,
+		},
+		{
+			MethodName: "GetPlanInfo",
+			Handler:    _UserService_GetPlanInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

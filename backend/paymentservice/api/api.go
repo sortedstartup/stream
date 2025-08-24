@@ -65,13 +65,11 @@ func (s *PaymentServer) initializePlans(ctx context.Context) error {
 			// Plan doesn't exist, create it
 			log.Printf("Creating plan: %s (%s)", planConfig.ID, planConfig.Name)
 			_, err = s.db.CreatePlan(ctx, db.CreatePlanParams{
-				ID:                planConfig.ID,
-				Name:              planConfig.Name,
-				StorageLimitBytes: planConfig.StorageLimitBytes(),
-				UsersLimit:        planConfig.UsersLimit,
-				PriceCents:        sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
-				CreatedAt:         now,
-				UpdatedAt:         now,
+				ID:         planConfig.ID,
+				Name:       planConfig.Name,
+				PriceCents: sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
+				CreatedAt:  now,
+				UpdatedAt:  now,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create plan %s: %w", planConfig.ID, err)
@@ -80,12 +78,10 @@ func (s *PaymentServer) initializePlans(ctx context.Context) error {
 			// Plan exists, update it with current config
 			log.Printf("Updating plan: %s (%s)", planConfig.ID, planConfig.Name)
 			_, err = s.db.UpdatePlan(ctx, db.UpdatePlanParams{
-				ID:                planConfig.ID,
-				Name:              planConfig.Name,
-				StorageLimitBytes: planConfig.StorageLimitBytes(),
-				UsersLimit:        planConfig.UsersLimit,
-				PriceCents:        sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
-				UpdatedAt:         now,
+				ID:         planConfig.ID,
+				Name:       planConfig.Name,
+				PriceCents: sql.NullInt64{Int64: planConfig.PriceCents, Valid: true},
+				UpdatedAt:  now,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to update plan %s: %w", planConfig.ID, err)
@@ -97,105 +93,49 @@ func (s *PaymentServer) initializePlans(ctx context.Context) error {
 	return nil
 }
 
-// CheckUserAccess checks if user can perform specific action
-func (s *PaymentServer) CheckUserAccess(ctx context.Context, req *pb.CheckUserAccessRequest) (*pb.CheckUserAccessResponse, error) {
-	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+// CreateUserSubscription creates a subscription for a user (called by application services)
+func (s *PaymentServer) CreateUserSubscription(ctx context.Context, req *pb.CreateUserSubscriptionRequest) (*pb.CreateUserSubscriptionResponse, error) {
+	if req.UserId == "" || req.PlanId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id and plan_id are required")
 	}
 
-	// Get user access info from database
-	log.Printf("CheckUserAccess: Checking access for user %s, usage type %s, requested usage %d", req.UserId, req.UsageType, req.RequestedUsage)
-	accessInfo, err := s.db.CheckUserAccess(ctx, req.UserId)
+	// Check if user already has subscription
+	_, err := s.db.GetUserSubscription(ctx, req.UserId)
+	if err == nil {
+		// User already has subscription
+		return &pb.CreateUserSubscriptionResponse{
+			Success:        true,
+			SubscriptionId: "", // Existing subscription
+		}, nil
+	} else if err != sql.ErrNoRows {
+		return nil, status.Error(codes.Internal, "failed to check existing subscription")
+	}
+
+	// Validate plan exists
+	_, err = s.db.GetPlan(ctx, req.PlanId)
 	if err != nil {
-		log.Printf("CheckUserAccess: Database error for user %s: %v", req.UserId, err)
-		if err == sql.ErrNoRows {
-			// User doesn't have subscription - need to initialize with free plan
-			log.Printf("CheckUserAccess: No subscription found for user %s", req.UserId)
-			return &pb.CheckUserAccessResponse{
-				HasAccess:      false,
-				Reason:         "no_subscription",
-				IsNearLimit:    false,
-				WarningMessage: "No subscription found. Please upgrade to continue.",
-			}, nil
-		}
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to check user access: %v", err))
+		return nil, status.Error(codes.NotFound, "plan not found")
 	}
 
-	log.Printf("CheckUserAccess: Successfully retrieved access info for user %s - plan: %s, status: %s, storage limit: %v",
-		req.UserId, accessInfo.PlanID, accessInfo.SubscriptionStatus, accessInfo.StorageLimitBytes)
+	now := time.Now().Unix()
 
-	// Determine access based on usage type and requested amount
-	hasAccess := false
-	reason := ""
-	isNearLimit := false
-	warningMessage := ""
-
-	switch req.UsageType {
-	case "storage":
-		storageLimit := int64(0)
-		if accessInfo.StorageLimitBytes.Valid {
-			storageLimit = accessInfo.StorageLimitBytes.Int64
-		}
-		wouldExceed := accessInfo.CurrentStorageBytes+req.RequestedUsage > storageLimit
-		hasAccess = accessInfo.HasStorageAccess == 1 && !wouldExceed
-		if !hasAccess {
-			if accessInfo.SubscriptionStatus != "active" {
-				reason = "subscription_inactive"
-			} else {
-				reason = "storage_limit_exceeded"
-			}
-		}
-		isNearLimit = accessInfo.StorageUsagePercent > 75
-
-	case "users":
-		usersLimit := int64(0)
-		if accessInfo.UsersLimit.Valid {
-			usersLimit = accessInfo.UsersLimit.Int64
-		}
-		wouldExceed := accessInfo.CurrentUsersCount+req.RequestedUsage > usersLimit
-		hasAccess = accessInfo.HasUsersAccess == 1 && !wouldExceed
-		if !hasAccess {
-			if accessInfo.SubscriptionStatus != "active" {
-				reason = "subscription_inactive"
-			} else {
-				reason = "users_limit_exceeded"
-			}
-		}
-		isNearLimit = accessInfo.UsersUsagePercent > 75
+	// Create subscription
+	subscription, err := s.db.CreateUserSubscription(ctx, db.CreateUserSubscriptionParams{
+		ID:        fmt.Sprintf("sub_%s_%d", req.UserId, now),
+		UserID:    req.UserId,
+		PlanID:    req.PlanId,
+		Provider:  s.config.PaymentProvider,
+		Status:    "active",
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to create subscription")
 	}
 
-	// Generate warning message
-	if isNearLimit && hasAccess {
-		if req.UsageType == "storage" {
-			warningMessage = fmt.Sprintf("Storage %.1f%% full. Consider upgrading your plan.", float64(accessInfo.StorageUsagePercent))
-		} else {
-			warningMessage = fmt.Sprintf("Users %.1f%% of limit. Consider upgrading your plan.", float64(accessInfo.UsersUsagePercent))
-		}
-	}
-
-	return &pb.CheckUserAccessResponse{
-		HasAccess: hasAccess,
-		Reason:    reason,
-		SubscriptionInfo: &pb.UserSubscriptionInfo{
-			UserId: req.UserId,
-			Usage: &pb.UserUsage{
-				UserId:              req.UserId,
-				StorageUsedBytes:    accessInfo.CurrentStorageBytes,
-				UsersCount:          int32(accessInfo.CurrentUsersCount),
-				StorageUsagePercent: float64(accessInfo.StorageUsagePercent),
-				UsersUsagePercent:   float64(accessInfo.UsersUsagePercent),
-			},
-			Plan: &pb.Plan{
-				Id:                accessInfo.PlanID,
-				Name:              accessInfo.PlanName.String,
-				StorageLimitBytes: accessInfo.StorageLimitBytes.Int64,
-				UsersLimit:        int32(accessInfo.UsersLimit.Int64),
-				PriceCents:        accessInfo.PriceCents.Int64,
-				IsActive:          true,
-			},
-		},
-		IsNearLimit:    isNearLimit,
-		WarningMessage: warningMessage,
+	return &pb.CreateUserSubscriptionResponse{
+		Success:        true,
+		SubscriptionId: subscription.ID,
 	}, nil
 }
 
@@ -217,26 +157,10 @@ func (s *PaymentServer) GetUserSubscription(ctx context.Context, req *pb.GetUser
 		return nil, status.Error(codes.Internal, "failed to get user subscription")
 	}
 
-	// Get user usage
-	usage, err := s.db.GetUserUsage(ctx, req.UserId)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, status.Error(codes.Internal, "failed to get user usage")
-	}
-
 	// Get plan details
 	plan, err := s.db.GetPlan(ctx, subscription.PlanID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to get plan details")
-	}
-
-	// Calculate usage percentages
-	storagePercent := 0.0
-	usersPercent := 0.0
-	if plan.StorageLimitBytes > 0 {
-		storagePercent = float64(usage.StorageUsedBytes.Int64) / float64(plan.StorageLimitBytes) * 100
-	}
-	if plan.UsersLimit > 0 {
-		usersPercent = float64(usage.UsersCount.Int64) / float64(plan.UsersLimit) * 100
 	}
 
 	return &pb.GetUserSubscriptionResponse{
@@ -252,21 +176,11 @@ func (s *PaymentServer) GetUserSubscription(ctx context.Context, req *pb.GetUser
 				CreatedAt: timestamppb.New(time.Unix(subscription.CreatedAt, 0)),
 				UpdatedAt: timestamppb.New(time.Unix(subscription.UpdatedAt, 0)),
 			},
-			Usage: &pb.UserUsage{
-				UserId:              req.UserId,
-				StorageUsedBytes:    usage.StorageUsedBytes.Int64,
-				UsersCount:          int32(usage.UsersCount.Int64),
-				StorageUsagePercent: storagePercent,
-				UsersUsagePercent:   usersPercent,
-				LastCalculatedAt:    timestamppb.New(time.Unix(usage.LastCalculatedAt.Int64, 0)),
-			},
 			Plan: &pb.Plan{
-				Id:                plan.ID,
-				Name:              plan.Name,
-				StorageLimitBytes: plan.StorageLimitBytes,
-				UsersLimit:        int32(plan.UsersLimit),
-				PriceCents:        plan.PriceCents.Int64,
-				IsActive:          plan.IsActive.Bool,
+				Id:         plan.ID,
+				Name:       plan.Name,
+				PriceCents: plan.PriceCents.Int64,
+				IsActive:   plan.IsActive.Bool,
 			},
 		},
 	}, nil
@@ -317,115 +231,6 @@ func (s *PaymentServer) CreateCheckoutSession(ctx context.Context, req *pb.Creat
 	return nil, status.Error(codes.Internal, "payment provider not configured")
 }
 
-// UpdateUserUsage updates user usage metrics
-func (s *PaymentServer) UpdateUserUsage(ctx context.Context, req *pb.UpdateUserUsageRequest) (*pb.UpdateUserUsageResponse, error) {
-	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-
-	now := time.Now().Unix()
-
-	switch req.UsageType {
-	case "storage":
-		err := s.db.UpdateUserStorageUsage(ctx, db.UpdateUserStorageUsageParams{
-			UserID:           req.UserId,
-			StorageUsedBytes: sql.NullInt64{Int64: req.UsageChange, Valid: true},
-			LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
-			UpdatedAt:        now,
-		})
-		if err != nil {
-			return nil, status.Error(codes.Internal, "failed to update storage usage")
-		}
-
-	case "users":
-		err := s.db.UpdateUserUsersCount(ctx, db.UpdateUserUsersCountParams{
-			UserID:           req.UserId,
-			UsersCount:       sql.NullInt64{Int64: req.UsageChange, Valid: true},
-			LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
-			UpdatedAt:        now,
-		})
-		if err != nil {
-			return nil, status.Error(codes.Internal, "failed to update users count")
-		}
-
-	default:
-		return nil, status.Error(codes.InvalidArgument, "invalid usage_type")
-	}
-
-	return &pb.UpdateUserUsageResponse{
-		Success: true,
-	}, nil
-}
-
-// InitializeUser creates a free subscription for a new user
-func (s *PaymentServer) InitializeUser(ctx context.Context, req *pb.InitializeUserRequest) (*pb.InitializeUserResponse, error) {
-	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-
-	now := time.Now().Unix()
-
-	// Create free subscription
-	subscription, err := s.db.CreateUserSubscription(ctx, db.CreateUserSubscriptionParams{
-		ID:        fmt.Sprintf("sub_%s_%d", req.UserId, now),
-		UserID:    req.UserId,
-		PlanID:    "free",
-		Provider:  s.config.PaymentProvider,
-		Status:    "active",
-		CreatedAt: now,
-		UpdatedAt: now,
-	})
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to create subscription")
-	}
-
-	// Create usage tracking
-	usage, err := s.db.CreateUserUsage(ctx, db.CreateUserUsageParams{
-		UserID:           req.UserId,
-		StorageUsedBytes: sql.NullInt64{Int64: 0, Valid: true},
-		UsersCount:       sql.NullInt64{Int64: 0, Valid: true},
-		LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
-		CreatedAt:        now,
-		UpdatedAt:        now,
-	})
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to create usage tracking")
-	}
-
-	// Get plan details
-	plan, err := s.db.GetPlan(ctx, "free")
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to get free plan")
-	}
-
-	return &pb.InitializeUserResponse{
-		Success: true,
-		SubscriptionInfo: &pb.UserSubscriptionInfo{
-			UserId: req.UserId,
-			Subscription: &pb.Subscription{
-				Id:       subscription.ID,
-				UserId:   subscription.UserID,
-				PlanId:   subscription.PlanID,
-				Provider: subscription.Provider,
-				Status:   subscription.Status,
-			},
-			Usage: &pb.UserUsage{
-				UserId:           req.UserId,
-				StorageUsedBytes: usage.StorageUsedBytes.Int64,
-				UsersCount:       int32(usage.UsersCount.Int64),
-			},
-			Plan: &pb.Plan{
-				Id:                plan.ID,
-				Name:              plan.Name,
-				StorageLimitBytes: plan.StorageLimitBytes,
-				UsersLimit:        int32(plan.UsersLimit),
-				PriceCents:        plan.PriceCents.Int64,
-				IsActive:          plan.IsActive.Bool,
-			},
-		},
-	}, nil
-}
-
 // GetPlans returns all available subscription plans (authentication required)
 func (s *PaymentServer) GetPlans(ctx context.Context, req *pb.GetPlansRequest) (*pb.GetPlansResponse, error) {
 	// Verify user is authenticated
@@ -448,12 +253,10 @@ func (s *PaymentServer) GetPlans(ctx context.Context, req *pb.GetPlansRequest) (
 	var plans []*pb.Plan
 	for _, dbPlan := range dbPlans {
 		plans = append(plans, &pb.Plan{
-			Id:                dbPlan.ID,
-			Name:              dbPlan.Name,
-			StorageLimitBytes: dbPlan.StorageLimitBytes,
-			UsersLimit:        int32(dbPlan.UsersLimit),
-			PriceCents:        dbPlan.PriceCents.Int64,
-			IsActive:          dbPlan.IsActive.Bool,
+			Id:         dbPlan.ID,
+			Name:       dbPlan.Name,
+			PriceCents: dbPlan.PriceCents.Int64,
+			IsActive:   dbPlan.IsActive.Bool,
 		})
 	}
 

@@ -14,8 +14,8 @@ import (
 
 	"github.com/google/uuid"
 	"sortedstartup.com/stream/common/interceptors"
-	paymentProto "sortedstartup.com/stream/paymentservice/proto"
 	"sortedstartup.com/stream/videoservice/db"
+	"sortedstartup.com/stream/videoservice/proto"
 )
 
 const (
@@ -178,16 +178,15 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		payingUserID = userID
 	}
 
-	// Check payment access for storage upload with the correct paying user
+	// Check storage access via VideoService (moved from PaymentService)
 	slog.Info("Checking storage access for upload", "payingUserID", payingUserID, "uploader", userID, "channelID", channelID)
-	accessResp, err := api.paymentServiceClient.CheckUserAccess(r.Context(), &paymentProto.CheckUserAccessRequest{
+	accessResp, err := api.CheckStorageAccess(r.Context(), &proto.CheckStorageAccessRequest{
 		UserId:         payingUserID,
-		UsageType:      "storage",
-		RequestedUsage: int64(r.ContentLength), // Check if the upload size would exceed limits
+		RequestedBytes: int64(r.ContentLength), // Check if the upload size would exceed limits
 	})
 	if err != nil {
-		http.Error(w, "Payment service unavailable", http.StatusServiceUnavailable)
-		slog.Error("Payment service error", "err", err, "payingUserID", payingUserID)
+		http.Error(w, "Storage access check failed", http.StatusServiceUnavailable)
+		slog.Error("Storage access check error", "err", err, "payingUserID", payingUserID)
 		return
 	}
 
@@ -352,19 +351,29 @@ func (api *VideoAPI) uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update storage usage in payment service for the paying user
+	// Update storage usage in videoservice_user_storage_usage table
 	slog.Info("Updating storage usage", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
 
-	_, err = api.paymentServiceClient.UpdateUserUsage(r.Context(), &paymentProto.UpdateUserUsageRequest{
-		UserId:      payingUserID,
-		UsageType:   "storage",
-		UsageChange: fileSizeForDB,
+	// Get current usage first
+	currentUsageResp, err := api.GetStorageUsage(r.Context(), &proto.GetStorageUsageRequest{
+		UserId: payingUserID,
 	})
 	if err != nil {
-		slog.Error("Failed to update storage usage in payment service", "err", err, "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
+		slog.Error("Failed to get current storage usage", "err", err, "payingUserID", payingUserID)
 		// Don't fail the upload, just log the error
 	} else {
-		slog.Info("Storage usage updated successfully", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB)
+		// Update with new total usage
+		newTotal := currentUsageResp.StorageInfo.UsedBytes + fileSizeForDB
+		_, err = api.UpdateStorageUsage(r.Context(), &proto.UpdateStorageUsageRequest{
+			UserId:      payingUserID,
+			UsageChange: newTotal, // Set the new total
+		})
+		if err != nil {
+			slog.Error("Failed to update storage usage", "err", err, "payingUserID", payingUserID, "fileSize", fileSizeForDB)
+			// Don't fail the upload, just log the error
+		} else {
+			slog.Info("Storage usage updated successfully", "payingUserID", payingUserID, "uploader", userID, "fileSize", fileSizeForDB, "newTotal", newTotal)
+		}
 	}
 
 	// Success! Respond and exit

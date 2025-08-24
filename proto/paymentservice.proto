@@ -5,11 +5,8 @@ option go_package = "sortedstartup.com/stream/paymentservice/proto";
 
 import "google/protobuf/timestamp.proto";
 
-// Generic Payment service for managing user subscriptions and usage limits
+// Generic Payment service for managing user subscriptions (pure payment functionality)
 service PaymentService {
-  // Check if user can perform specific action
-  rpc CheckUserAccess(CheckUserAccessRequest) returns (CheckUserAccessResponse);
-  
   // Get user subscription and usage details
   rpc GetUserSubscription(GetUserSubscriptionRequest) returns (GetUserSubscriptionResponse);
   
@@ -19,26 +16,20 @@ service PaymentService {
   // Create payment checkout session (provider-agnostic)
   rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
   
-  // Update user usage (called by application services)
-  rpc UpdateUserUsage(UpdateUserUsageRequest) returns (UpdateUserUsageResponse);
-  
-  // Initialize user with free subscription
-  rpc InitializeUser(InitializeUserRequest) returns (InitializeUserResponse);
+  // Create user subscription (called by application services)
+  rpc CreateUserSubscription(CreateUserSubscriptionRequest) returns (CreateUserSubscriptionResponse);
 }
 
-// Messages for CheckUserAccess
-message CheckUserAccessRequest {
+// Messages for CreateUserSubscription
+message CreateUserSubscriptionRequest {
   string user_id = 1;
-  string usage_type = 2;                 // "storage", "users"
-  int64 requested_usage = 3;             // Amount we want to use (bytes for storage, count for users)
+  string plan_id = 2;                    // "free", "standard", "premium"
 }
 
-message CheckUserAccessResponse {
-  bool has_access = 1;
-  string reason = 2;                     // "subscription_inactive", "storage_limit_exceeded", "usage_limit_exceeded"
-  UserSubscriptionInfo subscription_info = 3;
-  bool is_near_limit = 4;                // true if usage > 75%
-  string warning_message = 5;
+message CreateUserSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+  string subscription_id = 3;
 }
 
 // Messages for GetUserSubscription
@@ -78,45 +69,13 @@ message CreateCheckoutSessionResponse {
   string error_message = 4;
 }
 
-// Messages for UpdateUserUsage
-message UpdateUserUsageRequest {
-  string user_id = 1;
-  string usage_type = 2;                 // "storage", "users"
-  int64 usage_change = 3;                // Can be positive (add) or negative (subtract)
-}
 
-message UpdateUserUsageResponse {
-  bool success = 1;
-  string error_message = 2;
-  UserSubscriptionInfo updated_info = 3;
-}
-
-// Messages for InitializeUser
-message InitializeUserRequest {
-  string user_id = 1;                    // User to initialize with free plan
-}
-
-message InitializeUserResponse {
-  bool success = 1;
-  string error_message = 2;
-  UserSubscriptionInfo subscription_info = 3;
-}
 
 // Shared data structures
 message UserSubscriptionInfo {
   string user_id = 1;
   Subscription subscription = 2;
-  UserUsage usage = 3;
-  Plan plan = 4;
-}
-
-message UserUsage {
-  string user_id = 1;
-  int64 storage_used_bytes = 2;
-  int32 users_count = 3;                  // Total users across all workspaces owned by this user
-  double storage_usage_percent = 4;       // Calculated percentage
-  double users_usage_percent = 5;         // Calculated percentage
-  google.protobuf.Timestamp last_calculated_at = 6;
+  Plan plan = 3;
 }
 
 message Subscription {
@@ -136,8 +95,6 @@ message Subscription {
 message Plan {
   string id = 1;
   string name = 2;
-  int64 storage_limit_bytes = 3;
-  int32 users_limit = 4;
-  int64 price_cents = 5;
-  bool is_active = 6;
+  int64 price_cents = 3;
+  bool is_active = 4;
 } 

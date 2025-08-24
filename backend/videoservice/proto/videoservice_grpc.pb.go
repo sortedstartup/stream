@@ -27,6 +27,11 @@ const (
 	VideoService_MoveVideoToChannel_FullMethodName     = "/videoservice.VideoService/MoveVideoToChannel"
 	VideoService_RemoveVideoFromChannel_FullMethodName = "/videoservice.VideoService/RemoveVideoFromChannel"
 	VideoService_ShareVideo_FullMethodName             = "/videoservice.VideoService/ShareVideo"
+	VideoService_CheckStorageAccess_FullMethodName     = "/videoservice.VideoService/CheckStorageAccess"
+	VideoService_UpdateStorageUsage_FullMethodName     = "/videoservice.VideoService/UpdateStorageUsage"
+	VideoService_GetStorageUsage_FullMethodName        = "/videoservice.VideoService/GetStorageUsage"
+	VideoService_GetPlanStorageLimit_FullMethodName    = "/videoservice.VideoService/GetPlanStorageLimit"
+	VideoService_GetUserStorageInfo_FullMethodName     = "/videoservice.VideoService/GetUserStorageInfo"
 )
 
 // VideoServiceClient is the client API for VideoService service.
@@ -44,6 +49,14 @@ type VideoServiceClient interface {
 	RemoveVideoFromChannel(ctx context.Context, in *RemoveVideoFromChannelRequest, opts ...grpc.CallOption) (*RemoveVideoFromChannelResponse, error)
 	// Sharing
 	ShareVideo(ctx context.Context, in *ShareVideoRequest, opts ...grpc.CallOption) (*ShareLink, error)
+	// Storage access control (moved from payment service)
+	CheckStorageAccess(ctx context.Context, in *CheckStorageAccessRequest, opts ...grpc.CallOption) (*CheckStorageAccessResponse, error)
+	UpdateStorageUsage(ctx context.Context, in *UpdateStorageUsageRequest, opts ...grpc.CallOption) (*UpdateStorageUsageResponse, error)
+	GetStorageUsage(ctx context.Context, in *GetStorageUsageRequest, opts ...grpc.CallOption) (*GetStorageUsageResponse, error)
+	// Plan storage limits
+	GetPlanStorageLimit(ctx context.Context, in *GetPlanStorageLimitRequest, opts ...grpc.CallOption) (*GetPlanStorageLimitResponse, error)
+	// Get user storage usage with plan limits (for frontend display)
+	GetUserStorageInfo(ctx context.Context, in *GetUserStorageInfoRequest, opts ...grpc.CallOption) (*GetUserStorageInfoResponse, error)
 }
 
 type videoServiceClient struct {
@@ -134,6 +147,56 @@ func (c *videoServiceClient) ShareVideo(ctx context.Context, in *ShareVideoReque
 	return out, nil
 }
 
+func (c *videoServiceClient) CheckStorageAccess(ctx context.Context, in *CheckStorageAccessRequest, opts ...grpc.CallOption) (*CheckStorageAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckStorageAccessResponse)
+	err := c.cc.Invoke(ctx, VideoService_CheckStorageAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) UpdateStorageUsage(ctx context.Context, in *UpdateStorageUsageRequest, opts ...grpc.CallOption) (*UpdateStorageUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateStorageUsageResponse)
+	err := c.cc.Invoke(ctx, VideoService_UpdateStorageUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) GetStorageUsage(ctx context.Context, in *GetStorageUsageRequest, opts ...grpc.CallOption) (*GetStorageUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStorageUsageResponse)
+	err := c.cc.Invoke(ctx, VideoService_GetStorageUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) GetPlanStorageLimit(ctx context.Context, in *GetPlanStorageLimitRequest, opts ...grpc.CallOption) (*GetPlanStorageLimitResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPlanStorageLimitResponse)
+	err := c.cc.Invoke(ctx, VideoService_GetPlanStorageLimit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *videoServiceClient) GetUserStorageInfo(ctx context.Context, in *GetUserStorageInfoRequest, opts ...grpc.CallOption) (*GetUserStorageInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserStorageInfoResponse)
+	err := c.cc.Invoke(ctx, VideoService_GetUserStorageInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VideoServiceServer is the server API for VideoService service.
 // All implementations must embed UnimplementedVideoServiceServer
 // for forward compatibility.
@@ -149,6 +212,14 @@ type VideoServiceServer interface {
 	RemoveVideoFromChannel(context.Context, *RemoveVideoFromChannelRequest) (*RemoveVideoFromChannelResponse, error)
 	// Sharing
 	ShareVideo(context.Context, *ShareVideoRequest) (*ShareLink, error)
+	// Storage access control (moved from payment service)
+	CheckStorageAccess(context.Context, *CheckStorageAccessRequest) (*CheckStorageAccessResponse, error)
+	UpdateStorageUsage(context.Context, *UpdateStorageUsageRequest) (*UpdateStorageUsageResponse, error)
+	GetStorageUsage(context.Context, *GetStorageUsageRequest) (*GetStorageUsageResponse, error)
+	// Plan storage limits
+	GetPlanStorageLimit(context.Context, *GetPlanStorageLimitRequest) (*GetPlanStorageLimitResponse, error)
+	// Get user storage usage with plan limits (for frontend display)
+	GetUserStorageInfo(context.Context, *GetUserStorageInfoRequest) (*GetUserStorageInfoResponse, error)
 	mustEmbedUnimplementedVideoServiceServer()
 }
 
@@ -182,6 +253,21 @@ func (UnimplementedVideoServiceServer) RemoveVideoFromChannel(context.Context, *
 }
 func (UnimplementedVideoServiceServer) ShareVideo(context.Context, *ShareVideoRequest) (*ShareLink, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ShareVideo not implemented")
+}
+func (UnimplementedVideoServiceServer) CheckStorageAccess(context.Context, *CheckStorageAccessRequest) (*CheckStorageAccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckStorageAccess not implemented")
+}
+func (UnimplementedVideoServiceServer) UpdateStorageUsage(context.Context, *UpdateStorageUsageRequest) (*UpdateStorageUsageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateStorageUsage not implemented")
+}
+func (UnimplementedVideoServiceServer) GetStorageUsage(context.Context, *GetStorageUsageRequest) (*GetStorageUsageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStorageUsage not implemented")
+}
+func (UnimplementedVideoServiceServer) GetPlanStorageLimit(context.Context, *GetPlanStorageLimitRequest) (*GetPlanStorageLimitResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlanStorageLimit not implemented")
+}
+func (UnimplementedVideoServiceServer) GetUserStorageInfo(context.Context, *GetUserStorageInfoRequest) (*GetUserStorageInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserStorageInfo not implemented")
 }
 func (UnimplementedVideoServiceServer) mustEmbedUnimplementedVideoServiceServer() {}
 func (UnimplementedVideoServiceServer) testEmbeddedByValue()                      {}
@@ -348,6 +434,96 @@ func _VideoService_ShareVideo_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VideoService_CheckStorageAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckStorageAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).CheckStorageAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_CheckStorageAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).CheckStorageAccess(ctx, req.(*CheckStorageAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_UpdateStorageUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateStorageUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).UpdateStorageUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_UpdateStorageUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).UpdateStorageUsage(ctx, req.(*UpdateStorageUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_GetStorageUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStorageUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).GetStorageUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_GetStorageUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).GetStorageUsage(ctx, req.(*GetStorageUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_GetPlanStorageLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPlanStorageLimitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).GetPlanStorageLimit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_GetPlanStorageLimit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).GetPlanStorageLimit(ctx, req.(*GetPlanStorageLimitRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VideoService_GetUserStorageInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserStorageInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoServiceServer).GetUserStorageInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VideoService_GetUserStorageInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoServiceServer).GetUserStorageInfo(ctx, req.(*GetUserStorageInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VideoService_ServiceDesc is the grpc.ServiceDesc for VideoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,6 +562,26 @@ var VideoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ShareVideo",
 			Handler:    _VideoService_ShareVideo_Handler,
+		},
+		{
+			MethodName: "CheckStorageAccess",
+			Handler:    _VideoService_CheckStorageAccess_Handler,
+		},
+		{
+			MethodName: "UpdateStorageUsage",
+			Handler:    _VideoService_UpdateStorageUsage_Handler,
+		},
+		{
+			MethodName: "GetStorageUsage",
+			Handler:    _VideoService_GetStorageUsage_Handler,
+		},
+		{
+			MethodName: "GetPlanStorageLimit",
+			Handler:    _VideoService_GetPlanStorageLimit_Handler,
+		},
+		{
+			MethodName: "GetUserStorageInfo",
+			Handler:    _VideoService_GetUserStorageInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -11,6 +11,29 @@ import (
 	"time"
 )
 
+const addUserCount = `-- name: AddUserCount :exec
+UPDATE userservice_user_limits 
+SET users_count = users_count + ?, last_calculated_at = ?, updated_at = ?
+WHERE user_id = ?
+`
+
+type AddUserCountParams struct {
+	UsersCount       sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	UpdatedAt        int64
+	UserID           string
+}
+
+func (q *Queries) AddUserCount(ctx context.Context, arg AddUserCountParams) error {
+	_, err := q.db.ExecContext(ctx, addUserCount,
+		arg.UsersCount,
+		arg.LastCalculatedAt,
+		arg.UpdatedAt,
+		arg.UserID,
+	)
+	return err
+}
+
 const createTenant = `-- name: CreateTenant :one
 INSERT INTO userservice_tenants (
     id,
@@ -140,6 +163,40 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Userser
 	return i, err
 }
 
+const createUserLimits = `-- name: CreateUserLimits :one
+INSERT INTO userservice_user_limits (
+    user_id, users_count, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+RETURNING user_id, users_count, last_calculated_at, created_at, updated_at
+`
+
+type CreateUserLimitsParams struct {
+	UserID           string
+	UsersCount       sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) CreateUserLimits(ctx context.Context, arg CreateUserLimitsParams) (UserserviceUserLimit, error) {
+	row := q.db.QueryRowContext(ctx, createUserLimits,
+		arg.UserID,
+		arg.UsersCount,
+		arg.LastCalculatedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i UserserviceUserLimit
+	err := row.Scan(
+		&i.UserID,
+		&i.UsersCount,
+		&i.LastCalculatedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getTenantByID = `-- name: GetTenantByID :one
 SELECT id, name, description, is_personal, created_at, created_by FROM userservice_tenants WHERE id = ?1
 `
@@ -254,6 +311,24 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (Userservice
 	return i, err
 }
 
+const getUserLimits = `-- name: GetUserLimits :one
+SELECT user_id, users_count, last_calculated_at, created_at, updated_at FROM userservice_user_limits WHERE user_id = ? LIMIT 1
+`
+
+// User limits queries (moved from payment service)
+func (q *Queries) GetUserLimits(ctx context.Context, userID string) (UserserviceUserLimit, error) {
+	row := q.db.QueryRowContext(ctx, getUserLimits, userID)
+	var i UserserviceUserLimit
+	err := row.Scan(
+		&i.UserID,
+		&i.UsersCount,
+		&i.LastCalculatedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserRoleInTenant = `-- name: GetUserRoleInTenant :one
 SELECT role FROM userservice_tenant_users 
 WHERE tenant_id = ?1 AND user_id = ?2
@@ -331,4 +406,33 @@ func (q *Queries) GetUserTenants(ctx context.Context, userID string) ([]GetUserT
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertUserLimits = `-- name: UpsertUserLimits :exec
+INSERT INTO userservice_user_limits (
+    user_id, users_count, last_calculated_at, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT(user_id) DO UPDATE SET
+    users_count = excluded.users_count,
+    last_calculated_at = excluded.last_calculated_at,
+    updated_at = excluded.updated_at
+`
+
+type UpsertUserLimitsParams struct {
+	UserID           string
+	UsersCount       sql.NullInt64
+	LastCalculatedAt sql.NullInt64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) UpsertUserLimits(ctx context.Context, arg UpsertUserLimitsParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserLimits,
+		arg.UserID,
+		arg.UsersCount,
+		arg.LastCalculatedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
 }

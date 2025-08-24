@@ -105,6 +105,16 @@ func (s *UserAPI) Init() error {
 		return err
 	}
 
+	// Run user count backfill for existing users (only if needed)
+	s.log.Info("Checking for users that need user count backfill...")
+	err = s.backfillUserCounts(context.Background())
+	if err != nil {
+		s.log.Error("User count backfill failed", "error", err)
+		// Don't fail startup, just log the error
+	} else {
+		s.log.Info("User count backfill completed")
+	}
+
 	return nil
 }
 
@@ -155,32 +165,18 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 			s.userCache.Add(userEmail, true)
 			s.log.Info("adding email to cache", "email", userEmail)
 
-			// Initialize payment service for new user
-			s.log.Info("Initializing payment service for new user", "userID", authContext.User.ID)
-			paymentResp, err := s.paymentServiceClient.InitializeUser(ctx, &paymentProto.InitializeUserRequest{
+			// Initialize user subscription (handles both payment service and user limits)
+			s.log.Info("Initializing user subscription for new user", "userID", authContext.User.ID)
+			initResp, err := s.InitializeUserSubscription(ctx, &proto.InitializeUserSubscriptionRequest{
 				UserId: authContext.User.ID,
 			})
 			if err != nil {
-				s.log.Error("Failed to initialize payment service for user", "error", err, "userID", authContext.User.ID)
+				s.log.Error("Failed to initialize user subscription", "error", err, "userID", authContext.User.ID)
 				// Don't fail the entire request, just log the error
-			} else if paymentResp != nil && !paymentResp.Success {
-				s.log.Error("Payment service initialization failed", "error", paymentResp.ErrorMessage, "userID", authContext.User.ID)
+			} else if initResp != nil && !initResp.Success {
+				s.log.Error("User subscription initialization failed", "error", initResp.ErrorMessage, "userID", authContext.User.ID)
 			} else {
-				s.log.Info("Payment service initialized successfully", "userID", authContext.User.ID)
-
-				// Initialize user count to 1 (the user themselves)
-				s.log.Info("Setting initial user count for new user", "userID", authContext.User.ID)
-				_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
-					UserId:      authContext.User.ID,
-					UsageType:   "users",
-					UsageChange: 1, // User counts as 1 user initially
-				})
-				if err != nil {
-					s.log.Error("Failed to set initial user count", "userID", authContext.User.ID, "error", err)
-					// Don't fail the entire request, just log the error
-				} else {
-					s.log.Info("Initial user count set successfully", "userID", authContext.User.ID)
-				}
+				s.log.Info("User subscription initialized successfully", "userID", authContext.User.ID)
 			}
 
 			err = s.tenantAPI.createPersonalTenant(ctx)
@@ -209,17 +205,17 @@ func (s *UserAPI) CreateUserIfNotExists(ctx context.Context, req *proto.CreateUs
 				UserId: authContext.User.ID,
 			})
 			if err != nil || (paymentResp != nil && !paymentResp.Success) {
-				s.log.Warn("Existing user has no payment service record, initializing", "userID", authContext.User.ID)
-				// Initialize payment service for existing user (migration)
-				initResp, err := s.paymentServiceClient.InitializeUser(ctx, &paymentProto.InitializeUserRequest{
+				s.log.Warn("Existing user has no subscription record, initializing", "userID", authContext.User.ID)
+				// Initialize user subscription for existing user (migration)
+				initResp, err := s.InitializeUserSubscription(ctx, &proto.InitializeUserSubscriptionRequest{
 					UserId: authContext.User.ID,
 				})
 				if err != nil {
-					s.log.Error("Failed to initialize payment service for existing user", "error", err, "userID", authContext.User.ID)
+					s.log.Error("Failed to initialize user subscription for existing user", "error", err, "userID", authContext.User.ID)
 				} else if initResp != nil && !initResp.Success {
-					s.log.Error("Payment service initialization failed for existing user", "error", initResp.ErrorMessage, "userID", authContext.User.ID)
+					s.log.Error("User subscription initialization failed for existing user", "error", initResp.ErrorMessage, "userID", authContext.User.ID)
 				} else {
-					s.log.Info("Payment service initialized successfully for existing user", "userID", authContext.User.ID)
+					s.log.Info("User subscription initialized successfully for existing user", "userID", authContext.User.ID)
 				}
 			}
 		}
@@ -507,19 +503,32 @@ func (s *TenantAPI) AddUser(ctx context.Context, req *proto.AddUserRequest) (*pr
 			"error", err)
 		// Continue without updating count to avoid double counting
 	} else if shouldUpdateCount {
-		s.log.Info("Updating payment service user count for tenant owner", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId, "newUserID", user.ID)
-		_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
-			UserId:      tenant.CreatedBy, // Tenant owner pays for users
-			UsageType:   "users",
-			UsageChange: 1, // Adding 1 user
+		// Update user count in userservice_user_limits table
+		s.log.Info("Updating user count for tenant owner", "tenantOwner", tenant.CreatedBy, "tenantID", req.TenantId, "newUserID", user.ID)
+
+		// Get current user count
+		currentUsage, err := s.dbQueries.GetUserLimits(ctx, tenant.CreatedBy)
+		currentCount := int64(1) // Default to 1 (owner themselves)
+		if err == nil {
+			currentCount = currentUsage.UsersCount.Int64
+		}
+
+		// Increment by 1 for the new user
+		newCount := currentCount + 1
+		now := time.Now().Unix()
+
+		err = s.dbQueries.UpsertUserLimits(ctx, db.UpsertUserLimitsParams{
+			UserID:           tenant.CreatedBy,
+			UsersCount:       sql.NullInt64{Int64: newCount, Valid: true},
+			LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
+			CreatedAt:        now,
+			UpdatedAt:        now,
 		})
 		if err != nil {
-			s.log.Error("Failed to update payment service user count",
-				"tenantOwner", tenant.CreatedBy,
-				"error", err)
-			// Don't fail the operation, just log the error since user was already added
+			s.log.Error("Failed to update user count", "error", err, "tenantOwner", tenant.CreatedBy, "newCount", newCount)
+			// Don't fail the request, just log the error
 		} else {
-			s.log.Info("Payment service user count updated", "tenantOwner", tenant.CreatedBy, "addedUsers", 1)
+			s.log.Info("User count updated successfully", "tenantOwner", tenant.CreatedBy, "oldCount", currentCount, "newCount", newCount)
 		}
 	} else {
 		s.log.Info("User already counted for this owner, skipping user count update",
@@ -631,5 +640,299 @@ func (s *TenantAPI) GetUsers(ctx context.Context, req *proto.GetUsersRequest) (*
 	return &proto.GetUsersResponse{
 		Message:     "Tenant users retrieved successfully",
 		TenantUsers: tenantUsersProto,
+	}, nil
+}
+
+// InitializeUserSubscription creates a free subscription for new users (moved from PaymentService)
+func (s *UserAPI) InitializeUserSubscription(ctx context.Context, req *proto.InitializeUserSubscriptionRequest) (*proto.InitializeUserSubscriptionResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	s.log.Info("InitializeUserSubscription", "userID", req.UserId)
+
+	// 1. Check if user already has subscription
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err == nil && subscription.Success {
+		// User already has subscription
+		s.log.Info("User already has subscription", "userID", req.UserId)
+		return &proto.InitializeUserSubscriptionResponse{
+			Success: true,
+		}, nil
+	}
+
+	// 2. Create free subscription via PaymentService
+	_, err = s.paymentServiceClient.CreateUserSubscription(ctx, &paymentProto.CreateUserSubscriptionRequest{
+		UserId: req.UserId,
+		PlanId: "free",
+	})
+	if err != nil {
+		s.log.Error("Failed to create user subscription", "error", err, "userID", req.UserId)
+		return &proto.InitializeUserSubscriptionResponse{
+			Success:      false,
+			ErrorMessage: "Failed to create free subscription",
+		}, nil
+	}
+
+	// 3. Initialize user count to 1 (themselves) in UserService database
+	now := time.Now().Unix()
+	queries := s.dbQueries
+	err = queries.UpsertUserLimits(ctx, db.UpsertUserLimitsParams{
+		UserID:           req.UserId,
+		UsersCount:       sql.NullInt64{Int64: 1, Valid: true}, // Start with 1 user (themselves)
+		LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	})
+	if err != nil {
+		s.log.Error("Failed to initialize user count", "error", err, "userID", req.UserId)
+		// Don't fail - subscription was created successfully
+	}
+
+	s.log.Info("User subscription initialized successfully", "userID", req.UserId)
+	return &proto.InitializeUserSubscriptionResponse{
+		Success: true,
+	}, nil
+}
+
+// CheckUserAccess checks if user can add more users to their tenant (moved from PaymentService)
+func (s *UserAPI) CheckUserAccess(ctx context.Context, req *proto.CheckUserAccessRequest) (*proto.CheckUserAccessResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	s.log.Info("CheckUserAccess", "userID", req.UserId, "requestedUserCount", req.RequestedUserCount)
+
+	// 1. Get user's subscription from PaymentService
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err != nil {
+		s.log.Error("Failed to get user subscription", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to get user subscription")
+	}
+
+	if !subscription.Success {
+		s.log.Warn("User has no subscription", "userID", req.UserId)
+		return &proto.CheckUserAccessResponse{
+			HasAccess:      false,
+			Reason:         "no_subscription",
+			IsNearLimit:    false,
+			WarningMessage: "No subscription found. Please upgrade to continue.",
+		}, nil
+	}
+
+	// 2. Get plan limits from application-specific config
+	planID := subscription.SubscriptionInfo.Plan.Id
+	appPlanLimit := s.config.GetPlanLimitByID(planID)
+	if appPlanLimit == nil {
+		s.log.Error("Unknown plan", "planID", planID)
+		return nil, status.Error(codes.Internal, "unknown plan")
+	}
+
+	// 3. Get current user count from UserService database
+	queries := s.dbQueries
+	usage, err := queries.GetUserLimits(ctx, req.UserId)
+	if err != nil && err != sql.ErrNoRows {
+		s.log.Error("Failed to get user limits", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to get user limits")
+	}
+
+	currentUsers := int64(0)
+	if err == nil {
+		currentUsers = usage.UsersCount.Int64
+	}
+
+	// 4. Check subscription status
+	if subscription.SubscriptionInfo.Subscription.Status != "active" {
+		return &proto.CheckUserAccessResponse{
+			HasAccess: false,
+			Reason:    "subscription_inactive",
+			UserInfo: &proto.UserLimitInfo{
+				CurrentUsers: currentUsers,
+				LimitUsers:   appPlanLimit.UsersLimit,
+				UsagePercent: float64(currentUsers) / float64(appPlanLimit.UsersLimit) * 100,
+				PlanId:       planID,
+			},
+			IsNearLimit:    false,
+			WarningMessage: "Subscription is inactive",
+		}, nil
+	}
+
+	// 5. Check if request would exceed user limit
+	wouldExceed := currentUsers+req.RequestedUserCount > appPlanLimit.UsersLimit
+	usagePercent := float64(currentUsers) / float64(appPlanLimit.UsersLimit) * 100
+	isNearLimit := usagePercent > 75
+
+	hasAccess := !wouldExceed
+	reason := ""
+	warningMessage := ""
+
+	if !hasAccess {
+		reason = "user_limit_exceeded"
+	}
+
+	if isNearLimit && hasAccess {
+		warningMessage = "User limit %.1f%% full. Consider upgrading your plan."
+	}
+
+	return &proto.CheckUserAccessResponse{
+		HasAccess: hasAccess,
+		Reason:    reason,
+		UserInfo: &proto.UserLimitInfo{
+			CurrentUsers: currentUsers,
+			LimitUsers:   appPlanLimit.UsersLimit,
+			UsagePercent: usagePercent,
+			PlanId:       planID,
+		},
+		IsNearLimit:    isNearLimit,
+		WarningMessage: warningMessage,
+	}, nil
+}
+
+// UpdateUserUsage updates user count (moved from PaymentService)
+func (s *UserAPI) UpdateUserUsage(ctx context.Context, req *proto.UpdateUserUsageRequest) (*proto.UpdateUserUsageResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	now := time.Now().Unix()
+
+	// Use UpsertUserLimits to handle both create and update
+	queries := s.dbQueries
+	err := queries.UpsertUserLimits(ctx, db.UpsertUserLimitsParams{
+		UserID:           req.UserId,
+		UsersCount:       sql.NullInt64{Int64: req.UsageChange, Valid: true}, // For upsert, this is the new total
+		LastCalculatedAt: sql.NullInt64{Int64: now, Valid: true},
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	})
+	if err != nil {
+		s.log.Error("Failed to update user count", "error", err, "userID", req.UserId)
+		return nil, status.Error(codes.Internal, "failed to update user count")
+	}
+
+	// Get updated usage to return
+	usage, err := queries.GetUserLimits(ctx, req.UserId)
+	if err != nil {
+		s.log.Error("Failed to get updated user limits", "error", err, "userID", req.UserId)
+		return &proto.UpdateUserUsageResponse{
+			Success: true,
+		}, nil
+	}
+
+	return &proto.UpdateUserUsageResponse{
+		Success: true,
+		UpdatedInfo: &proto.UserLimitInfo{
+			CurrentUsers: usage.UsersCount.Int64,
+			LimitUsers:   0, // Will be filled by caller if needed
+			PlanId:       "",
+		},
+	}, nil
+}
+
+// GetUserUsage gets current user count limits
+func (s *UserAPI) GetUserUsage(ctx context.Context, req *proto.GetUserUsageRequest) (*proto.GetUserUsageResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	// Get user's subscription to determine plan
+	subscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
+		UserId: req.UserId,
+	})
+	if err != nil || !subscription.Success {
+		return nil, status.Error(codes.Internal, "failed to get user subscription")
+	}
+
+	// Get plan limits from UserService config
+	planID := subscription.SubscriptionInfo.Plan.Id
+	appPlanLimit := s.config.GetPlanLimitByID(planID)
+	if appPlanLimit == nil {
+		return nil, status.Error(codes.Internal, "unknown plan")
+	}
+
+	queries := s.dbQueries
+	usage, err := queries.GetUserLimits(ctx, req.UserId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &proto.GetUserUsageResponse{
+				Success: true,
+				UserInfo: &proto.UserLimitInfo{
+					CurrentUsers: 0,
+					LimitUsers:   appPlanLimit.UsersLimit,
+					UsagePercent: 0,
+					PlanId:       planID,
+				},
+			}, nil
+		}
+		return nil, status.Error(codes.Internal, "failed to get user limits")
+	}
+
+	// Calculate usage percentage
+	usagePercent := float64(0)
+	if appPlanLimit.UsersLimit > 0 {
+		usagePercent = (float64(usage.UsersCount.Int64) / float64(appPlanLimit.UsersLimit)) * 100
+	}
+
+	return &proto.GetUserUsageResponse{
+		Success: true,
+		UserInfo: &proto.UserLimitInfo{
+			CurrentUsers: usage.UsersCount.Int64,
+			LimitUsers:   appPlanLimit.UsersLimit,
+			UsagePercent: usagePercent,
+			PlanId:       planID,
+		},
+	}, nil
+}
+
+// GetPlanInfo gets plan information with application-specific limits
+// This is a simplified version that only returns user limits from UserService config
+// Storage limits would need to be added via VideoService integration
+func (s *UserAPI) GetPlanInfo(ctx context.Context, req *proto.GetPlanInfoRequest) (*proto.GetPlanInfoResponse, error) {
+	if req.PlanId == "" {
+		return nil, status.Error(codes.InvalidArgument, "plan_id is required")
+	}
+
+	// Get basic plan info from PaymentService
+	plansResponse, err := s.paymentServiceClient.GetPlans(ctx, &paymentProto.GetPlansRequest{})
+	if err != nil || !plansResponse.Success {
+		return nil, status.Error(codes.Internal, "failed to get plans from payment service")
+	}
+
+	// Find the requested plan
+	var paymentPlan *paymentProto.Plan
+	for _, plan := range plansResponse.Plans {
+		if plan.Id == req.PlanId {
+			paymentPlan = plan
+			break
+		}
+	}
+
+	if paymentPlan == nil {
+		return nil, status.Error(codes.NotFound, "plan not found")
+	}
+
+	// Get plan limits from UserService config (now includes both user and storage limits)
+	appPlanLimit := s.config.GetPlanLimitByID(req.PlanId)
+	usersLimit := int64(0)
+	storageLimitBytes := int64(0)
+	if appPlanLimit != nil {
+		usersLimit = appPlanLimit.UsersLimit
+		storageLimitBytes = appPlanLimit.StorageLimitBytes()
+	}
+
+	return &proto.GetPlanInfoResponse{
+		Success: true,
+		PlanInfo: &proto.PlanInfo{
+			Id:                paymentPlan.Id,
+			Name:              paymentPlan.Name,
+			PriceCents:        paymentPlan.PriceCents,
+			IsActive:          paymentPlan.IsActive,
+			StorageLimitBytes: storageLimitBytes,
+			UsersLimit:        usersLimit,
+		},
 	}, nil
 }

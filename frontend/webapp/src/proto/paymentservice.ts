@@ -8,12 +8,11 @@ import * as dependency_1 from "./google/protobuf/timestamp";
 import * as pb_1 from "google-protobuf";
 import * as grpc_1 from "grpc-web";
 import * as grpc_web_1 from "grpc-web";
-export class CheckUserAccessRequest extends pb_1.Message {
+export class CreateUserSubscriptionRequest extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         user_id?: string;
-        usage_type?: string;
-        requested_usage?: number;
+        plan_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
@@ -21,11 +20,8 @@ export class CheckUserAccessRequest extends pb_1.Message {
             if ("user_id" in data && data.user_id != undefined) {
                 this.user_id = data.user_id;
             }
-            if ("usage_type" in data && data.usage_type != undefined) {
-                this.usage_type = data.usage_type;
-            }
-            if ("requested_usage" in data && data.requested_usage != undefined) {
-                this.requested_usage = data.requested_usage;
+            if ("plan_id" in data && data.plan_id != undefined) {
+                this.plan_id = data.plan_id;
             }
         }
     }
@@ -35,49 +31,35 @@ export class CheckUserAccessRequest extends pb_1.Message {
     set user_id(value: string) {
         pb_1.Message.setField(this, 1, value);
     }
-    get usage_type() {
+    get plan_id() {
         return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set usage_type(value: string) {
+    set plan_id(value: string) {
         pb_1.Message.setField(this, 2, value);
-    }
-    get requested_usage() {
-        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
-    }
-    set requested_usage(value: number) {
-        pb_1.Message.setField(this, 3, value);
     }
     static fromObject(data: {
         user_id?: string;
-        usage_type?: string;
-        requested_usage?: number;
-    }): CheckUserAccessRequest {
-        const message = new CheckUserAccessRequest({});
+        plan_id?: string;
+    }): CreateUserSubscriptionRequest {
+        const message = new CreateUserSubscriptionRequest({});
         if (data.user_id != null) {
             message.user_id = data.user_id;
         }
-        if (data.usage_type != null) {
-            message.usage_type = data.usage_type;
-        }
-        if (data.requested_usage != null) {
-            message.requested_usage = data.requested_usage;
+        if (data.plan_id != null) {
+            message.plan_id = data.plan_id;
         }
         return message;
     }
     toObject() {
         const data: {
             user_id?: string;
-            usage_type?: string;
-            requested_usage?: number;
+            plan_id?: string;
         } = {};
         if (this.user_id != null) {
             data.user_id = this.user_id;
         }
-        if (this.usage_type != null) {
-            data.usage_type = this.usage_type;
-        }
-        if (this.requested_usage != null) {
-            data.requested_usage = this.requested_usage;
+        if (this.plan_id != null) {
+            data.plan_id = this.plan_id;
         }
         return data;
     }
@@ -87,15 +69,13 @@ export class CheckUserAccessRequest extends pb_1.Message {
         const writer = w || new pb_1.BinaryWriter();
         if (this.user_id.length)
             writer.writeString(1, this.user_id);
-        if (this.usage_type.length)
-            writer.writeString(2, this.usage_type);
-        if (this.requested_usage != 0)
-            writer.writeInt64(3, this.requested_usage);
+        if (this.plan_id.length)
+            writer.writeString(2, this.plan_id);
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckUserAccessRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckUserAccessRequest();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateUserSubscriptionRequest {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateUserSubscriptionRequest();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
@@ -104,10 +84,7 @@ export class CheckUserAccessRequest extends pb_1.Message {
                     message.user_id = reader.readString();
                     break;
                 case 2:
-                    message.usage_type = reader.readString();
-                    break;
-                case 3:
-                    message.requested_usage = reader.readInt64();
+                    message.plan_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -117,119 +94,80 @@ export class CheckUserAccessRequest extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): CheckUserAccessRequest {
-        return CheckUserAccessRequest.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): CreateUserSubscriptionRequest {
+        return CreateUserSubscriptionRequest.deserialize(bytes);
     }
 }
-export class CheckUserAccessResponse extends pb_1.Message {
+export class CreateUserSubscriptionResponse extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
-        has_access?: boolean;
-        reason?: string;
-        subscription_info?: UserSubscriptionInfo;
-        is_near_limit?: boolean;
-        warning_message?: string;
+        success?: boolean;
+        error_message?: string;
+        subscription_id?: string;
     }) {
         super();
         pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
         if (!Array.isArray(data) && typeof data == "object") {
-            if ("has_access" in data && data.has_access != undefined) {
-                this.has_access = data.has_access;
+            if ("success" in data && data.success != undefined) {
+                this.success = data.success;
             }
-            if ("reason" in data && data.reason != undefined) {
-                this.reason = data.reason;
+            if ("error_message" in data && data.error_message != undefined) {
+                this.error_message = data.error_message;
             }
-            if ("subscription_info" in data && data.subscription_info != undefined) {
-                this.subscription_info = data.subscription_info;
-            }
-            if ("is_near_limit" in data && data.is_near_limit != undefined) {
-                this.is_near_limit = data.is_near_limit;
-            }
-            if ("warning_message" in data && data.warning_message != undefined) {
-                this.warning_message = data.warning_message;
+            if ("subscription_id" in data && data.subscription_id != undefined) {
+                this.subscription_id = data.subscription_id;
             }
         }
     }
-    get has_access() {
+    get success() {
         return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
     }
-    set has_access(value: boolean) {
+    set success(value: boolean) {
         pb_1.Message.setField(this, 1, value);
     }
-    get reason() {
+    get error_message() {
         return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
     }
-    set reason(value: string) {
+    set error_message(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
-    get subscription_info() {
-        return pb_1.Message.getWrapperField(this, UserSubscriptionInfo, 3) as UserSubscriptionInfo;
+    get subscription_id() {
+        return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
     }
-    set subscription_info(value: UserSubscriptionInfo) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_subscription_info() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
-    get is_near_limit() {
-        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
-    }
-    set is_near_limit(value: boolean) {
-        pb_1.Message.setField(this, 4, value);
-    }
-    get warning_message() {
-        return pb_1.Message.getFieldWithDefault(this, 5, "") as string;
-    }
-    set warning_message(value: string) {
-        pb_1.Message.setField(this, 5, value);
+    set subscription_id(value: string) {
+        pb_1.Message.setField(this, 3, value);
     }
     static fromObject(data: {
-        has_access?: boolean;
-        reason?: string;
-        subscription_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-        is_near_limit?: boolean;
-        warning_message?: string;
-    }): CheckUserAccessResponse {
-        const message = new CheckUserAccessResponse({});
-        if (data.has_access != null) {
-            message.has_access = data.has_access;
+        success?: boolean;
+        error_message?: string;
+        subscription_id?: string;
+    }): CreateUserSubscriptionResponse {
+        const message = new CreateUserSubscriptionResponse({});
+        if (data.success != null) {
+            message.success = data.success;
         }
-        if (data.reason != null) {
-            message.reason = data.reason;
+        if (data.error_message != null) {
+            message.error_message = data.error_message;
         }
-        if (data.subscription_info != null) {
-            message.subscription_info = UserSubscriptionInfo.fromObject(data.subscription_info);
-        }
-        if (data.is_near_limit != null) {
-            message.is_near_limit = data.is_near_limit;
-        }
-        if (data.warning_message != null) {
-            message.warning_message = data.warning_message;
+        if (data.subscription_id != null) {
+            message.subscription_id = data.subscription_id;
         }
         return message;
     }
     toObject() {
         const data: {
-            has_access?: boolean;
-            reason?: string;
-            subscription_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-            is_near_limit?: boolean;
-            warning_message?: string;
+            success?: boolean;
+            error_message?: string;
+            subscription_id?: string;
         } = {};
-        if (this.has_access != null) {
-            data.has_access = this.has_access;
+        if (this.success != null) {
+            data.success = this.success;
         }
-        if (this.reason != null) {
-            data.reason = this.reason;
+        if (this.error_message != null) {
+            data.error_message = this.error_message;
         }
-        if (this.subscription_info != null) {
-            data.subscription_info = this.subscription_info.toObject();
-        }
-        if (this.is_near_limit != null) {
-            data.is_near_limit = this.is_near_limit;
-        }
-        if (this.warning_message != null) {
-            data.warning_message = this.warning_message;
+        if (this.subscription_id != null) {
+            data.subscription_id = this.subscription_id;
         }
         return data;
     }
@@ -237,39 +175,29 @@ export class CheckUserAccessResponse extends pb_1.Message {
     serialize(w: pb_1.BinaryWriter): void;
     serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
         const writer = w || new pb_1.BinaryWriter();
-        if (this.has_access != false)
-            writer.writeBool(1, this.has_access);
-        if (this.reason.length)
-            writer.writeString(2, this.reason);
-        if (this.has_subscription_info)
-            writer.writeMessage(3, this.subscription_info, () => this.subscription_info.serialize(writer));
-        if (this.is_near_limit != false)
-            writer.writeBool(4, this.is_near_limit);
-        if (this.warning_message.length)
-            writer.writeString(5, this.warning_message);
+        if (this.success != false)
+            writer.writeBool(1, this.success);
+        if (this.error_message.length)
+            writer.writeString(2, this.error_message);
+        if (this.subscription_id.length)
+            writer.writeString(3, this.subscription_id);
         if (!w)
             return writer.getResultBuffer();
     }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CheckUserAccessResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CheckUserAccessResponse();
+    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CreateUserSubscriptionResponse {
+        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CreateUserSubscriptionResponse();
         while (reader.nextField()) {
             if (reader.isEndGroup())
                 break;
             switch (reader.getFieldNumber()) {
                 case 1:
-                    message.has_access = reader.readBool();
+                    message.success = reader.readBool();
                     break;
                 case 2:
-                    message.reason = reader.readString();
+                    message.error_message = reader.readString();
                     break;
                 case 3:
-                    reader.readMessage(message.subscription_info, () => message.subscription_info = UserSubscriptionInfo.deserialize(reader));
-                    break;
-                case 4:
-                    message.is_near_limit = reader.readBool();
-                    break;
-                case 5:
-                    message.warning_message = reader.readString();
+                    message.subscription_id = reader.readString();
                     break;
                 default: reader.skipField();
             }
@@ -279,8 +207,8 @@ export class CheckUserAccessResponse extends pb_1.Message {
     serializeBinary(): Uint8Array {
         return this.serialize();
     }
-    static deserializeBinary(bytes: Uint8Array): CheckUserAccessResponse {
-        return CheckUserAccessResponse.deserialize(bytes);
+    static deserializeBinary(bytes: Uint8Array): CreateUserSubscriptionResponse {
+        return CreateUserSubscriptionResponse.deserialize(bytes);
     }
 }
 export class GetUserSubscriptionRequest extends pb_1.Message {
@@ -891,424 +819,11 @@ export class CreateCheckoutSessionResponse extends pb_1.Message {
         return CreateCheckoutSessionResponse.deserialize(bytes);
     }
 }
-export class UpdateUserUsageRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        user_id?: string;
-        usage_type?: string;
-        usage_change?: number;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
-            }
-            if ("usage_type" in data && data.usage_type != undefined) {
-                this.usage_type = data.usage_type;
-            }
-            if ("usage_change" in data && data.usage_change != undefined) {
-                this.usage_change = data.usage_change;
-            }
-        }
-    }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get usage_type() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set usage_type(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get usage_change() {
-        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
-    }
-    set usage_change(value: number) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    static fromObject(data: {
-        user_id?: string;
-        usage_type?: string;
-        usage_change?: number;
-    }): UpdateUserUsageRequest {
-        const message = new UpdateUserUsageRequest({});
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
-        if (data.usage_type != null) {
-            message.usage_type = data.usage_type;
-        }
-        if (data.usage_change != null) {
-            message.usage_change = data.usage_change;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            user_id?: string;
-            usage_type?: string;
-            usage_change?: number;
-        } = {};
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
-        }
-        if (this.usage_type != null) {
-            data.usage_type = this.usage_type;
-        }
-        if (this.usage_change != null) {
-            data.usage_change = this.usage_change;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.user_id.length)
-            writer.writeString(1, this.user_id);
-        if (this.usage_type.length)
-            writer.writeString(2, this.usage_type);
-        if (this.usage_change != 0)
-            writer.writeInt64(3, this.usage_change);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserUsageRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserUsageRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.user_id = reader.readString();
-                    break;
-                case 2:
-                    message.usage_type = reader.readString();
-                    break;
-                case 3:
-                    message.usage_change = reader.readInt64();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): UpdateUserUsageRequest {
-        return UpdateUserUsageRequest.deserialize(bytes);
-    }
-}
-export class UpdateUserUsageResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        success?: boolean;
-        error_message?: string;
-        updated_info?: UserSubscriptionInfo;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
-            }
-            if ("error_message" in data && data.error_message != undefined) {
-                this.error_message = data.error_message;
-            }
-            if ("updated_info" in data && data.updated_info != undefined) {
-                this.updated_info = data.updated_info;
-            }
-        }
-    }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get error_message() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set error_message(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get updated_info() {
-        return pb_1.Message.getWrapperField(this, UserSubscriptionInfo, 3) as UserSubscriptionInfo;
-    }
-    set updated_info(value: UserSubscriptionInfo) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_updated_info() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
-    static fromObject(data: {
-        success?: boolean;
-        error_message?: string;
-        updated_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-    }): UpdateUserUsageResponse {
-        const message = new UpdateUserUsageResponse({});
-        if (data.success != null) {
-            message.success = data.success;
-        }
-        if (data.error_message != null) {
-            message.error_message = data.error_message;
-        }
-        if (data.updated_info != null) {
-            message.updated_info = UserSubscriptionInfo.fromObject(data.updated_info);
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            success?: boolean;
-            error_message?: string;
-            updated_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-        } = {};
-        if (this.success != null) {
-            data.success = this.success;
-        }
-        if (this.error_message != null) {
-            data.error_message = this.error_message;
-        }
-        if (this.updated_info != null) {
-            data.updated_info = this.updated_info.toObject();
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.success != false)
-            writer.writeBool(1, this.success);
-        if (this.error_message.length)
-            writer.writeString(2, this.error_message);
-        if (this.has_updated_info)
-            writer.writeMessage(3, this.updated_info, () => this.updated_info.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UpdateUserUsageResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UpdateUserUsageResponse();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.success = reader.readBool();
-                    break;
-                case 2:
-                    message.error_message = reader.readString();
-                    break;
-                case 3:
-                    reader.readMessage(message.updated_info, () => message.updated_info = UserSubscriptionInfo.deserialize(reader));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): UpdateUserUsageResponse {
-        return UpdateUserUsageResponse.deserialize(bytes);
-    }
-}
-export class InitializeUserRequest extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        user_id?: string;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
-            }
-        }
-    }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    static fromObject(data: {
-        user_id?: string;
-    }): InitializeUserRequest {
-        const message = new InitializeUserRequest({});
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            user_id?: string;
-        } = {};
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.user_id.length)
-            writer.writeString(1, this.user_id);
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): InitializeUserRequest {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new InitializeUserRequest();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.user_id = reader.readString();
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): InitializeUserRequest {
-        return InitializeUserRequest.deserialize(bytes);
-    }
-}
-export class InitializeUserResponse extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        success?: boolean;
-        error_message?: string;
-        subscription_info?: UserSubscriptionInfo;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("success" in data && data.success != undefined) {
-                this.success = data.success;
-            }
-            if ("error_message" in data && data.error_message != undefined) {
-                this.error_message = data.error_message;
-            }
-            if ("subscription_info" in data && data.subscription_info != undefined) {
-                this.subscription_info = data.subscription_info;
-            }
-        }
-    }
-    get success() {
-        return pb_1.Message.getFieldWithDefault(this, 1, false) as boolean;
-    }
-    set success(value: boolean) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get error_message() {
-        return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
-    }
-    set error_message(value: string) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get subscription_info() {
-        return pb_1.Message.getWrapperField(this, UserSubscriptionInfo, 3) as UserSubscriptionInfo;
-    }
-    set subscription_info(value: UserSubscriptionInfo) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_subscription_info() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
-    static fromObject(data: {
-        success?: boolean;
-        error_message?: string;
-        subscription_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-    }): InitializeUserResponse {
-        const message = new InitializeUserResponse({});
-        if (data.success != null) {
-            message.success = data.success;
-        }
-        if (data.error_message != null) {
-            message.error_message = data.error_message;
-        }
-        if (data.subscription_info != null) {
-            message.subscription_info = UserSubscriptionInfo.fromObject(data.subscription_info);
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            success?: boolean;
-            error_message?: string;
-            subscription_info?: ReturnType<typeof UserSubscriptionInfo.prototype.toObject>;
-        } = {};
-        if (this.success != null) {
-            data.success = this.success;
-        }
-        if (this.error_message != null) {
-            data.error_message = this.error_message;
-        }
-        if (this.subscription_info != null) {
-            data.subscription_info = this.subscription_info.toObject();
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.success != false)
-            writer.writeBool(1, this.success);
-        if (this.error_message.length)
-            writer.writeString(2, this.error_message);
-        if (this.has_subscription_info)
-            writer.writeMessage(3, this.subscription_info, () => this.subscription_info.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): InitializeUserResponse {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new InitializeUserResponse();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.success = reader.readBool();
-                    break;
-                case 2:
-                    message.error_message = reader.readString();
-                    break;
-                case 3:
-                    reader.readMessage(message.subscription_info, () => message.subscription_info = UserSubscriptionInfo.deserialize(reader));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): InitializeUserResponse {
-        return InitializeUserResponse.deserialize(bytes);
-    }
-}
 export class UserSubscriptionInfo extends pb_1.Message {
     #one_of_decls: number[][] = [];
     constructor(data?: any[] | {
         user_id?: string;
         subscription?: Subscription;
-        usage?: UserUsage;
         plan?: Plan;
     }) {
         super();
@@ -1319,9 +834,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
             }
             if ("subscription" in data && data.subscription != undefined) {
                 this.subscription = data.subscription;
-            }
-            if ("usage" in data && data.usage != undefined) {
-                this.usage = data.usage;
             }
             if ("plan" in data && data.plan != undefined) {
                 this.plan = data.plan;
@@ -1343,28 +855,18 @@ export class UserSubscriptionInfo extends pb_1.Message {
     get has_subscription() {
         return pb_1.Message.getField(this, 2) != null;
     }
-    get usage() {
-        return pb_1.Message.getWrapperField(this, UserUsage, 3) as UserUsage;
-    }
-    set usage(value: UserUsage) {
-        pb_1.Message.setWrapperField(this, 3, value);
-    }
-    get has_usage() {
-        return pb_1.Message.getField(this, 3) != null;
-    }
     get plan() {
-        return pb_1.Message.getWrapperField(this, Plan, 4) as Plan;
+        return pb_1.Message.getWrapperField(this, Plan, 3) as Plan;
     }
     set plan(value: Plan) {
-        pb_1.Message.setWrapperField(this, 4, value);
+        pb_1.Message.setWrapperField(this, 3, value);
     }
     get has_plan() {
-        return pb_1.Message.getField(this, 4) != null;
+        return pb_1.Message.getField(this, 3) != null;
     }
     static fromObject(data: {
         user_id?: string;
         subscription?: ReturnType<typeof Subscription.prototype.toObject>;
-        usage?: ReturnType<typeof UserUsage.prototype.toObject>;
         plan?: ReturnType<typeof Plan.prototype.toObject>;
     }): UserSubscriptionInfo {
         const message = new UserSubscriptionInfo({});
@@ -1373,9 +875,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
         }
         if (data.subscription != null) {
             message.subscription = Subscription.fromObject(data.subscription);
-        }
-        if (data.usage != null) {
-            message.usage = UserUsage.fromObject(data.usage);
         }
         if (data.plan != null) {
             message.plan = Plan.fromObject(data.plan);
@@ -1386,7 +885,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
         const data: {
             user_id?: string;
             subscription?: ReturnType<typeof Subscription.prototype.toObject>;
-            usage?: ReturnType<typeof UserUsage.prototype.toObject>;
             plan?: ReturnType<typeof Plan.prototype.toObject>;
         } = {};
         if (this.user_id != null) {
@@ -1394,9 +892,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
         }
         if (this.subscription != null) {
             data.subscription = this.subscription.toObject();
-        }
-        if (this.usage != null) {
-            data.usage = this.usage.toObject();
         }
         if (this.plan != null) {
             data.plan = this.plan.toObject();
@@ -1411,10 +906,8 @@ export class UserSubscriptionInfo extends pb_1.Message {
             writer.writeString(1, this.user_id);
         if (this.has_subscription)
             writer.writeMessage(2, this.subscription, () => this.subscription.serialize(writer));
-        if (this.has_usage)
-            writer.writeMessage(3, this.usage, () => this.usage.serialize(writer));
         if (this.has_plan)
-            writer.writeMessage(4, this.plan, () => this.plan.serialize(writer));
+            writer.writeMessage(3, this.plan, () => this.plan.serialize(writer));
         if (!w)
             return writer.getResultBuffer();
     }
@@ -1431,9 +924,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
                     reader.readMessage(message.subscription, () => message.subscription = Subscription.deserialize(reader));
                     break;
                 case 3:
-                    reader.readMessage(message.usage, () => message.usage = UserUsage.deserialize(reader));
-                    break;
-                case 4:
                     reader.readMessage(message.plan, () => message.plan = Plan.deserialize(reader));
                     break;
                 default: reader.skipField();
@@ -1446,191 +936,6 @@ export class UserSubscriptionInfo extends pb_1.Message {
     }
     static deserializeBinary(bytes: Uint8Array): UserSubscriptionInfo {
         return UserSubscriptionInfo.deserialize(bytes);
-    }
-}
-export class UserUsage extends pb_1.Message {
-    #one_of_decls: number[][] = [];
-    constructor(data?: any[] | {
-        user_id?: string;
-        storage_used_bytes?: number;
-        users_count?: number;
-        storage_usage_percent?: number;
-        users_usage_percent?: number;
-        last_calculated_at?: dependency_1.Timestamp;
-    }) {
-        super();
-        pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-        if (!Array.isArray(data) && typeof data == "object") {
-            if ("user_id" in data && data.user_id != undefined) {
-                this.user_id = data.user_id;
-            }
-            if ("storage_used_bytes" in data && data.storage_used_bytes != undefined) {
-                this.storage_used_bytes = data.storage_used_bytes;
-            }
-            if ("users_count" in data && data.users_count != undefined) {
-                this.users_count = data.users_count;
-            }
-            if ("storage_usage_percent" in data && data.storage_usage_percent != undefined) {
-                this.storage_usage_percent = data.storage_usage_percent;
-            }
-            if ("users_usage_percent" in data && data.users_usage_percent != undefined) {
-                this.users_usage_percent = data.users_usage_percent;
-            }
-            if ("last_calculated_at" in data && data.last_calculated_at != undefined) {
-                this.last_calculated_at = data.last_calculated_at;
-            }
-        }
-    }
-    get user_id() {
-        return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
-    }
-    set user_id(value: string) {
-        pb_1.Message.setField(this, 1, value);
-    }
-    get storage_used_bytes() {
-        return pb_1.Message.getFieldWithDefault(this, 2, 0) as number;
-    }
-    set storage_used_bytes(value: number) {
-        pb_1.Message.setField(this, 2, value);
-    }
-    get users_count() {
-        return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
-    }
-    set users_count(value: number) {
-        pb_1.Message.setField(this, 3, value);
-    }
-    get storage_usage_percent() {
-        return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
-    }
-    set storage_usage_percent(value: number) {
-        pb_1.Message.setField(this, 4, value);
-    }
-    get users_usage_percent() {
-        return pb_1.Message.getFieldWithDefault(this, 5, 0) as number;
-    }
-    set users_usage_percent(value: number) {
-        pb_1.Message.setField(this, 5, value);
-    }
-    get last_calculated_at() {
-        return pb_1.Message.getWrapperField(this, dependency_1.Timestamp, 6) as dependency_1.Timestamp;
-    }
-    set last_calculated_at(value: dependency_1.Timestamp) {
-        pb_1.Message.setWrapperField(this, 6, value);
-    }
-    get has_last_calculated_at() {
-        return pb_1.Message.getField(this, 6) != null;
-    }
-    static fromObject(data: {
-        user_id?: string;
-        storage_used_bytes?: number;
-        users_count?: number;
-        storage_usage_percent?: number;
-        users_usage_percent?: number;
-        last_calculated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-    }): UserUsage {
-        const message = new UserUsage({});
-        if (data.user_id != null) {
-            message.user_id = data.user_id;
-        }
-        if (data.storage_used_bytes != null) {
-            message.storage_used_bytes = data.storage_used_bytes;
-        }
-        if (data.users_count != null) {
-            message.users_count = data.users_count;
-        }
-        if (data.storage_usage_percent != null) {
-            message.storage_usage_percent = data.storage_usage_percent;
-        }
-        if (data.users_usage_percent != null) {
-            message.users_usage_percent = data.users_usage_percent;
-        }
-        if (data.last_calculated_at != null) {
-            message.last_calculated_at = dependency_1.Timestamp.fromObject(data.last_calculated_at);
-        }
-        return message;
-    }
-    toObject() {
-        const data: {
-            user_id?: string;
-            storage_used_bytes?: number;
-            users_count?: number;
-            storage_usage_percent?: number;
-            users_usage_percent?: number;
-            last_calculated_at?: ReturnType<typeof dependency_1.Timestamp.prototype.toObject>;
-        } = {};
-        if (this.user_id != null) {
-            data.user_id = this.user_id;
-        }
-        if (this.storage_used_bytes != null) {
-            data.storage_used_bytes = this.storage_used_bytes;
-        }
-        if (this.users_count != null) {
-            data.users_count = this.users_count;
-        }
-        if (this.storage_usage_percent != null) {
-            data.storage_usage_percent = this.storage_usage_percent;
-        }
-        if (this.users_usage_percent != null) {
-            data.users_usage_percent = this.users_usage_percent;
-        }
-        if (this.last_calculated_at != null) {
-            data.last_calculated_at = this.last_calculated_at.toObject();
-        }
-        return data;
-    }
-    serialize(): Uint8Array;
-    serialize(w: pb_1.BinaryWriter): void;
-    serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
-        const writer = w || new pb_1.BinaryWriter();
-        if (this.user_id.length)
-            writer.writeString(1, this.user_id);
-        if (this.storage_used_bytes != 0)
-            writer.writeInt64(2, this.storage_used_bytes);
-        if (this.users_count != 0)
-            writer.writeInt32(3, this.users_count);
-        if (this.storage_usage_percent != 0)
-            writer.writeDouble(4, this.storage_usage_percent);
-        if (this.users_usage_percent != 0)
-            writer.writeDouble(5, this.users_usage_percent);
-        if (this.has_last_calculated_at)
-            writer.writeMessage(6, this.last_calculated_at, () => this.last_calculated_at.serialize(writer));
-        if (!w)
-            return writer.getResultBuffer();
-    }
-    static deserialize(bytes: Uint8Array | pb_1.BinaryReader): UserUsage {
-        const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new UserUsage();
-        while (reader.nextField()) {
-            if (reader.isEndGroup())
-                break;
-            switch (reader.getFieldNumber()) {
-                case 1:
-                    message.user_id = reader.readString();
-                    break;
-                case 2:
-                    message.storage_used_bytes = reader.readInt64();
-                    break;
-                case 3:
-                    message.users_count = reader.readInt32();
-                    break;
-                case 4:
-                    message.storage_usage_percent = reader.readDouble();
-                    break;
-                case 5:
-                    message.users_usage_percent = reader.readDouble();
-                    break;
-                case 6:
-                    reader.readMessage(message.last_calculated_at, () => message.last_calculated_at = dependency_1.Timestamp.deserialize(reader));
-                    break;
-                default: reader.skipField();
-            }
-        }
-        return message;
-    }
-    serializeBinary(): Uint8Array {
-        return this.serialize();
-    }
-    static deserializeBinary(bytes: Uint8Array): UserUsage {
-        return UserUsage.deserialize(bytes);
     }
 }
 export class Subscription extends pb_1.Message {
@@ -1947,8 +1252,6 @@ export class Plan extends pb_1.Message {
     constructor(data?: any[] | {
         id?: string;
         name?: string;
-        storage_limit_bytes?: number;
-        users_limit?: number;
         price_cents?: number;
         is_active?: boolean;
     }) {
@@ -1960,12 +1263,6 @@ export class Plan extends pb_1.Message {
             }
             if ("name" in data && data.name != undefined) {
                 this.name = data.name;
-            }
-            if ("storage_limit_bytes" in data && data.storage_limit_bytes != undefined) {
-                this.storage_limit_bytes = data.storage_limit_bytes;
-            }
-            if ("users_limit" in data && data.users_limit != undefined) {
-                this.users_limit = data.users_limit;
             }
             if ("price_cents" in data && data.price_cents != undefined) {
                 this.price_cents = data.price_cents;
@@ -1987,35 +1284,21 @@ export class Plan extends pb_1.Message {
     set name(value: string) {
         pb_1.Message.setField(this, 2, value);
     }
-    get storage_limit_bytes() {
+    get price_cents() {
         return pb_1.Message.getFieldWithDefault(this, 3, 0) as number;
     }
-    set storage_limit_bytes(value: number) {
+    set price_cents(value: number) {
         pb_1.Message.setField(this, 3, value);
     }
-    get users_limit() {
-        return pb_1.Message.getFieldWithDefault(this, 4, 0) as number;
-    }
-    set users_limit(value: number) {
-        pb_1.Message.setField(this, 4, value);
-    }
-    get price_cents() {
-        return pb_1.Message.getFieldWithDefault(this, 5, 0) as number;
-    }
-    set price_cents(value: number) {
-        pb_1.Message.setField(this, 5, value);
-    }
     get is_active() {
-        return pb_1.Message.getFieldWithDefault(this, 6, false) as boolean;
+        return pb_1.Message.getFieldWithDefault(this, 4, false) as boolean;
     }
     set is_active(value: boolean) {
-        pb_1.Message.setField(this, 6, value);
+        pb_1.Message.setField(this, 4, value);
     }
     static fromObject(data: {
         id?: string;
         name?: string;
-        storage_limit_bytes?: number;
-        users_limit?: number;
         price_cents?: number;
         is_active?: boolean;
     }): Plan {
@@ -2025,12 +1308,6 @@ export class Plan extends pb_1.Message {
         }
         if (data.name != null) {
             message.name = data.name;
-        }
-        if (data.storage_limit_bytes != null) {
-            message.storage_limit_bytes = data.storage_limit_bytes;
-        }
-        if (data.users_limit != null) {
-            message.users_limit = data.users_limit;
         }
         if (data.price_cents != null) {
             message.price_cents = data.price_cents;
@@ -2044,8 +1321,6 @@ export class Plan extends pb_1.Message {
         const data: {
             id?: string;
             name?: string;
-            storage_limit_bytes?: number;
-            users_limit?: number;
             price_cents?: number;
             is_active?: boolean;
         } = {};
@@ -2054,12 +1329,6 @@ export class Plan extends pb_1.Message {
         }
         if (this.name != null) {
             data.name = this.name;
-        }
-        if (this.storage_limit_bytes != null) {
-            data.storage_limit_bytes = this.storage_limit_bytes;
-        }
-        if (this.users_limit != null) {
-            data.users_limit = this.users_limit;
         }
         if (this.price_cents != null) {
             data.price_cents = this.price_cents;
@@ -2077,14 +1346,10 @@ export class Plan extends pb_1.Message {
             writer.writeString(1, this.id);
         if (this.name.length)
             writer.writeString(2, this.name);
-        if (this.storage_limit_bytes != 0)
-            writer.writeInt64(3, this.storage_limit_bytes);
-        if (this.users_limit != 0)
-            writer.writeInt32(4, this.users_limit);
         if (this.price_cents != 0)
-            writer.writeInt64(5, this.price_cents);
+            writer.writeInt64(3, this.price_cents);
         if (this.is_active != false)
-            writer.writeBool(6, this.is_active);
+            writer.writeBool(4, this.is_active);
         if (!w)
             return writer.getResultBuffer();
     }
@@ -2101,15 +1366,9 @@ export class Plan extends pb_1.Message {
                     message.name = reader.readString();
                     break;
                 case 3:
-                    message.storage_limit_bytes = reader.readInt64();
-                    break;
-                case 4:
-                    message.users_limit = reader.readInt32();
-                    break;
-                case 5:
                     message.price_cents = reader.readInt64();
                     break;
-                case 6:
+                case 4:
                     message.is_active = reader.readBool();
                     break;
                 default: reader.skipField();
@@ -2126,15 +1385,6 @@ export class Plan extends pb_1.Message {
 }
 export abstract class UnimplementedPaymentServiceService {
     static definition = {
-        CheckUserAccess: {
-            path: "/paymentservice.PaymentService/CheckUserAccess",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: CheckUserAccessRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => CheckUserAccessRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: CheckUserAccessResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => CheckUserAccessResponse.deserialize(new Uint8Array(bytes))
-        },
         GetUserSubscription: {
             path: "/paymentservice.PaymentService/GetUserSubscription",
             requestStream: false,
@@ -2162,32 +1412,21 @@ export abstract class UnimplementedPaymentServiceService {
             responseSerialize: (message: CreateCheckoutSessionResponse) => Buffer.from(message.serialize()),
             responseDeserialize: (bytes: Buffer) => CreateCheckoutSessionResponse.deserialize(new Uint8Array(bytes))
         },
-        UpdateUserUsage: {
-            path: "/paymentservice.PaymentService/UpdateUserUsage",
+        CreateUserSubscription: {
+            path: "/paymentservice.PaymentService/CreateUserSubscription",
             requestStream: false,
             responseStream: false,
-            requestSerialize: (message: UpdateUserUsageRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => UpdateUserUsageRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: UpdateUserUsageResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => UpdateUserUsageResponse.deserialize(new Uint8Array(bytes))
-        },
-        InitializeUser: {
-            path: "/paymentservice.PaymentService/InitializeUser",
-            requestStream: false,
-            responseStream: false,
-            requestSerialize: (message: InitializeUserRequest) => Buffer.from(message.serialize()),
-            requestDeserialize: (bytes: Buffer) => InitializeUserRequest.deserialize(new Uint8Array(bytes)),
-            responseSerialize: (message: InitializeUserResponse) => Buffer.from(message.serialize()),
-            responseDeserialize: (bytes: Buffer) => InitializeUserResponse.deserialize(new Uint8Array(bytes))
+            requestSerialize: (message: CreateUserSubscriptionRequest) => Buffer.from(message.serialize()),
+            requestDeserialize: (bytes: Buffer) => CreateUserSubscriptionRequest.deserialize(new Uint8Array(bytes)),
+            responseSerialize: (message: CreateUserSubscriptionResponse) => Buffer.from(message.serialize()),
+            responseDeserialize: (bytes: Buffer) => CreateUserSubscriptionResponse.deserialize(new Uint8Array(bytes))
         }
     };
     [method: string]: grpc_1.UntypedHandleCall;
-    abstract CheckUserAccess(call: grpc_1.ServerUnaryCall<CheckUserAccessRequest, CheckUserAccessResponse>, callback: grpc_1.sendUnaryData<CheckUserAccessResponse>): void;
     abstract GetUserSubscription(call: grpc_1.ServerUnaryCall<GetUserSubscriptionRequest, GetUserSubscriptionResponse>, callback: grpc_1.sendUnaryData<GetUserSubscriptionResponse>): void;
     abstract GetPlans(call: grpc_1.ServerUnaryCall<GetPlansRequest, GetPlansResponse>, callback: grpc_1.sendUnaryData<GetPlansResponse>): void;
     abstract CreateCheckoutSession(call: grpc_1.ServerUnaryCall<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>, callback: grpc_1.sendUnaryData<CreateCheckoutSessionResponse>): void;
-    abstract UpdateUserUsage(call: grpc_1.ServerUnaryCall<UpdateUserUsageRequest, UpdateUserUsageResponse>, callback: grpc_1.sendUnaryData<UpdateUserUsageResponse>): void;
-    abstract InitializeUser(call: grpc_1.ServerUnaryCall<InitializeUserRequest, InitializeUserResponse>, callback: grpc_1.sendUnaryData<InitializeUserResponse>): void;
+    abstract CreateUserSubscription(call: grpc_1.ServerUnaryCall<CreateUserSubscriptionRequest, CreateUserSubscriptionResponse>, callback: grpc_1.sendUnaryData<CreateUserSubscriptionResponse>): void;
 }
 export class PaymentServiceClient {
     private _address: string;
@@ -2198,10 +1437,6 @@ export class PaymentServiceClient {
         options.format = options.format || "text";
         this._address = address;
         this._client = new grpc_web_1.GrpcWebClientBase(options);
-    }
-    private static CheckUserAccess = new grpc_web_1.MethodDescriptor<CheckUserAccessRequest, CheckUserAccessResponse>("/paymentservice.PaymentService/CheckUserAccess", grpc_web_1.MethodType.UNARY, CheckUserAccessRequest, CheckUserAccessResponse, (message: CheckUserAccessRequest) => message.serialize(), CheckUserAccessResponse.deserialize);
-    CheckUserAccess(message: CheckUserAccessRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<CheckUserAccessRequest, CheckUserAccessResponse>(this._address + "/paymentservice.PaymentService/CheckUserAccess", message, metadata || {}, PaymentServiceClient.CheckUserAccess);
     }
     private static GetUserSubscription = new grpc_web_1.MethodDescriptor<GetUserSubscriptionRequest, GetUserSubscriptionResponse>("/paymentservice.PaymentService/GetUserSubscription", grpc_web_1.MethodType.UNARY, GetUserSubscriptionRequest, GetUserSubscriptionResponse, (message: GetUserSubscriptionRequest) => message.serialize(), GetUserSubscriptionResponse.deserialize);
     GetUserSubscription(message: GetUserSubscriptionRequest, metadata: grpc_web_1.Metadata | null) {
@@ -2215,12 +1450,8 @@ export class PaymentServiceClient {
     CreateCheckoutSession(message: CreateCheckoutSessionRequest, metadata: grpc_web_1.Metadata | null) {
         return this._client.thenableCall<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>(this._address + "/paymentservice.PaymentService/CreateCheckoutSession", message, metadata || {}, PaymentServiceClient.CreateCheckoutSession);
     }
-    private static UpdateUserUsage = new grpc_web_1.MethodDescriptor<UpdateUserUsageRequest, UpdateUserUsageResponse>("/paymentservice.PaymentService/UpdateUserUsage", grpc_web_1.MethodType.UNARY, UpdateUserUsageRequest, UpdateUserUsageResponse, (message: UpdateUserUsageRequest) => message.serialize(), UpdateUserUsageResponse.deserialize);
-    UpdateUserUsage(message: UpdateUserUsageRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<UpdateUserUsageRequest, UpdateUserUsageResponse>(this._address + "/paymentservice.PaymentService/UpdateUserUsage", message, metadata || {}, PaymentServiceClient.UpdateUserUsage);
-    }
-    private static InitializeUser = new grpc_web_1.MethodDescriptor<InitializeUserRequest, InitializeUserResponse>("/paymentservice.PaymentService/InitializeUser", grpc_web_1.MethodType.UNARY, InitializeUserRequest, InitializeUserResponse, (message: InitializeUserRequest) => message.serialize(), InitializeUserResponse.deserialize);
-    InitializeUser(message: InitializeUserRequest, metadata: grpc_web_1.Metadata | null) {
-        return this._client.thenableCall<InitializeUserRequest, InitializeUserResponse>(this._address + "/paymentservice.PaymentService/InitializeUser", message, metadata || {}, PaymentServiceClient.InitializeUser);
+    private static CreateUserSubscription = new grpc_web_1.MethodDescriptor<CreateUserSubscriptionRequest, CreateUserSubscriptionResponse>("/paymentservice.PaymentService/CreateUserSubscription", grpc_web_1.MethodType.UNARY, CreateUserSubscriptionRequest, CreateUserSubscriptionResponse, (message: CreateUserSubscriptionRequest) => message.serialize(), CreateUserSubscriptionResponse.deserialize);
+    CreateUserSubscription(message: CreateUserSubscriptionRequest, metadata: grpc_web_1.Metadata | null) {
+        return this._client.thenableCall<CreateUserSubscriptionRequest, CreateUserSubscriptionResponse>(this._address + "/paymentservice.PaymentService/CreateUserSubscription", message, metadata || {}, PaymentServiceClient.CreateUserSubscription);
     }
 }
