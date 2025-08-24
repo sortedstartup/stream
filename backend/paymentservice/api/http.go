@@ -214,7 +214,33 @@ func (s *HTTPServer) handleSubscriptionUpdated(event stripe.Event) error {
 		return fmt.Errorf("failed to parse subscription: %w", err)
 	}
 
-	log.Printf("Successfully processed subscription update %s", subscription.ID)
+	log.Printf("Processing subscription update: %s, status: %s", subscription.ID, subscription.Status)
+
+	// Try to find user by provider_subscription_id
+	userID, err := s.findUserBySubscriptionID(subscription.ID)
+	if err != nil {
+		log.Printf("Could not find user for subscription %s: %v", subscription.ID, err)
+		return nil // Don't fail webhook for this
+	}
+
+	now := time.Now().Unix()
+
+	// Update subscription status and billing period based on Stripe data
+	periodStart := sql.NullInt64{Int64: subscription.CurrentPeriodStart, Valid: true}
+	periodEnd := sql.NullInt64{Int64: subscription.CurrentPeriodEnd, Valid: true}
+
+	err = s.db.UpdateUserSubscriptionStatus(context.Background(), db.UpdateUserSubscriptionStatusParams{
+		UserID:             userID,
+		Status:             string(subscription.Status),
+		CurrentPeriodStart: periodStart,
+		CurrentPeriodEnd:   periodEnd,
+		UpdatedAt:          now,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update subscription status for user %s: %w", userID, err)
+	}
+
+	log.Printf("Successfully updated subscription %s for user %s to status: %s", subscription.ID, userID, subscription.Status)
 	return nil
 }
 
@@ -225,7 +251,30 @@ func (s *HTTPServer) handleSubscriptionDeleted(event stripe.Event) error {
 		return fmt.Errorf("failed to parse subscription: %w", err)
 	}
 
-	log.Printf("Successfully processed subscription deletion %s", subscription.ID)
+	log.Printf("Processing subscription deletion: %s", subscription.ID)
+
+	// Try to find user by provider_subscription_id
+	userID, err := s.findUserBySubscriptionID(subscription.ID)
+	if err != nil {
+		log.Printf("Could not find user for subscription %s: %v", subscription.ID, err)
+		return nil // Don't fail webhook for this
+	}
+
+	now := time.Now().Unix()
+
+	// Update subscription status to canceled
+	err = s.db.UpdateUserSubscriptionStatus(context.Background(), db.UpdateUserSubscriptionStatusParams{
+		UserID:             userID,
+		Status:             "canceled",
+		CurrentPeriodStart: sql.NullInt64{},
+		CurrentPeriodEnd:   sql.NullInt64{},
+		UpdatedAt:          now,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update subscription status to canceled for user %s: %w", userID, err)
+	}
+
+	log.Printf("Successfully canceled subscription %s for user %s", subscription.ID, userID)
 	return nil
 }
 

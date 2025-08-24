@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	paymentProto "sortedstartup.com/stream/paymentservice/proto"
+	"sortedstartup.com/stream/videoservice/proto"
 )
 
 // backfillFileSizes calculates and updates file sizes for existing videos that don't have this data
@@ -121,50 +121,24 @@ func (s *VideoAPI) processVideosBackfill(ctx context.Context, db *sql.DB) error 
 		"failed", failed,
 		"usersAffected", len(userStorageUpdates))
 
-	// Update payment service usage for each user
+	// Update VideoService storage usage for each user
 	if len(userStorageUpdates) > 0 {
-		s.log.Info("Updating payment service storage usage for users", "userCount", len(userStorageUpdates))
+		s.log.Info("Updating VideoService storage usage for users", "userCount", len(userStorageUpdates))
 
 		var usersUpdated, usersFailed int
 		for userID, storageBytes := range userStorageUpdates {
-			// First, ensure user has a payment service record (defensive approach)
-			// Check if user has subscription, if not initialize them
-			userSubscription, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
-				UserId: userID,
-			})
-			s.log.Info("userSubscription", "userSubscription", userSubscription, "err", err)
-			if err != nil || (userSubscription != nil && !userSubscription.Success) {
-				s.log.Info("User has no payment service record, initializing", "userID", userID)
-				// Initialize payment service for this user
-				initResp, err := s.paymentServiceClient.InitializeUser(ctx, &paymentProto.InitializeUserRequest{
-					UserId: userID,
-				})
-				s.log.Info("initResp", "initResp", initResp)
-				if err != nil {
-					s.log.Error("Failed to initialize payment service for user during backfill",
-						"userID", userID,
-						"error", err)
-					usersFailed++
-					continue
-				}
-				if initResp != nil && !initResp.Success {
-					s.log.Error("Payment service initialization failed for user during backfill",
-						"userID", userID,
-						"error", initResp.ErrorMessage)
-					usersFailed++
-					continue
-				}
-				s.log.Info("Payment service initialized for user during backfill", "userID", userID)
-			}
+			// Update storage usage in videoservice_user_storage_usage table
+			s.log.Info("Updating storage usage for user during backfill",
+				"userID", userID,
+				"addedBytes", storageBytes)
 
-			// Update payment service with the storage used by this user
-			_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
+			// Use UpdateStorageUsage method to set the total storage usage
+			_, err := s.UpdateStorageUsage(ctx, &proto.UpdateStorageUsageRequest{
 				UserId:      userID,
-				UsageType:   "storage",
-				UsageChange: storageBytes, // Add the storage bytes found during backfill
+				UsageChange: storageBytes, // This sets the total usage
 			})
 			if err != nil {
-				s.log.Error("Failed to update payment service storage for user",
+				s.log.Error("Failed to update storage usage for user during backfill",
 					"userID", userID,
 					"storageBytes", storageBytes,
 					"error", err)
@@ -172,112 +146,19 @@ func (s *VideoAPI) processVideosBackfill(ctx context.Context, db *sql.DB) error 
 				continue
 			}
 
-			s.log.Info("Updated payment service storage for user",
+			s.log.Info("Storage usage updated successfully for user during backfill",
 				"userID", userID,
-				"addedBytes", storageBytes)
+				"storageBytes", storageBytes)
 			usersUpdated++
 		}
 
-		s.log.Info("Payment service storage updates completed",
+		s.log.Info("VideoService storage updates completed",
 			"usersUpdated", usersUpdated,
 			"usersFailed", usersFailed)
 
-		// Update user count for each unique user
-		s.log.Info("Updating payment service user counts", "userCount", len(uniqueUsers))
-		var userCountUpdated, userCountFailed int
-		for userID := range uniqueUsers {
-			// Calculate actual user count for this user across all their tenants
-			userCount, err := s.calculateUserCountForOwner(ctx, userID)
-			if err != nil {
-				s.log.Error("Failed to calculate user count for owner",
-					"userID", userID,
-					"error", err)
-				userCountFailed++
-				continue
-			}
-
-			if userCount == 0 {
-				s.log.Info("User has no tenants, skipping user count update", "userID", userID)
-				continue
-			}
-
-			// Get current user count from payment service to calculate the difference
-			currentUsage, err := s.paymentServiceClient.GetUserSubscription(ctx, &paymentProto.GetUserSubscriptionRequest{
-				UserId: userID,
-			})
-			if err != nil || !currentUsage.Success {
-				s.log.Error("Failed to get current usage for user count calculation", "userID", userID, "error", err)
-				userCountFailed++
-				continue
-			}
-
-			currentUserCount := int64(0)
-			if currentUsage.SubscriptionInfo != nil && currentUsage.SubscriptionInfo.Usage != nil {
-				currentUserCount = int64(currentUsage.SubscriptionInfo.Usage.UsersCount)
-			}
-
-			// Calculate the difference needed to reach the correct count
-			userCountDifference := userCount - currentUserCount
-
-			if userCountDifference == 0 {
-				s.log.Info("User count already correct", "userID", userID, "count", userCount)
-				continue
-			}
-
-			// Update payment service with the difference (can be positive or negative)
-			_, err = s.paymentServiceClient.UpdateUserUsage(ctx, &paymentProto.UpdateUserUsageRequest{
-				UserId:      userID,
-				UsageType:   "users",
-				UsageChange: userCountDifference, // Difference to reach correct count
-			})
-			if err != nil {
-				s.log.Error("Failed to update payment service user count",
-					"userID", userID,
-					"userCount", userCount,
-					"currentCount", currentUserCount,
-					"difference", userCountDifference,
-					"error", err)
-				userCountFailed++
-				continue
-			}
-
-			s.log.Info("Updated payment service user count for user",
-				"userID", userID,
-				"previousCount", currentUserCount,
-				"newCount", userCount,
-				"difference", userCountDifference)
-			userCountUpdated++
-		}
-
-		s.log.Info("Payment service user count updates completed",
-			"userCountUpdated", userCountUpdated,
-			"userCountFailed", userCountFailed)
+		// Note: User count backfill is now handled by UserService, not VideoService
+		s.log.Info("User count backfill is now handled by UserService", "uniqueUsersFound", len(uniqueUsers))
 	}
 
 	return nil
-}
-
-// calculateUserCountForOwner calculates total users across all tenants owned by a user
-func (s *VideoAPI) calculateUserCountForOwner(ctx context.Context, ownerUserID string) (int64, error) {
-	// Query to get total user count across all tenants owned by this user
-	// This includes both personal and organizational tenants
-
-	query := `
-		SELECT COUNT(DISTINCT tu.user_id) as total_users
-		FROM userservice_tenants t
-		JOIN userservice_tenant_users tu ON t.id = tu.tenant_id
-		WHERE t.created_by = ?
-	`
-
-	var totalUsers int64
-	err := s.db.QueryRowContext(ctx, query, ownerUserID).Scan(&totalUsers)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count users for owner %s: %w", ownerUserID, err)
-	}
-
-	s.log.Info("Calculated user count for owner",
-		"ownerUserID", ownerUserID,
-		"totalUsers", totalUsers)
-
-	return totalUsers, nil
 }
